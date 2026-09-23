@@ -5,7 +5,7 @@ import { captureKernelRecords, restoreKernelRecords, KernelRecordCapture, type N
 const entity = JSON.stringify({ format: "hive-kernel", version: 21, revision: 7, time: 1.5, scene: { format: "hive-game", version: 3, game: "colony", components: [], materialCatalog: [], initial: [] }, next_work_generation: 1, next_party_sequence: 1, party_bindings: [], work_attempts: [], routes: [], direct: [], projectile_contacts: [], jobs: [], tasks: [], planner: { routeSearches: { entries: {}, occurrence: null, spent: 0 } } });
 function handle(seed: readonly { key: string; bytes: Uint8Array }[], fail = false): NativeRecordHandle & { freed: boolean; reads: number; inserts: number } {
   const records = new Map<string, Uint8Array>(seed.map(record => [record.key, Uint8Array.from(record.bytes)]));
-  const result = { freed: false, reads: 0, inserts: 0, free() { this.freed = true; }, manifest() { throw new Error("unexpected incremental capture"); }, keys() { return JSON.stringify([...records.keys()]); }, read(key: string) { this.reads += 1; return records.get(key)!; }, insert(key: string, bytes: Uint8Array) { this.inserts += 1; if (fail) throw new Error("insert failed"); records.set(key, bytes); } };
+  const result = { freed: false, reads: 0, inserts: 0, free() { this.freed = true; }, manifest() { throw new Error("unexpected incremental capture"); }, keys() { return JSON.stringify([...records.keys()].sort()); }, read(key: string) { this.reads += 1; return records.get(key)!; }, insert(key: string, bytes: Uint8Array) { this.inserts += 1; if (fail) throw new Error("insert failed"); records.set(key, bytes); } };
   return result;
 }
 function entityRecords(): { key: string; bytes: Uint8Array }[] {
@@ -58,15 +58,14 @@ function readEntityVersion(snapshot: ReturnType<typeof captureKernelRecords>): n
   return JSON.parse(new TextDecoder().decode(entityRecord.bytes)).version;
 }
 
-test("resident capture reuses unchanged bytes and removes deleted records without full JSON decoding", () => {
+test("resident capture transports only explicit bounded puts and removals", () => {
   const records = entityRecords();
-  const fullKeys = records.map(record => record.key);
   const first = handle(records);
-  first.manifest = () => JSON.stringify({ sequence: 1, base: null, revision: 7, time: 1.5, keys: fullKeys });
+  first.manifest = () => JSON.stringify({ sequence: 1, base: null, revision: 7, time: 1.5, removes: [] });
   const unchanged = handle([]);
-  unchanged.manifest = () => JSON.stringify({ sequence: 2, base: 1, revision: 7, time: 1.5, keys: fullKeys });
+  unchanged.manifest = () => JSON.stringify({ sequence: 2, base: 1, revision: 7, time: 1.5, removes: [] });
   const changed = handle([{ key: "kernel/state/root", bytes: new TextEncoder().encode(new TextDecoder().decode(records[0].bytes).replace('"revision":7', '"revision":8')) }]);
-  changed.manifest = () => JSON.stringify({ sequence: 3, base: 2, revision: 8, time: 1.5, keys: fullKeys });
+  changed.manifest = () => JSON.stringify({ sequence: 3, base: 2, revision: 8, time: 1.5, removes: ["kernel/state/entities/retired"] });
   const queue = [first, unchanged, changed];
   const sequences: (number | undefined)[] = [];
   const owner = new KernelRecordCapture({ capture_records(since) { sequences.push(since); return queue.shift()!; }, accept_records() {}, restore_records() { return 1; } });
@@ -74,26 +73,43 @@ test("resident capture reuses unchanged bytes and removes deleted records withou
   const b = owner.capture();
   assert.deepEqual(b.changes, { puts: [], removes: [] });
   assert.equal(unchanged.reads, 0);
-  assert.equal(b.snapshot.records[0].bytes, a.snapshot.records[0].bytes);
+  assert.deepEqual(b.snapshot, a.snapshot);
   const c = owner.capture();
   assert.equal(changed.reads, 1);
   assert.equal(c.changes.puts.length, 1);
+  assert.deepEqual(c.changes.removes, ["kernel/state/entities/retired"]);
   assert.equal(c.snapshot.revision, 8);
   assert.deepEqual(sequences, [0, 1, 2]);
   assert(first.freed && unchanged.freed && changed.freed);
 });
 
-test("capture after restore retains removal frontier and rejects missing delta bytes", () => {
+test("full recapture emits explicit old inventory removals and still validates required records", () => {
   const saved = captureKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } });
   const extra = { key: "kernel/state/entities/extra", bytes: new Uint8Array([1]) };
   const next = handle(entityRecords());
-  next.manifest = () => JSON.stringify({ sequence: 8, base: null, revision: 7, time: 1.5, keys: entityRecords().map(record => record.key) });
+  next.manifest = () => JSON.stringify({ sequence: 8, base: null, revision: 7, time: 1.5, removes: [extra.key] });
   const invalid = handle([]);
-  invalid.manifest = () => JSON.stringify({ sequence: 9, base: null, revision: 7, time: 1.5, keys: entityRecords().map(record => record.key) });
+  invalid.manifest = () => JSON.stringify({ sequence: 9, base: null, revision: 7, time: 1.5, removes: [] });
   const queue = [next, invalid];
   const owner = new KernelRecordCapture({ capture_records: () => queue.shift()!, accept_records() {}, restore_records() { return 1; } });
   owner.restored({ ...saved, records: [...saved.records, extra] }, 7);
-  assert.deepEqual(owner.capture().changes.removes, [extra.key]);
-  assert.throws(() => owner.capture(), /omitted a required record/);
+  const restored = owner.capture();
+  assert.deepEqual(restored.changes.removes, [extra.key]);
+  assert.deepEqual(restored.changes.puts.map(record => record.key), entityRecords().map(record => record.key).sort());
+  assert.throws(() => owner.capture(), /missing native record header/);
   assert(invalid.freed);
+});
+
+test("incremental manifest rejects duplicate put keys and overlapping tombstones", () => {
+  const records = entityRecords();
+  const duplicate = handle(records);
+  duplicate.keys = () => JSON.stringify(["kernel/header", "kernel/header"]);
+  duplicate.manifest = () => JSON.stringify({ sequence: 1, base: null, revision: 7, time: 1.5, removes: [] });
+  const overlap = handle(records);
+  overlap.manifest = () => JSON.stringify({ sequence: 1, base: null, revision: 7, time: 1.5, removes: ["kernel/header"] });
+  const queue = [duplicate, overlap];
+  const owner = new KernelRecordCapture({ capture_records() { return queue.shift()!; }, accept_records() {}, restore_records() { return 1; } });
+  assert.throws(() => owner.capture(), /not canonical/);
+  assert.throws(() => owner.capture(), /invalid native removed records/);
+  assert(duplicate.freed && overlap.freed);
 });

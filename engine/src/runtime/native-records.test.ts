@@ -29,6 +29,12 @@ function restore(kernel: WasmKernel, parts: readonly RecordPart[]) {
   // wasm-bindgen consumes this detached handle on both success and rejection.
   kernel.restore_records(handle);
 }
+function applyChanges(base: readonly RecordPart[], changes: { readonly puts: readonly RecordPart[]; readonly removes: readonly string[] }): RecordPart[] {
+  const records = new Map(base.map(({ key, bytes }) => [key, Uint8Array.from(bytes)]));
+  for (const key of changes.removes) records.delete(key);
+  for (const { key, bytes } of changes.puts) records.set(key, Uint8Array.from(bytes));
+  return [...records].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, bytes]) => ({ key, bytes }));
+}
 
 
 test("actual WASM captures opaque water records and restores atomically", () => {
@@ -92,17 +98,19 @@ test("native resident captures transfer zero unchanged bytes and preserve indepe
     const initial = captureWithoutEntityDecode();
     const exported = captureKernelRecords(kernel);
     const exportForRestore = structuredClone(exported);
+    const baseRows = exportForRestore.records;
     exported.records[0].bytes.fill(0);
     const unchanged = captureWithoutEntityDecode();
     assert.deepEqual(unchanged.changes, { puts: [], removes: [] });
-    assert.deepEqual(unchanged.snapshot, exportForRestore);
+    assert.deepEqual(unchanged.snapshot, initial.snapshot);
     kernel.advance(JSON.stringify({ delta: 0.2, writes: [], actions: [] }));
     const advanced = captureWithoutEntityDecode();
     assert(advanced.changes.puts.length > 0);
     assert(!advanced.changes.puts.some(record => ["kernel/environment/terrain", "kernel/environment/structures", "kernel/environment/definition"].includes(record.key)));
-    assert.deepEqual(advanced.snapshot.records, capture(kernel));
-    restoreKernelRecords(recovered, () => new WasmKernelRecords(), advanced.snapshot);
-    assert.deepEqual(capture(recovered), advanced.snapshot.records);
+    const materialized = applyChanges(baseRows, advanced.changes);
+    assert.deepEqual(materialized, capture(kernel));
+    restore(recovered, materialized);
+    assert.deepEqual(capture(recovered), materialized);
     // A restore to an older committed state invalidates the resident's local
     // frontier. A full recapture removes anything absent from that state.
     const sequence = restoreKernelRecords(kernel, () => new WasmKernelRecords(), exportForRestore);
@@ -135,12 +143,14 @@ test("cold recovery above one MiB starts from its committed capture frontier", (
     const owner = new KernelRecordCapture(recovered);
     owner.restored(saved, sequence);
     assert.deepEqual(owner.capture().changes, { puts: [], removes: [] });
+    let durableRows = saved.records;
     recovered.advance(JSON.stringify({ delta: 0, writes: [], actions: [] }));
     const changed = owner.capture();
     const stepBytes = changed.changes.puts.reduce((sum, record) => sum + record.bytes.byteLength, 0);
     assert(stepBytes > 0 && stepBytes <= 1024 * 1024);
     checkedChange(changed.changes, { recordBytes: 256 * 1024, records: 4096, changedRecords: 128, storageBytes: 16 * 1024 * 1024 });
-    assert.deepEqual(changed.snapshot.records, capture(recovered));
+    durableRows = applyChanges(durableRows, changed.changes);
+    assert.deepEqual(durableRows, capture(recovered));
     // A rejected restore must not advance the native baseline or invalidate
     // the still-live JS cursor; retries keep the exact committed bytes.
     const malformed = { ...saved, records: saved.records.map(record => record.key === "kernel/header"
@@ -150,10 +160,8 @@ test("cold recovery above one MiB starts from its committed capture frontier", (
     recovered.load(JSON.stringify({ format: "hive-game", version: 3, game: "replacement", components: [], materialCatalog: [], initial: [] }));
     const replacement = owner.capture();
     assert(replacement.changes.removes.length >= 4, "reset removes the old world's trailing chunks");
-    const stored = new Map(changed.snapshot.records.map(record => [record.key, record.bytes]));
-    for (const key of replacement.changes.removes) stored.delete(key);
-    for (const record of replacement.changes.puts) stored.set(record.key, record.bytes);
-    assert.deepEqual([...stored].sort(([a], [b]) => a.localeCompare(b)).map(([key, bytes]) => ({ key, bytes })), capture(recovered));
+    durableRows = applyChanges(durableRows, replacement.changes);
+    assert.deepEqual(durableRows, capture(recovered));
     t.diagnostic(JSON.stringify({ baselineBytes, stepBytes, changedRecords: changed.changes.puts.length }));
   } finally { source.free(); recovered.free(); }
 });
@@ -176,7 +184,7 @@ test("a short/long change to the first entity leaves every other persistence ide
       assert.deepEqual(changed.changes.puts.map(row => row.key).sort(), ["kernel/state/entities/entity-0000", "kernel/state/root"]);
       assert.deepEqual(changed.changes.removes, []);
       checkedChange(changed.changes, { recordBytes: 256 * 1024, records: 4096, changedRecords: 1024, storageBytes: 8 * 1024 * 1024 });
-      restoreKernelRecords(recovered, () => new WasmKernelRecords(), changed.snapshot);
+      restoreKernelRecords(recovered, () => new WasmKernelRecords(), captureKernelRecords(kernel));
       assert.deepEqual(capture(recovered), capture(kernel));
       owner.acceptCapture();
     }
@@ -201,10 +209,12 @@ test("distributed 100-worker fixture stays within changed-record admission throu
     session.start();
     session.captureForCommit();
     session.acceptCapture();
+    let durableRows = session.save().kernel.records;
     for (let step = 1; step <= 40; step++) {
       session.runDisposableCandidate(() => {
         session.step(.1);
         const capture = session.captureForCommit();
+        durableRows = applyChanges(durableRows, capture.changes);
         checkedChange(capture.changes, { recordBytes: 256 * 1024, records: 4096, changedRecords: 1024, storageBytes: 8 * 1024 * 1024 });
         const bytes = capture.changes.puts.reduce((sum, record) => sum + record.bytes.length + new TextEncoder().encode(record.key).length + 16, 0);
         maxBytes = Math.max(maxBytes, bytes);
@@ -212,11 +222,12 @@ test("distributed 100-worker fixture stays within changed-record admission throu
         if (step === 20) {
           const recovered = new WasmKernel();
           try {
-            restoreKernelRecords(recovered, () => new WasmKernelRecords(), capture.snapshot.kernel);
-            assert.deepEqual(captureKernelRecords(recovered), capture.snapshot.kernel);
+            const checkpoint = session.save().kernel;
+            restoreKernelRecords(recovered, () => new WasmKernelRecords(), checkpoint);
+            assert.deepEqual(captureKernelRecords(recovered), checkpoint);
           } finally { recovered.free(); }
         }
-        if (step % 10 === 0) assert.deepEqual(capture.snapshot.kernel, port.snapshot(), "journal delta matches detached checkpoint");
+        if (step % 10 === 0) assert.deepEqual(durableRows, session.save().kernel.records, "journal delta matches detached checkpoint");
         session.acceptCapture();
       });
     }
@@ -232,7 +243,9 @@ test("capture acknowledgement preserves later mutations and discarded candidates
       initial: [{ id: "a", components: { "fixture.text": { value: "before" } } }, { id: "b", components: { "fixture.text": { value: "before" } } }],
     }));
     const owner = new KernelRecordCapture(kernel);
-    const committed = structuredClone(owner.capture().snapshot);
+    owner.capture();
+    const committed = captureKernelRecords(kernel);
+    let durableRows = committed.records;
     owner.acceptCapture();
     owner.capture();
     const write = (target: WasmKernel, id: string, value: string) => target.advance(JSON.stringify({ delta: 0, writes: [{ entity: id, component: "fixture.text", value: { value } }], actions: [] }));
@@ -240,17 +253,21 @@ test("capture acknowledgement preserves later mutations and discarded candidates
     owner.acceptCapture(); // acknowledges only the generation captured before a changed
     const first = owner.capture();
     assert(first.changes.puts.some(row => row.key === "kernel/state/entities/a"));
+    durableRows = applyChanges(durableRows, first.changes);
     write(kernel, "b", "second-provisional-occurrence");
     const second = owner.capture();
     assert(second.changes.puts.some(row => row.key === "kernel/state/entities/b"));
-    assert.deepEqual(second.snapshot, captureKernelRecords(kernel));
+    durableRows = applyChanges(durableRows, second.changes);
+    assert.deepEqual(durableRows, captureKernelRecords(kernel).records);
     const sequence = restoreKernelRecords(recovered, () => new WasmKernelRecords(), committed);
     const restored = new KernelRecordCapture(recovered);
     restored.restored(committed, sequence);
     assert.deepEqual(restored.capture().changes, { puts: [], removes: [] });
     write(recovered, "a", "after-first-capture");
     write(recovered, "b", "second-provisional-occurrence");
-    assert.deepEqual(restored.capture().snapshot, second.snapshot, "retry produces the same one final state");
+    const retry = restored.capture();
+    assert.deepEqual(retry.snapshot, second.snapshot, "retry reproduces the same frontier");
+    assert.deepEqual(applyChanges(committed.records, retry.changes), durableRows, "retry reproduces the same canonical rows");
     owner.acceptCapture();
     assert.throws(() => owner.acceptCapture(), /not awaiting acknowledgement/);
     assert.deepEqual(owner.capture().changes, { puts: [], removes: [] });

@@ -42,6 +42,8 @@ pub(crate) struct RecordDelta { pub puts: RecordBundle, pub removes: Vec<String>
 pub(crate) struct RecordCapture {
     sequence: u32,
     baseline: Option<RecordBundle>,
+    /// Rebuildable native key index used only to emit tombstones after invalidation.
+    known_keys: std::collections::BTreeSet<String>,
     journal: Option<crate::world::JournalToken>,
 }
 
@@ -51,7 +53,8 @@ pub(crate) struct CaptureManifest {
     pub base: Option<u32>,
     pub revision: u64,
     pub time: f64,
-    pub keys: Vec<String>,
+    /// Exact SQL inventory tombstones committed with this capture.
+    pub removes: Vec<String>,
 }
 
 impl RecordCapture {
@@ -80,10 +83,14 @@ impl RecordCapture {
         for id in searches {
             let prefix = format!("{}{id}.", crate::search_records::PREFIX);
             let absent: Vec<_> = baseline.records.keys().filter(|key| key.starts_with(&prefix) && !delta.records.contains_key(*key)).cloned().collect();
-            for key in absent { baseline.remove(&key); }
+            removes.extend(absent);
         }
         let mut changed = RecordBundle::new();
-        for key in removes { baseline.remove(&key); }
+        let mut removed = std::collections::BTreeSet::new();
+        for key in removes {
+            if baseline.records.contains_key(&key) { removed.insert(key.clone()); }
+            baseline.remove(&key);
+        }
         for (key, bytes) in delta.records {
             if key == HEADER_KEY {
                 // Capability presence is stable for a resident capture cursor.
@@ -93,6 +100,7 @@ impl RecordCapture {
             } else if baseline.records.get(&key) != Some(&bytes) {
                 changed.insert(&key, &bytes)?;
                 baseline.replace(&key, bytes)?;
+                removed.remove(&key);
             }
         }
         let (mut header, _): (Header, &[u8]) = take_from_bytes(baseline.records.get(HEADER_KEY).ok_or("missing record header")?).map_err(|_| "invalid record header")?;
@@ -104,15 +112,17 @@ impl RecordCapture {
         let header = postcard::to_allocvec(&header).map_err(|_| "record header encoding failed")?;
         if header != old_header { changed.insert(HEADER_KEY, &header)?; }
         baseline.replace(HEADER_KEY, header)?;
-        let keys = baseline.keys();
+        for key in &removed { self.known_keys.remove(key); }
+        for key in changed.records.keys() { self.known_keys.insert(key.clone()); }
         self.baseline = Some(baseline);
         self.sequence = sequence;
-        Ok((changed, CaptureManifest { sequence, base: Some(since), revision, time, keys }))
+        Ok((changed, CaptureManifest { sequence, base: Some(since), revision, time, removes: removed.into_iter().collect() }))
     }
     pub fn restore(&mut self, baseline: RecordBundle, restore: impl FnOnce(&RecordBundle) -> Result<(), String>) -> Result<u32, String> {
         let sequence = self.sequence.checked_add(1).ok_or("record capture sequence exhausted")?;
         // Failure leaves both the physical world and its capture frontier intact.
         restore(&baseline)?;
+        self.known_keys = baseline.records.keys().cloned().collect();
         self.sequence = sequence;
         self.baseline = Some(baseline);
         self.journal = None;
@@ -120,19 +130,22 @@ impl RecordCapture {
     }
     pub fn capture(&mut self, next: RecordBundle, since: Option<u32>, revision: u64, time: f64)
         -> Result<(RecordBundle, CaptureManifest), String> {
-        let keys = next.keys();
         // No cursor means a detached export. It cannot disturb a resident's
         // incremental baseline, even when a save is requested between steps.
         let Some(since) = since else {
-            return Ok((next, CaptureManifest { sequence: 0, base: None, revision, time, keys }));
+            return Ok((next, CaptureManifest { sequence: 0, base: None, revision, time, removes: Vec::new() }));
         };
         let sequence = self.sequence.checked_add(1).ok_or("record capture sequence exhausted")?;
-        let baseline = self.baseline.as_ref().filter(|_| since == self.sequence);
+        let prior = self.baseline.as_ref();
+        let baseline = prior.filter(|_| since == self.sequence);
         let records: BTreeMap<String, Vec<u8>> = next.records.iter().filter(|(key, bytes)|
             baseline.and_then(|prior| prior.records.get(*key)) != Some(*bytes))
             .map(|(key, bytes)| (key.clone(), bytes.clone())).collect();
-        let manifest = CaptureManifest { sequence, base: baseline.map(|_| since), revision, time, keys };
+        let next_keys: std::collections::BTreeSet<String> = next.records.keys().cloned().collect();
+        let removes = self.known_keys.difference(&next_keys).cloned().collect();
+        let manifest = CaptureManifest { sequence, base: baseline.map(|_| since), revision, time, removes };
         self.sequence = sequence;
+        self.known_keys = next_keys;
         self.baseline = Some(next);
         let total_bytes = records.values().map(Vec::len).sum();
         Ok((RecordBundle { records, total_bytes, private_entity_bytes: 0 }, manifest))
@@ -422,14 +435,20 @@ mod tests {
     fn capture_transfers_only_exact_changed_records_and_tracks_removals() {
         let mut cursor = RecordCapture::default();
         let (first, first_manifest) = cursor.capture(capture_bundle(&"a".repeat(4096)), Some(0), 1, 0.1).unwrap();
-        assert_eq!(first.keys(), first_manifest.keys);
+        assert!(first.keys().contains(&"kernel/state/root".to_owned()));
+        assert!(first_manifest.removes.is_empty());
         let (same, same_manifest) = cursor.capture(capture_bundle(&"a".repeat(4096)), Some(first_manifest.sequence), 1, 0.1).unwrap();
         assert!(same.keys().is_empty());
         assert_eq!(same_manifest.base, Some(first_manifest.sequence));
         let (changed, manifest) = cursor.capture(capture_bundle("b"), Some(same_manifest.sequence), 2, 0.2).unwrap();
         assert_eq!(changed.keys(), vec!["kernel/state/entities/subject"]);
-        assert!(manifest.keys.contains(&"kernel/state/root".to_owned()));
+        assert!(manifest.removes.is_empty());
         assert!(String::from_utf8(changed.read("kernel/state/entities/subject").unwrap()).unwrap().contains("b"));
+        let mut retired_state = capture_bundle("b");
+        retired_state.remove("kernel/state/entities/subject");
+        let (retired_delta, retired_manifest) = cursor.capture(retired_state, Some(manifest.sequence), 3, 0.3).unwrap();
+        assert_eq!(retired_manifest.removes, vec!["kernel/state/entities/subject"]);
+        assert!(!retired_delta.keys().contains(&"kernel/state/entities/subject".to_owned()));
     }
 
     #[test]
@@ -437,13 +456,15 @@ mod tests {
         let mut cursor = RecordCapture::default();
         let (_, first) = cursor.capture(capture_bundle("one"), Some(0), 0, 0.0).unwrap();
         let (export, detached) = cursor.capture(capture_bundle("one"), None, 0, 0.0).unwrap();
-        assert_eq!(export.keys(), detached.keys);
+        assert!(export.keys().contains(&"kernel/state/root".to_owned()));
+        assert!(detached.removes.is_empty());
         assert_eq!(detached.sequence, 0);
         let (unchanged, second) = cursor.capture(capture_bundle("one"), Some(first.sequence), 0, 0.0).unwrap();
         assert!(unchanged.keys().is_empty());
         let (resync, third) = cursor.capture(capture_bundle("one"), Some(first.sequence), 0, 0.0).unwrap();
-        assert_eq!(resync.keys(), third.keys);
+        assert!(resync.keys().contains(&"kernel/state/root".to_owned()));
         assert!(third.base.is_none());
+        assert!(third.removes.is_empty());
         assert!(third.sequence > second.sequence);
     }
     #[test]

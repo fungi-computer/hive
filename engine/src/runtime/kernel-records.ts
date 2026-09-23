@@ -40,9 +40,17 @@ export interface KernelRecordSnapshot {
   readonly records: readonly { readonly key: string; readonly bytes: Uint8Array }[];
 }
 
+/** Metadata only for one committed resident capture; rows remain in Region SQL. */
+export interface KernelRecordFrontier {
+  readonly format: "hive-kernel-records";
+  readonly version: 4;
+  readonly revision: number;
+  readonly time: number;
+}
+
 export interface KernelRecordCaptureResult {
-  /** Borrowed immutable bytes, owned by the resident until its next capture. */
-  readonly snapshot: KernelRecordSnapshot;
+  /** Capture metadata; the full row inventory is reconstructed only on hydration/export. */
+  readonly snapshot: KernelRecordFrontier;
   readonly changes: {
     readonly puts: KernelRecordSnapshot["records"];
     readonly removes: readonly string[];
@@ -216,18 +224,15 @@ function preflightRecords(records: readonly { readonly key: string; readonly byt
  * with its receipt; capture never acknowledges or commits simulation effects. */
 export class KernelRecordCapture {
   private sequence = 0;
-  private records = new Map<string, { readonly key: string; readonly bytes: Uint8Array }>();
-  private priorKeys: readonly string[] = [];
 
   constructor(private readonly binding: NativeRecordBinding) {}
 
   restored(snapshot: KernelRecordSnapshot, sequence: number): void {
     if (!Number.isInteger(sequence) || sequence <= 0 || sequence > 0xffffffff) throw new Error("invalid restored capture sequence");
     this.sequence = sequence;
-    // External restore inputs remain owned by their caller. A later mutation
-    // of those input bytes must not corrupt this resident's unchanged records.
-    this.records = new Map(snapshot.records.map(record => [record.key, { key: record.key, bytes: record.bytes.slice() }]));
-    this.priorKeys = snapshot.records.map(record => record.key);
+    if (snapshot.format !== "hive-kernel-records" || snapshot.version !== 4 ||
+        !isSafeRevision(snapshot.revision) || !isFiniteTime(snapshot.time))
+      throw new Error("invalid restored capture frontier");
   }
 
   acceptCapture(): void { this.binding.accept_records(this.sequence); }
@@ -236,35 +241,46 @@ export class KernelRecordCapture {
     const handle = this.binding.capture_records(this.sequence);
     try {
       const manifest = JSON.parse(handle.manifest()) as {
-        sequence: number; base: number | null; revision: number; time: number; keys: string[];
+        sequence: number; base: number | null; revision: number; time: number; removes: string[];
       };
       if (!manifest || !Number.isInteger(manifest.sequence) || manifest.sequence <= 0 || manifest.sequence > 0xffffffff ||
+          manifest.sequence !== this.sequence + 1 ||
           (manifest.base !== null && manifest.base !== this.sequence) ||
-          !isSafeRevision(manifest.revision) || !isFiniteTime(manifest.time) || !Array.isArray(manifest.keys))
+          !isSafeRevision(manifest.revision) || !isFiniteTime(manifest.time) ||
+          !Array.isArray(manifest.removes) || manifest.removes.length > MAX_KERNEL_RECORDS)
         throw new Error("invalid native capture manifest");
-      validateKeyList(manifest.keys);
-      const nextKeys = new Set(manifest.keys);
       const changedKeys: unknown = JSON.parse(handle.keys());
-      if (!Array.isArray(changedKeys) || changedKeys.length > MAX_KERNEL_RECORDS || new Set(changedKeys).size !== changedKeys.length ||
-          changedKeys.some(key => typeof key !== "string" || !nextKeys.has(key)))
+      if (!Array.isArray(changedKeys) || changedKeys.length > MAX_KERNEL_RECORDS ||
+          changedKeys.some(key => typeof key !== "string" || !keyAllowed(key)))
         throw new Error("invalid native changed records");
+      for (let index = 1; index < changedKeys.length; index++)
+        if (changedKeys[index - 1] >= changedKeys[index]) throw new Error("native changed records are not canonical");
+      const putKeys = new Set(changedKeys as string[]);
+      const removeSet = new Set<string>();
+      for (let index = 0; index < manifest.removes.length; index++) {
+        const key = manifest.removes[index];
+        if (!keyAllowed(key) || removeSet.has(key) || putKeys.has(key) ||
+            (index > 0 && manifest.removes[index - 1] >= key))
+          throw new Error("invalid native removed records");
+        removeSet.add(key);
+      }
       const puts = changedKeys.map(key => ({ key: key as string, bytes: handle.read(key) }));
-      const changed = new Map(puts.map(record => [record.key, record]));
-      const records = manifest.keys.map(key => {
-        const record = changed.get(key) ?? (manifest.base !== null ? this.records.get(key) : undefined);
-        if (!record) throw new Error("native capture omitted a required record");
-        return record;
-      });
-      // O(record count), no entity JSON decode and no unchanged bytes crossing WASM.
-      validateRecordEnvelope(records);
-      const removes = this.priorKeys.filter(key => !nextKeys.has(key));
-      const snapshot: KernelRecordSnapshot = {
-        format: "hive-kernel-records", version: 4, revision: manifest.revision, time: manifest.time, records,
+      let changedBytes = 0;
+      for (const record of puts) {
+        if (!(record.bytes instanceof Uint8Array) || record.bytes.byteLength > RECORD_BYTES ||
+            (record.key === "kernel/header" && record.bytes.byteLength > 65_568) ||
+            (record.key === "kernel/environment/header" && record.bytes.byteLength > 65_568) ||
+            (record.key === "kernel/environment/definition" && record.bytes.byteLength > 128 * 1024))
+          throw new Error("invalid native changed record bytes");
+        changedBytes += record.bytes.byteLength;
+      }
+      if (changedBytes > TOTAL_BYTES) throw new Error("changed kernel record bytes exceed 9MiB");
+      if (manifest.base === null) validateKeyList(changedKeys);
+      const snapshot: KernelRecordFrontier = {
+        format: "hive-kernel-records", version: 4, revision: manifest.revision, time: manifest.time,
       };
-      this.records = new Map(records.map(record => [record.key, record]));
-      this.priorKeys = manifest.keys;
       this.sequence = manifest.sequence;
-      return { snapshot, changes: { puts, removes } };
+      return { snapshot, changes: { puts, removes: manifest.removes } };
     } finally { handle.free(); }
   }
 }
