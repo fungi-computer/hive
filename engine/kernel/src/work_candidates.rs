@@ -25,7 +25,8 @@ pub struct TaskCandidate {
     pub due_tick: u64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PlanningWindow {
     pub workers: Vec<WorkerCandidate>,
     pub tasks: Vec<TaskCandidate>,
@@ -95,11 +96,115 @@ fn proposed_costs<Witness>(pairs: &BTreeMap<(String, String), CostState<Witness>
 /// TypeScript work system. Route validation remains a caller-supplied query of
 /// the one native movement owner; the returned witness can be admitted without
 /// repeating that search when its dependencies are still current.
+/// A bounded retained Hungarian result. This is a proposal, never a worker claim.
+/// Route checks and physical admission remain the caller's responsibility.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AssignmentEpisode {
+    candidates: Vec<Candidate>,
+    proposed: Vec<Assignment>,
+}
+
+impl AssignmentEpisode {
+    pub fn new(window: &PlanningWindow, candidates: &[Candidate]) -> Result<Self, PlanningError> {
+        validate_candidates(window, candidates)?;
+        Ok(Self { candidates: candidates.to_vec(), proposed: assign::optimize(candidates, MAX_CANDIDATE_PAIRS)? })
+    }
+
+    pub fn is_empty(&self) -> bool { self.proposed.is_empty() }
+
+    pub fn candidates(&self) -> &[Candidate] { &self.candidates }
+
+    pub fn validate(&self, window: &PlanningWindow) -> Result<(), PlanningError> {
+        validate_candidates(window, &self.candidates)?;
+        let mut workers = BTreeSet::new();
+        let mut tasks = BTreeSet::new();
+        for proposed in &self.proposed {
+            if !proposed.cost.is_finite() || proposed.cost < 0.0
+                || !workers.insert(&proposed.worker) || !tasks.insert(&proposed.task)
+                || !self.candidates.iter().any(|candidate| candidate.worker == proposed.worker && candidate.task == proposed.task)
+            {
+                return Err(PlanningError::Route("invalid retained matching".into()));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn advance<Witness>(
+        &mut self,
+        window: &PlanningWindow,
+        mut verify: impl FnMut(&Candidate) -> Result<SearchOutcome<(f64, Witness)>, String>,
+    ) -> Result<PlanningResult<Witness>, PlanningError> {
+        // Stable proposals need only the next eight route checks. Preserve the
+        // matrix in place; rebuild solver working state only for a real route
+        // rejection or material cost correction.
+        let mut checked = BTreeMap::new();
+        let mut stable = true;
+        for proposed in self.proposed.iter().take(MAX_ASSIGNMENTS) {
+            let candidate = self.candidates.iter().find(|candidate| candidate.worker == proposed.worker && candidate.task == proposed.task)
+                .ok_or_else(|| PlanningError::Route("retained proposal has no candidate".into()))?;
+            let outcome = verify(candidate).map_err(PlanningError::Route)?;
+            stable &= matches!(&outcome, SearchOutcome::Reachable((cost, _))
+                if cost.is_finite() && *cost >= candidate.cost && !materially_worse(candidate.cost, *cost));
+            checked.insert((candidate.worker.clone(), candidate.task.clone()), outcome);
+            if !stable { break; }
+        }
+        if stable {
+            let assignments = self.proposed.iter().take(MAX_ASSIGNMENTS).map(|proposed| {
+                let SearchOutcome::Reachable((cost, witness)) = checked.remove(&(proposed.worker.clone(), proposed.task.clone())).expect("checked proposal") else { unreachable!() };
+                VerifiedAssignment { worker: proposed.worker.clone(), task: proposed.task.clone(), cost, witness }
+            }).collect::<Vec<_>>();
+            let used_workers = assignments.iter().map(|assignment| assignment.worker.as_str()).collect::<BTreeSet<_>>();
+            let used_tasks = assignments.iter().map(|assignment| assignment.task.as_str()).collect::<BTreeSet<_>>();
+            self.candidates.retain(|candidate| !used_workers.contains(candidate.worker.as_str()) && !used_tasks.contains(candidate.task.as_str()));
+            self.proposed.retain(|proposed| !used_workers.contains(proposed.worker.as_str()) && !used_tasks.contains(proposed.task.as_str()));
+            return Ok(PlanningResult { route_validations: assignments.len(), assignments, deferred: Vec::new(), match_passes: 0 });
+        }
+        let (result, remaining) = run_verified(window, &self.candidates, Some(&self.proposed), |candidate| {
+            match checked.remove(&(candidate.worker.clone(), candidate.task.clone())) {
+                Some(outcome) => Ok(outcome),
+                None => verify(candidate),
+            }
+        })?;
+        *self = remaining;
+        Ok(result)
+    }
+}
+
+fn validate_candidates(window: &PlanningWindow, candidates: &[Candidate]) -> Result<(), PlanningError> {
+    if candidates.len() > MAX_CANDIDATE_PAIRS {
+        return Err(assign::AssignmentError::EdgeLimitExceeded { count: candidates.len(), limit: MAX_CANDIDATE_PAIRS }.into());
+    }
+    let mut seen = BTreeSet::new();
+    for candidate in candidates {
+        if !window.workers.iter().any(|worker| worker.id == candidate.worker)
+            || !window.tasks.iter().any(|task| task.id == candidate.task) {
+            return Err(PlanningError::PairOutsideWindow { worker: candidate.worker.clone(), task: candidate.task.clone() });
+        }
+        if !candidate.cost.is_finite() || candidate.cost < 0.0 {
+            return Err(PlanningError::InvalidLowerBound { worker: candidate.worker.clone(), task: candidate.task.clone() });
+        }
+        if !seen.insert((&candidate.worker, &candidate.task)) {
+            return Err(PlanningError::DuplicatePair { worker: candidate.worker.clone(), task: candidate.task.clone() });
+        }
+    }
+    Ok(())
+}
+
 pub fn assign_verified<Witness>(
     window: &PlanningWindow,
     candidates: &[Candidate],
-    mut verify: impl FnMut(&Candidate) -> Result<SearchOutcome<(f64, Witness)>, String>,
+    verify: impl FnMut(&Candidate) -> Result<SearchOutcome<(f64, Witness)>, String>,
 ) -> Result<PlanningResult<Witness>, PlanningError> {
+    run_verified(window, candidates, None, verify).map(|(result, _)| result)
+}
+
+fn run_verified<Witness>(
+    window: &PlanningWindow,
+    candidates: &[Candidate],
+    retained: Option<&[Assignment]>,
+    mut verify: impl FnMut(&Candidate) -> Result<SearchOutcome<(f64, Witness)>, String>,
+) -> Result<(PlanningResult<Witness>, AssignmentEpisode), PlanningError> {
     if candidates.len() > MAX_CANDIDATE_PAIRS {
         return Err(assign::AssignmentError::EdgeLimitExceeded { count: candidates.len(), limit: MAX_CANDIDATE_PAIRS }.into());
     }
@@ -121,9 +226,9 @@ pub fn assign_verified<Witness>(
     }
 
     let initial_costs = proposed_costs(&pairs);
-    let mut proposed = if initial_costs.is_empty() { Vec::new() } else { assign::optimize(&initial_costs, MAX_CANDIDATE_PAIRS)? };
+    let mut proposed = if let Some(retained) = retained { retained.to_vec() } else if initial_costs.is_empty() { Vec::new() } else { assign::optimize(&initial_costs, MAX_CANDIDATE_PAIRS)? };
     let mut route_validations = 0;
-    let mut match_passes = usize::from(!initial_costs.is_empty());
+    let mut match_passes = usize::from(retained.is_none() && !initial_costs.is_empty());
     while route_validations < MAX_ROUTE_VALIDATIONS {
         let reachable = proposed.iter().filter(|assignment| matches!(pairs.get(&(assignment.worker.clone(), assignment.task.clone())).map(|state| &state.exact), Some(ExactCost::Reachable { .. }))).count();
         if reachable >= MAX_ASSIGNMENTS { break; }
@@ -159,15 +264,22 @@ pub fn assign_verified<Witness>(
         }
     }
     let mut assignments = Vec::new();
-    for assignment in proposed {
+    for assignment in &proposed {
         if assignments.len() == MAX_ASSIGNMENTS { break; }
         let Some(state) = pairs.get_mut(&(assignment.worker.clone(), assignment.task.clone())) else { continue; };
         let ExactCost::Reachable { cost, witness } = &mut state.exact else { continue; };
         let Some(witness) = witness.take() else { continue; };
-        assignments.push(VerifiedAssignment { worker: assignment.worker, task: assignment.task, cost: *cost, witness });
+        assignments.push(VerifiedAssignment { worker: assignment.worker.clone(), task: assignment.task.clone(), cost: *cost, witness });
     }
+    let used_workers = assignments.iter().map(|assignment| assignment.worker.as_str()).collect::<BTreeSet<_>>();
+    let used_tasks = assignments.iter().map(|assignment| assignment.task.as_str()).collect::<BTreeSet<_>>();
+    let remaining = AssignmentEpisode {
+        candidates: pairs.iter().filter(|((worker, task), state)| !used_workers.contains(worker.as_str()) && !used_tasks.contains(task.as_str()) && !matches!(state.exact, ExactCost::Excluded | ExactCost::Deferred))
+            .map(|((worker, task), state)| Candidate { worker: worker.clone(), task: task.clone(), cost: state.bound }).collect(),
+        proposed: proposed.into_iter().filter(|assignment| !used_workers.contains(assignment.worker.as_str()) && !used_tasks.contains(assignment.task.as_str()) && pairs.get(&(assignment.worker.clone(), assignment.task.clone())).is_some_and(|state| !matches!(state.exact, ExactCost::Excluded | ExactCost::Deferred))).collect(),
+    };
     let deferred = pairs.into_iter().filter_map(|(key, state)| matches!(state.exact, ExactCost::Deferred).then_some(key)).collect();
-    Ok(PlanningResult { assignments, deferred, route_validations, match_passes })
+    Ok((PlanningResult { assignments, deferred, route_validations, match_passes }, remaining))
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -364,6 +476,35 @@ mod tests {
     use crate::components::{ExternalId, Party, PartyMember};
     use crate::registry::Registry;
     use crate::work_planner::PlannerState;
+    #[test]
+    fn retained_matching_dispatches_thirty_two_in_four_slices_across_reload() {
+        let window = PlanningWindow {
+            workers: (0..32).map(|n| WorkerCandidate { id: format!("w-{n:02}"), party: "p".into() }).collect(),
+            tasks: (0..32).map(|n| TaskCandidate { id: format!("t-{n:02}"), party: "p".into(), priority: 0, last_considered: 0, due_tick: 0 }).collect(),
+        };
+        let candidates = window.workers.iter().enumerate().flat_map(|(wi, worker)| window.tasks.iter().enumerate().map(move |(ti, task)| Candidate {
+            worker: worker.id.clone(), task: task.id.clone(), cost: wi.abs_diff(ti) as f64,
+        })).collect::<Vec<_>>();
+        let mut episode = AssignmentEpisode::new(&window, &candidates).unwrap();
+        let mut workers = BTreeSet::new();
+        let mut tasks = BTreeSet::new();
+        for _ in 0..4 {
+            let result = episode.advance(&window, |candidate| Ok(SearchOutcome::Reachable((candidate.cost, ())))).unwrap();
+            assert_eq!(result.assignments.len(), 8);
+            assert_eq!(result.route_validations, 8);
+            assert_eq!(result.match_passes, 0, "dispatch must reuse the initial Hungarian result");
+            for assignment in result.assignments {
+                assert!(workers.insert(assignment.worker));
+                assert!(tasks.insert(assignment.task));
+            }
+            episode = serde_json::from_str(&serde_json::to_string(&episode).unwrap()).unwrap();
+            episode.validate(&window).unwrap();
+        }
+        assert!(episode.is_empty());
+        assert_eq!(workers.len(), 32);
+        assert_eq!(tasks.len(), 32);
+    }
+
     #[test]
     fn fairness_rotates_parties_and_advances_on_empty_window() {
         let workers = vec![WorkerCandidate { id: "w-a".into(), party: "a".into() }, WorkerCandidate { id: "w-b".into(), party: "b".into() }];

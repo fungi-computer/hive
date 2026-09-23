@@ -443,6 +443,37 @@ in-envelope digging. A dense assignment graph may be held by one unresolved pair
 prove that reachable **new** work starts alongside inaccessible jobs, not merely
 that existing work continues. No decomposition framework is required to hide this.
 
+### September 23 implementation: retain the admitted matching
+
+The automatic native planner now saves one bounded `AssignmentEpisode` beneath
+`PlannerState`. A stable 32-task window runs Hungarian once, admits up to eight
+freshly route-checked claims per step, then continues the residual matching.
+Dispatch does not rerun Hungarian or rebuild candidate distances. Actual route
+failure or a material cost correction can still invoke the existing bounded
+rematching rule. No route search frontier is persisted by this cut.
+
+The continuation has a generation, admitted worker/task identities, dependency
+fingerprints and the residual candidate graph/proposals. Version 19 kernel
+snapshots and records carry it through the existing candidate transaction and
+recovery path. It holds no physical reservation, route authority or inventory.
+Fresh domain contributions and eligible pool membership invalidate stale inputs;
+a newly due higher-priority task preempts the window. Cancelled work drops out
+without discarding the other durable tasks. Blocker/surface fingerprints rebuild
+at the existing physical-index owner; continuation checks compare fixed-size keys.
+Terrain changes conservatively invalidate the retained window. Resource contention
+rejected at joint admission leaves the durable task due for ordinary reconsideration.
+
+Limits remain 32 task contributions, 256 workers, 4096 candidate pairs and eight
+admissions per step. A stable slice does eight route checks; correction cases retain
+the existing ceiling of 32 checks and eight rematching passes. Encoded continuation
+is bounded at 2 MiB and counts toward the existing 8 MiB canonical snapshot limit.
+Native laws cover 32 actual construction tasks admitted as 8+8+8+8, restoring records
+between every slice while retaining one matching generation; priority preemption,
+changed eligibility, unrelated motion, cancellation and failed-admission rollback.
+These are native correctness laws, not a hosted capacity or timing result. The full
+lazy-optimality and persisted-search-frontier requirements earlier in section 8
+remain future work; this correction does not claim to implement those algorithms.
+
 ## 9. Bounds and responsiveness targets
 
 Initial qualification policy, not measured capacity:
