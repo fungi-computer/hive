@@ -3039,7 +3039,11 @@ impl Kernel {
                     || history[contact_start..].windows(2).any(|pair| structure.blocks_swept_transition(pair[0], pair[1], &stairs).unwrap_or(true))) {
                     return Err("retained terrain contact is no longer traversable".into());
                 }
-                let mut path = crate::terrain_route::search_any_with_blocked_and_stairs_and_crossings(start_cell, &[destination_cell], config, &mut query, &obstacle, &stairs, &crossing)?.1;
+                let actor = &self.ecs.get::<ExternalId>(entity).ok_or("route actor lost identity")?.0;
+                let revision = environment.world.terrain_revision();
+                let mut query = |cell| environment.world.traversal_material(cell);
+                let mut path = self.planner.route_searches.search(actor, self.revision, revision, start_cell, &[destination_cell], config,
+                    &blocked, &mut query, &obstacle, &stairs, &crossing)?.1;
                 let mut points = crate::terrain_route::waypoints_with_stairs(&path, config, &stairs)?;
                 if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
                 if points.len() > 1 || !prefix.is_empty() { points.remove(0); }
@@ -3180,8 +3184,11 @@ impl Kernel {
         let crossing = |from: crate::generation::Cell, to: crate::generation::Cell| {
             structure.blocks_swept_transition(from, to, &stairs).unwrap_or(true)
         };
+        let actor = &self.ecs.get::<ExternalId>(entity).ok_or("route actor lost identity")?.0;
+        let revision = environment.world.terrain_revision();
         let mut query = |cell| environment.world.traversal_material(cell);
-        let (index,path) = crate::terrain_route::search_any_with_blocked_and_stairs_and_crossings(start_cell,&targets,config,&mut query,&obstacle,&stairs,&crossing)?;
+        let (index,path) = self.planner.route_searches.search(actor, self.revision, revision, start_cell, &targets, config,
+            &blocked, &mut query, &obstacle, &stairs, &crossing)?;
         let mut points = crate::terrain_route::waypoints_with_stairs(&path,config,&stairs)?;
         if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
         if points.len() > 1 { points.remove(0); }
@@ -6720,7 +6727,13 @@ impl Kernel {
     }
 
     fn invalidate_terrain_routes(&mut self) -> Result<()> {
-        let candidates: Vec<_> = self.terrain_routes.iter().filter_map(|(entity, state)| (!state.waiting).then_some(*entity)).collect();
+        // Recovery validates the complete saved witness set before admission.
+        self.invalidate_terrain_routes_bounded(usize::MAX)
+    }
+
+    fn invalidate_terrain_routes_bounded(&mut self, mut validation_budget: usize) -> Result<()> {
+        let mut candidates: Vec<_> = self.terrain_routes.iter().filter_map(|(entity, state)| (!state.waiting).then_some(*entity)).collect();
+        candidates.sort_by_key(|entity| self.ecs.get::<ExternalId>(*entity).map(|id| id.0.clone()));
         let mut invalid = Vec::new();
         for entity in candidates {
             let Some(capability) = self.ecs.get::<Traversal>(entity).copied() else { invalid.push(entity); continue };
@@ -6746,7 +6759,25 @@ impl Kernel {
                 }
             }
             let current_revision = environment_view.world.terrain_revision();
-            if self.terrain_routes.get(&entity).and_then(|state| state.revision) == Some(current_revision) { continue; }
+            let prior_revision = self.terrain_routes.get(&entity).and_then(|state| state.revision);
+            if prior_revision == Some(current_revision) { continue; }
+            if let Some(prior) = prior_revision {
+                if let crate::terrain_water::TerrainChangeSet::ChangedColumns { columns, .. } = environment_view.world.terrain_changes(prior) {
+                    let path = &self.terrain_routes[&entity].path;
+                    // Stair sweeps may occupy the columns between endpoints.
+                    // Checking each edge's horizontal envelope also handles hops.
+                    let intersects = columns.iter().any(|[x, z]| path.windows(2).any(|pair| {
+                        *x >= pair[0].x.min(pair[1].x) && *x <= pair[0].x.max(pair[1].x)
+                            && *z >= pair[0].z.min(pair[1].z) && *z <= pair[0].z.max(pair[1].z)
+                    }) || path.first().is_some_and(|cell| cell.x == *x && cell.z == *z));
+                    if !intersects {
+                        self.terrain_routes.get_mut(&entity).expect("route exists").revision = Some(current_revision);
+                        continue;
+                    }
+                }
+            }
+            if validation_budget == 0 { continue; }
+            validation_budget -= 1;
             let path = self.terrain_routes.get(&entity).map(|state| state.path.clone()).ok_or("terrain route witness missing")?;
             let environment = self.environment.as_mut().ok_or("terrain route needs environment")?;
             let config = crate::terrain_traversal::TraversalConfig {
@@ -6792,14 +6823,14 @@ impl Kernel {
 
     /// Replan a route that became stale at a terrain revision boundary. The
     /// native planner retains the active prefix/history while pricing the
-    /// replacement. A failed,
-    /// bounded search releases the destination and leaves a suspended contact
-    /// witness when the actor is between support centers.
+    /// replacement. A yielded search preserves intent and contact; a witnessed
+    /// dead end releases the destination while retaining mid-edge contact.
     fn recover_invalidated_terrain_routes(&mut self) -> Result<()> {
-        let candidates: Vec<_> = self.terrain_routes.iter()
+        let mut candidates: Vec<_> = self.terrain_routes.iter()
             .filter_map(|(entity, state)| (state.waiting && state.revision.is_none() && !state.suspended).then_some(*entity))
             .collect();
-        for entity in candidates {
+        candidates.sort_by_key(|entity| self.ecs.get::<ExternalId>(*entity).map(|id| id.0.clone()));
+        for entity in candidates.into_iter().take(8) {
             let Some(destination) = self.ecs.get::<Destination>(entity).cloned() else {
                 self.clear_destination(entity);
                 continue;
@@ -6811,9 +6842,10 @@ impl Kernel {
                 z: destination.z,
                 frame: destination.frame.clone(),
             };
-            match self.route_for(entity, position, &target) {
-                Ok(prepared) => self.install_route(entity, prepared),
-                Err(_) => {
+            match route_query::classify_route(self.route_for(entity, position, &target))? {
+                route_query::SearchOutcome::Reachable(prepared) => self.install_route(entity, prepared),
+                route_query::SearchOutcome::Deferred(_) => {},
+                route_query::SearchOutcome::NoPath(_) => {
                     // The destination is the lock seen by work and delivery
                     // callers, so clearing it is the explicit unreachable
                     // lifecycle outcome. The existing route witness remains
@@ -6827,7 +6859,7 @@ impl Kernel {
 
     fn advance_movement(&mut self, delta: f64) -> Result<()> {
         self.arrived_routes.clear();
-        self.invalidate_terrain_routes()?;
+        self.invalidate_terrain_routes_bounded(8)?;
         self.recover_invalidated_terrain_routes()?;
         self.routes.retain(|entity, path| {
             if self.terrain_routes.get(entity).is_some_and(|state| state.suspended) { return true; }
@@ -6837,14 +6869,17 @@ impl Kernel {
                 .get::<Destination>(*entity)
                 .expect("route destination")
                 .clone();
-            if self.terrain_routes.get(entity).is_some_and(|state| state.waiting) {
+            if self.terrain_routes.get(entity).is_some_and(|state| state.waiting
+                || state.revision != self.environment.as_ref().map(|environment| environment.world.terrain_revision())) {
                 return true;
             }
             let mut p = *self.ecs.get::<Position>(*entity).expect("route position");
             if self.terrain_routes.contains_key(entity) {
                 let blocked = self.blocked_by_frame.get(&None).expect("terrain obstacle index");
                 if terrain_motion_blocked(p, path, speed * delta, blocked) {
-                    self.terrain_routes.get_mut(entity).expect("terrain route").waiting = true;
+                    let state = self.terrain_routes.get_mut(entity).expect("terrain route");
+                    state.waiting = true;
+                    state.revision = None;
                     return true;
                 }
             }

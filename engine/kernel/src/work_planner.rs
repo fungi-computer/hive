@@ -133,11 +133,13 @@ pub struct PlannerState {
     pub review_tick: u64,
     /// Identity of the latest admitted planning computation.
     pub assignment_generation: u64,
+    pub(crate) route_searches: crate::terrain_route::SearchBank,
     pub(crate) continuation: Option<crate::world::native_work_planner::NativeAssignmentContinuation>,
 }
 
 impl PlannerState {
     pub fn validate(&self) -> Result<(), &'static str> {
+        self.route_searches.validate()?;
         if self.review_tick > u64::MAX - DEFAULT_REVIEW_INTERVAL { return Err("planner tick overflow"); }
         if let Some(continuation) = &self.continuation {
             continuation.validate()?;
