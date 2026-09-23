@@ -9,6 +9,26 @@ use bevy_ecs::prelude::{Component, Entity};
 use serde::Serialize;
 
 impl Kernel {
+    pub(super) fn insert_accounted_component<T: Component + Serialize>(
+        &mut self,
+        entity: Entity,
+        schema: &str,
+        next: T,
+    ) -> crate::components::Result<()> {
+        if self.registry.read(&self.ecs, entity, schema).is_some() {
+            return Err(format!("accounted component {schema} already exists"));
+        }
+        let new_weight = self.registry.weight(schema, &crate::components::record(&next));
+        let weight = self.state_weight.checked_add(new_weight)
+            .ok_or("invalid canonical state accounting")?;
+        if weight > STATE_BYTES {
+            return Err("region canonical state capacity".into());
+        }
+        self.ecs.entity_mut(entity).insert(next);
+        self.state_weight = weight;
+        Ok(())
+    }
+
     pub(super) fn replace_accounted_component<T: Component + Serialize>(
         &mut self,
         entity: Entity,
@@ -35,7 +55,7 @@ impl Kernel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::components::{ExternalId, ResourceOrder};
+    use crate::components::{ExternalId, OwnedBy, ResourceOrder};
     use crate::job::JobTaskWork;
 
     #[test]
@@ -49,6 +69,7 @@ mod tests {
         kernel.ids.insert("task".into(), task);
         kernel.ids.insert("resource".into(), resource);
         kernel.refresh_state_weight();
+        kernel.insert_accounted_component(task, "hive.owned-by", OwnedBy { player: "player".into() }).unwrap();
         kernel.replace_accounted_component(task, "hive.job-task-work", JobTaskWork { seconds: 0.75 }).unwrap();
         kernel.replace_accounted_component(resource, "hive.resource-order", ResourceOrder {
             definition: "plant".into(), cell_x: 0, cell_y: 0, cell_z: 0,

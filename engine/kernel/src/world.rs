@@ -4531,10 +4531,9 @@ impl Kernel {
         self.publish_authored_entities(prepared);
         for (id, player) in owned_creates {
             let entity = self.entity(&id)?;
-            self.ecs.entity_mut(entity).insert(OwnedBy { player });
+            self.insert_accounted_component(entity, "hive.owned-by", OwnedBy { player })?;
             self.refresh_ownership_index(&id);
         }
-        self.refresh_state_weight();
         self.revision += 1;
         let results = batch
             .actions

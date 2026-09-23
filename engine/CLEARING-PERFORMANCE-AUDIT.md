@@ -22,7 +22,8 @@ below describe an older source revision and must not be used as current capacity
    Introduce a kernel-owned dirty-record journal with a versioned full baseline
    for cold load/recovery; the region transaction remains the atomic authority.
    Current local source correction removes full ECS/schema state-weight scans
-   from per-worker job and resource progress, but does not solve full capture.
+   from per-worker job and resource progress and from the ordinary authored
+   batch boundary, but does not solve full capture.
 3. **Give the host a real next wake.** The host currently schedules a 100 ms
    clock occurrence while leased, even when the native world has no due work.
    The kernel and game systems should expose the next authoritative deadline
