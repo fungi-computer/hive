@@ -277,15 +277,23 @@ impl TerrainWater {
         Ok(Self { terrain, structures, structure_projection, physical_revision: 0, geometry, identity, field, owner: Arc::new(()), epoch: 0, change_index: TerrainChangeIndex::fresh() })
     }
     pub fn save_records(&self) -> Result<TerrainWaterRecords, String> {
+        let save_started = crate::capture_diagnostics::now_ms();
         let header = postcard::to_allocvec(&(4u16, self.identity.as_slice(),
             self.terrain.revision(), self.physical_revision))
             .map_err(|_| "environment header encoding failed")?;
+        let terrain_started = crate::capture_diagnostics::now_ms();
         let terrain = self.terrain.export()?;
+        crate::capture_diagnostics::record("terrain_export", terrain_started);
+        let water_started = crate::capture_diagnostics::now_ms();
         let water = self.field.encode()?;
+        crate::capture_diagnostics::record("water_encode", water_started);
         if terrain.len() > 256 * 1024 || water.len() > 256 * 1024 {
             return Err("environment record exceeds Region record budget".into());
         }
+        let structures_started = crate::capture_diagnostics::now_ms();
         let structures = self.structures.encode()?;
+        crate::capture_diagnostics::record("structures_encode", structures_started);
+        crate::capture_diagnostics::record("terrain_water_save_records_total", save_started);
         Ok(TerrainWaterRecords { header, terrain, water, structures })
     }
 
