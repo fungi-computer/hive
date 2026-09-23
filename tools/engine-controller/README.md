@@ -50,13 +50,14 @@ an Effect and `prepared.execute()` returning a Stream. The host uses public
 and awaits lease release and runtime close through nested `finally` blocks.
 Removed Mule `toolSurface` APIs are not used.
 
-The public Codemode `DynamicWorkerExecutor` runs actual JavaScript with a native
-LOADER and `globalOutbound: null`. Mycelium owns binding admission, deadline and
-bounded cancellation acknowledgement. The host waits for executor settlement;
-a rejected wrapper is not reported as proof that backing work stopped. The
+The public Codemode `DynamicWorkerExecutor` runs actual JavaScript through the
+same sanitized `RpcTarget` connector bindings used by Botanical's Demo sandbox,
+with its native LOADER and `globalOutbound: null`. Mycelium owns binding
+admission, deadline and bounded cancellation acknowledgement; the sandbox races
+the host signal against the executor as Botanical does. Issued backing work is
+tracked by Mycelium, while this proof does not establish arbitrary runaway-code
+cancellation or a durable scheduler for unfinished execute programs. The
 controller checks cancellation immediately before synchronous region dispatch.
-This proof does not establish arbitrary runaway-code cancellation or a durable
-scheduler for unfinished execute programs.
 
 ## Current evidence and limits
 

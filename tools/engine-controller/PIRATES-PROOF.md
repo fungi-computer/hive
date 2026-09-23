@@ -102,3 +102,27 @@ revision 64. Both post-restart command retries returned the original receipt.
 The integration owner must rebuild WASM against the integrated native source;
 this lane's artifact predates parallel retained-search record changes. Public
 hosted parity and visual browser review remain release work.
+
+## Mycelium / Code Mode adapter witness — September 23
+
+`runtime.mts` now uses the same public Code Mode connector shape as Botanical's
+`apps/demo/src/codemode-sandbox.ts`: sanitized namespaces, `RpcTarget`
+`callTool` bindings, no sandbox network access, and the host cancellation signal.
+The local consumer preserves its `{ executionId, value }` response envelope.
+The public Pirates worker proof passed through the actual Mycelium Effect/Stream
+execute tool and a persistent local workerd SQLite DO: observation was scoped to
+the granted crew, unauthorized controller calls failed, `loadCargo` was
+admitted once, exact retry after process replacement returned the original
+receipt, delivery completed with bread/wood conserved, and a second restart
+recovered the terminal result. This does not run a Shiitake model/session or
+establish hosted parity.
+
+- Engine bundle implementation hash: `74c3d5d57ce4086943d51a46a9256b8928014bea182e9866f8f93d4d9fc89131`.
+- Existing WASM SHA256: `5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89`; the lane and integration branch have identical Rust kernel sources. No Cargo build was run here.
+- Accepted receipt: revision 7, command `load-cargo-0`; recovered terminal: revision 62, two units delivered, zero pending.
+- Raw evidence: `.botanical/pirates-controller-luna-20260923-retry1/result.json`.
+
+The first corrected-adapter attempt preserved its output-envelope mismatch in
+`.botanical/pirates-controller-luna-20260923/failure-output-shape.txt`; restoring
+the consumer's existing envelope fixed that result without changing owner or
+command semantics.
