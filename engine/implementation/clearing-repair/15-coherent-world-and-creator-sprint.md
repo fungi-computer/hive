@@ -4,6 +4,57 @@ September 17, 2026. Design and implementation handoff, not delivered capability.
 Source originally inspected at `46641200`; renderer and packet corrections were
 rechecked in `engine/living-terrain-integration-20260917` through `4da4587e`.
 
+## September 23 native/DO loop priority — current performance pass
+
+Levi clarified that rendering is **not** the concern for this pass. The target is
+100 workers doing sustained useful work across a meaningfully occupied 256×256
+Region. The existing 256/100 performance preset does not test that target: it
+offers only 50 tree jobs and places its workers and trees in the central 57×57
+columns. The separate 100-worker/100-tree local fixture uses 128×128 bounds and
+the same central placement area. Neither qualifies distributed navigation, host
+commit cost or 100 concurrently productive workers. Do not cite either as a
+capacity result, and do not substitute renderer work for this performance pass.
+This current direction supersedes the renderer-first order below for this pass;
+the separate playable-renderer acceptance remains open.
+
+Keep the one authoritative Region clock, native physical owners, disposable
+candidate and atomic SQL commitment. The coupled loop correction is:
+
+1. **Canonical mutation owns stable changed records.** Replace byte-offset
+   chunks of a fully serialized entity image with bounded records whose identity
+   survives unrelated changes. The native owner publishes puts/removes from its
+   actual mutations; the Region commits those records, time, results and command
+   identity together. Full export/recovery is an explicit checkpoint and oracle.
+   Version the current format and reject unsupported versions; do not add a
+   compatibility path. Prove a length-changing early entity value cannot dirty
+   unrelated records or trip the existing 1 MiB changed-byte limit, and preserve
+   failure disposal, replay and quantity conservation.
+2. **Navigation owns bounded progress and local dependencies.** A route budget
+   exhaustion is pending work, never proof of no path. Retain or hierarchically
+   continue useful search across steps so a feasible 256-wide journey does not
+   restart its first 4,096 expansions every review. Terrain/structure mutations
+   publish affected topology; only intersecting active routes revalidate, under
+   one aggregate per-step budget. Keep current movement, matching, priority,
+   claims and cargo owners; do not replace the ECS or add a second scheduler.
+3. **The host owns active cadence and next wake.** Active movement/work retains
+   deterministic bounded steps. Quiet systems expose deadlines and can sleep;
+   accepted commands wake them. Preserve ordered occurrence identity and a
+   serviceable command path when a step overruns 100 ms. Observation construction
+   follows changed dependencies and actual recipients, with its cost measured
+   separately from native advancement and durable commitment.
+
+First qualify the same pinned, spread-out workload locally and through the
+existing separate DO performance host before claiming capacity. Place at least
+100 independent finite work chains and workers across multiple distant parts of
+the 256×256 region, with successive real-work cohorts rather than an idle tail;
+include hauling, obstacles, topology edits and active
+water/air. Count assigned/moving/working workers, completed output, wait age,
+route distances/expansions, pending versus no-path outcomes, replans and field
+backlog age. Report native step, record capture/changed bytes, SQL commit,
+observation/socket work, cold recovery, memory and alarm lateness separately.
+Exercise duplicate/lost receipt and restart with the same workload. No idle-tail
+median, mere worker count or enlarged generated bounds can pass this gate.
+
 ## September 19 audit checkpoint — read before continuing
 
 The renderer audit at `950bea93` found correctness defects in the current compiler
