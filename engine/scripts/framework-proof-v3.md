@@ -82,6 +82,36 @@ definition and environment hashes. Keep pre-navigation and later-native v3
 reports separate. No hosted capacity, renderer quality or v2 speedup follows
 from this local proof.
 
+## Phase ledger boundary
+
+Use `measure-framework-proof-v3-ledger.ts` to wrap that exact fixture without
+editing the concurrently owned record implementation. It reports local
+`GameSession.step` and `captureForCommit` p50/p95/p99/max and totals, changed
+put/remove rows and encoded bytes, full-save and restore wall time, query time,
+and process RSS sampled at measured operation boundaries. The simulation
+percentiles exclude the ten-step recovery suffix. `moving`, `working`, stalled
+route, and blocked/unassigned workers remain separate in each sampled window.
+Capture totals include the initial snapshot. Query timing includes workload
+sampling and restore/continuation comparisons, so it is not committed-recipient
+publication time.
+
+The ledger identifies costs this local invocation cannot observe: SQL commit
+latency/rows, recipient projection and socket delivery, Durable Object alarm
+lateness, host CPU, cold SQL reconstruction, and route expansion/replan counters.
+These are `not-measured` or `not-exposed`, not zero-cost. `GameSession.step`
+wall time includes local wrapper and WASM execution, so it is not native-only
+CPU. Record capture is not a SQL transaction. The v3 default is 1,800 steps
+(180 simulated seconds); the sprint's final hosted active window remains 600
+seconds. A local ledger does not pass that hosted gate.
+
+Bundle and run the cost wrapper under the shared proof scope, using the same
+WASM artifact and native source pin as the source witness:
+
+```sh
+node_modules/.bin/esbuild engine/scripts/measure-framework-proof-v3-ledger.ts --bundle --platform=node --format=esm --outfile=/tmp/hive-framework-v3-ledger.mjs
+node /tmp/hive-framework-v3-ledger.mjs --native-source=<exact-native-source-commit>
+```
+
 ## Completed same-v3 comparison, September 23
 
 Both runs completed all 1,800 steps with every scheduled action accepted and
