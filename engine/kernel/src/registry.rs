@@ -307,7 +307,7 @@ impl Registry {
                             StorageType::Table,
                             Layout::new::<AuthoredRecord>(),
                             Some(drop_record),
-                            true,
+                            false,
                             ComponentCloneBehavior::Ignore,
                             None,
                         )
@@ -315,6 +315,7 @@ impl Registry {
                     world.register_component_with_descriptor(descriptor)
                 }
             };
+            crate::record_changes::install(world, id);
             this.ids.insert(name.clone(), id);
         }
         if actors.len() > 256 { return Err("too many actor templates".into()); }

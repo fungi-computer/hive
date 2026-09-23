@@ -803,6 +803,8 @@ export interface KernelPort {
   readonly snapshot: () => KernelSnapshot;
   /** Resident-only capture; do not mutate or expose its borrowed record bytes. */
   readonly capture: () => KernelRecordCaptureResult;
+  /** Called only after the Region transaction accepted the captured state. */
+  readonly acceptCapture: () => void;
   readonly restore: (snapshot: KernelSnapshot) => void;
   readonly renderFacts: (limit?: number) => readonly RenderFact[];
   readonly worldPoses: (entities: readonly EntityId[]) => readonly WorldPose[];

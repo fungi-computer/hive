@@ -1054,6 +1054,7 @@ export class GameSession {
     const captured = this.port.capture();
     return { snapshot: this.sessionSnapshot(captured.snapshot), changes: captured.changes };
   }
+  acceptCapture(): void { this.ensureLive(); this.port.acceptCapture(); }
   private sessionSnapshot(kernel: KernelRecordSnapshot): SessionSnapshot {
     return {
       format: "hive-session",

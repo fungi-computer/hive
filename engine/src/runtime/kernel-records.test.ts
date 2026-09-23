@@ -12,39 +12,39 @@ function entityRecords(): { key: string; bytes: Uint8Array }[] { return [{ key: 
 
 test("capture retains owned bytes and always frees the native handle", () => {
   const native = handle(entityRecords());
-  const snapshot = captureKernelRecords({ capture_records: () => native, restore_records() { return 1; } });
+  const snapshot = captureKernelRecords({ capture_records: () => native, accept_records() {}, restore_records() { return 1; } });
   assert.equal(snapshot.revision, 7); assert.equal(snapshot.time, 1.5); assert.equal(native.freed, true);
 });
 test("restore frees a detached handle when insertion fails", () => {
-  const snapshot = captureKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } });
+  const snapshot = captureKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } });
   let detached: ReturnType<typeof handle> | undefined;
-  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } }, () => (detached = handle(entityRecords(), true)), snapshot));
+  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } }, () => (detached = handle(entityRecords(), true)), snapshot));
   assert.equal(detached?.freed, true);
 });
 test("restore rejects duplicate, missing and oversized records", () => {
-  const snapshot = captureKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } });
-  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } }, () => handle([]), { ...snapshot, records: [...snapshot.records, snapshot.records[0]] }));
-  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } }, () => handle([]), { ...snapshot, records: snapshot.records.filter(record => record.key !== "kernel/header") }));
-  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } }, () => handle([]), { ...snapshot, records: snapshot.records.map(record => record.key.startsWith("kernel/state/") ? { ...record, bytes: new Uint8Array(256 * 1024 + 1) } : record) }));
+  const snapshot = captureKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } });
+  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } }, () => handle([]), { ...snapshot, records: [...snapshot.records, snapshot.records[0]] }));
+  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } }, () => handle([]), { ...snapshot, records: snapshot.records.filter(record => record.key !== "kernel/header") }));
+  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } }, () => handle([]), { ...snapshot, records: snapshot.records.map(record => record.key.startsWith("kernel/state/") ? { ...record, bytes: new Uint8Array(256 * 1024 + 1) } : record) }));
 });
 test("invalid native keys are rejected before any read and metadata before insertion", () => {
   const native = handle([{ key: "kernel/unknown", bytes: new Uint8Array() }]);
-  assert.throws(() => captureKernelRecords({ capture_records: () => native, restore_records() { return 1; } }));
+  assert.throws(() => captureKernelRecords({ capture_records: () => native, accept_records() {}, restore_records() { return 1; } }));
   assert.equal(native.reads, 0);
-  const snapshot = captureKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } });
+  const snapshot = captureKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } });
   const target = handle([]);
-  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } }, () => target, { ...snapshot, revision: 8 }));
+  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } }, () => target, { ...snapshot, revision: 8 }));
   assert.equal(target.inserts, 0);
   assert.equal(target.freed, false);
 });
 
 test("current native entity version round trips and version 16 is rejected", () => {
-  const current = captureKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } });
+  const current = captureKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } });
   assert.equal(readEntityVersion(current), 19);
   const old = { ...current, records: current.records.map((record) => record.key.startsWith("kernel/state/")
     ? { ...record, bytes: new TextEncoder().encode(entity.replace('"version":19', '"version":16')) }
     : record) };
-  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } }, () => handle([]), old), /unsupported kernel entity snapshot/);
+  assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } }, () => handle([]), old), /unsupported kernel entity snapshot/);
 });
 
 function readEntityVersion(snapshot: ReturnType<typeof captureKernelRecords>): number {
@@ -64,7 +64,7 @@ test("resident capture reuses unchanged bytes and removes deleted records withou
   changed.manifest = () => JSON.stringify({ sequence: 3, base: 2, revision: 8, time: 1.5, keys: fullKeys });
   const queue = [first, unchanged, changed];
   const sequences: (number | undefined)[] = [];
-  const owner = new KernelRecordCapture({ capture_records(since) { sequences.push(since); return queue.shift()!; }, restore_records() { return 1; } });
+  const owner = new KernelRecordCapture({ capture_records(since) { sequences.push(since); return queue.shift()!; }, accept_records() {}, restore_records() { return 1; } });
   const a = owner.capture();
   const b = owner.capture();
   assert.deepEqual(b.changes, { puts: [], removes: [] });
@@ -79,14 +79,14 @@ test("resident capture reuses unchanged bytes and removes deleted records withou
 });
 
 test("capture after restore retains removal frontier and rejects missing delta bytes", () => {
-  const saved = captureKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() { return 1; } });
+  const saved = captureKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } });
   const extra = { key: "kernel/state/entities/extra", bytes: new Uint8Array([1]) };
   const next = handle(entityRecords());
   next.manifest = () => JSON.stringify({ sequence: 8, base: null, revision: 7, time: 1.5, keys: entityRecords().map(record => record.key) });
   const invalid = handle([]);
   invalid.manifest = () => JSON.stringify({ sequence: 9, base: null, revision: 7, time: 1.5, keys: entityRecords().map(record => record.key) });
   const queue = [next, invalid];
-  const owner = new KernelRecordCapture({ capture_records: () => queue.shift()!, restore_records() { return 1; } });
+  const owner = new KernelRecordCapture({ capture_records: () => queue.shift()!, accept_records() {}, restore_records() { return 1; } });
   owner.restored({ ...saved, records: [...saved.records, extra] }, 7);
   assert.deepEqual(owner.capture().changes.removes, [extra.key]);
   assert.throws(() => owner.capture(), /omitted a required record/);

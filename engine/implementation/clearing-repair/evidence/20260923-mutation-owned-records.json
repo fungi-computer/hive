@@ -1,0 +1,38 @@
+{
+  "baseCommit": "4a5e9f9f",
+  "wasmSha256": "5d32b1cb7e41d4605fa26ca4f76148e814968773ca79f597a53efe42b584f797",
+  "change": "Current resident capture projects canonical dirty identities; full checkpoints remain a detached recovery oracle.",
+  "proof": {
+    "rust": {
+      "passed": 432,
+      "ignored": 1,
+      "includes": "1,000-entity one-replacement journal and captured-generation acknowledgement law"
+    },
+    "typescriptWasmRegion": {
+      "passed": 59,
+      "includes": [
+        "delta equals full checkpoint during distributed 100-worker work",
+        "capture acknowledgement retains postcapture mutations",
+        "multiple provisional captures and discard/replay",
+        "capture/SQL failure disposal and historical receipts",
+        "old format rejection and missing identity rejection",
+        "detached exports preserve resident frontier"
+      ]
+    },
+    "admission": {
+      "steps": 40,
+      "maxChangedBytes": 479881,
+      "maxChangedRecords": 796,
+      "budgetBytes": 1048576,
+      "budgetRecords": 1024
+    },
+    "typescriptCheck": "Full engine tsc blocked by missing Node type declarations and existing test type errors; no errors in changed production TS files."
+  },
+  "integrationRequirement": "Region resident.accept calls attempt.session.acceptCapture() only after SQL commit; host lane owns that call. Local diagnostic callers acknowledge successful local commit equivalents.",
+  "limits": [
+    "This is source and local recovery/admission proof, not a hosted throughput claim.",
+    "Stable record manifest/key and byte-budget accounting still traverses bounded record metadata.",
+    "Dirty entity projection serializes the whole changed identity; environment/air records retain existing field-level granularity.",
+    "No broad performance rerun was conducted after the user requested implementation priority."
+  ]
+}

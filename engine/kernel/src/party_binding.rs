@@ -3,14 +3,17 @@
 //! This record outlives every actor it originally returned. It is deliberately
 //! not an ECS component or a live membership index.
 use crate::components::{valid_id, PartyBinding, Result};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 #[derive(Default)]
 pub(crate) struct PartyBindingStore {
-    rows: BTreeMap<String, PartyBinding>,
+    rows: crate::record_changes::RecordMap<String, PartyBinding>,
 }
 
 impl PartyBindingStore {
+    pub(crate) fn changed(&self) -> impl Iterator<Item = &String> { self.rows.changed() }
+    pub(crate) fn token(&self) -> u64 { self.rows.token() }
+    pub(crate) fn accept(&mut self, token: u64) { self.rows.accept(token); }
     pub(crate) fn get(&self, binding_id: &str) -> Option<&PartyBinding> {
         self.rows.get(binding_id)
     }

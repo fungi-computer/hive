@@ -339,6 +339,7 @@ pub fn compile(
 }
 
 #[derive(Component, Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StagedProcess {
     pub version: u16,
@@ -353,6 +354,7 @@ pub struct StagedProcess {
 }
 
 #[derive(Component, Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ProcessBinding {
     pub process: String,

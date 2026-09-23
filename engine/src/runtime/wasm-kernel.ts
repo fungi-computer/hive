@@ -772,6 +772,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       return captureKernelRecords(binding);
     },
     capture() { return capture.capture(); },
+    acceptCapture() { capture.acceptCapture(); },
     restore(snapshot) {
       const sequence = restoreKernelRecords(binding, () => new WasmKernelRecords(), snapshot);
       capture.restored(snapshot, sequence);

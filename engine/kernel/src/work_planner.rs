@@ -31,12 +31,14 @@ pub enum WorkRef {
 }
 
 #[derive(Component, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkParticipation {
     pub automatic: bool,
 }
 
 #[derive(Component, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkPolicy {
     pub pool: String,
@@ -45,6 +47,7 @@ pub struct WorkPolicy {
 }
 
 #[derive(Component, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkSchedule {
     pub next_review_tick: u64,

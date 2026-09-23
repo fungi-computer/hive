@@ -213,10 +213,10 @@ impl Kernel {
         let execution = self.ecs.get::<crate::components::WorkExecution>(job_entity).ok_or("job execution is missing")?;
         if execution.pool != pool { return Err("job work pool mismatch".into()); }
         self.work_execution_for_scope(scope, pool, crate::work_planner::POLICY_JOB)?;
-        self.ecs.get_mut::<crate::job::Job>(job_entity).ok_or("job is missing")?.state = crate::job::JobState::Active;
+        crate::record_changes::edit::<crate::job::Job>(job_entity, &mut self.ecs).ok_or("job is missing")?.state = crate::job::JobState::Active;
         for task_id in job.task_ids {
             let task_entity = self.entity(&task_id)?;
-            if let Some(mut task) = self.ecs.get_mut::<crate::job::Task>(task_entity) {
+            if let Some(mut task) = crate::record_changes::edit::<crate::job::Task>(task_entity, &mut self.ecs) {
                 if matches!(&task.state, crate::job::TaskState::Cancelled) { task.state = crate::job::TaskState::Pending; }
             }
             if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(task_entity).cloned() {
@@ -244,8 +244,8 @@ impl Kernel {
                 }
             }
         }
-        self.ecs.get_mut::<crate::job::Job>(job_entity).ok_or("job is missing")?.state = crate::job::JobState::Cancelled;
-        for task_id in task_ids { let task_entity = self.entity(&task_id)?; if let Some(mut task) = self.ecs.get_mut::<crate::job::Task>(task_entity) { if matches!(&task.state, crate::job::TaskState::Pending) { task.state = crate::job::TaskState::Cancelled; } } if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(task_entity).cloned() { self.ecs.entity_mut(task_entity).insert(crate::work_planner::WorkPolicy { enabled: false, ..policy }); } self.refresh_planner_index(&task_id); }
+        crate::record_changes::edit::<crate::job::Job>(job_entity, &mut self.ecs).ok_or("job is missing")?.state = crate::job::JobState::Cancelled;
+        for task_id in task_ids { let task_entity = self.entity(&task_id)?; if let Some(mut task) = crate::record_changes::edit::<crate::job::Task>(task_entity, &mut self.ecs) { if matches!(&task.state, crate::job::TaskState::Pending) { task.state = crate::job::TaskState::Cancelled; } } if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(task_entity).cloned() { self.ecs.entity_mut(task_entity).insert(crate::work_planner::WorkPolicy { enabled: false, ..policy }); } self.refresh_planner_index(&task_id); }
         self.rebuild_job_index()?; self.refresh_state_weight(); Ok(())
     }
     pub(crate) fn complete_job_task(&mut self, id: &str, results: Vec<crate::job::TaskResultBinding>) -> Result<()> {
@@ -274,7 +274,7 @@ impl Kernel {
         let job_entity = self.entity(&job_id)?;
         let all_completed = self.ecs.get::<crate::job::Job>(job_entity).ok_or("job is missing")?.task_ids.iter().all(|task_id| self.ids.get(task_id).and_then(|entity| self.ecs.get::<crate::job::Task>(*entity)).is_some_and(|task| matches!(&task.state, crate::job::TaskState::Completed(_))));
         if all_completed {
-            self.ecs.get_mut::<crate::job::Job>(job_entity).ok_or("job is missing")?.state = crate::job::JobState::Completed;
+            crate::record_changes::edit::<crate::job::Job>(job_entity, &mut self.ecs).ok_or("job is missing")?.state = crate::job::JobState::Completed;
         }
         self.rebuild_job_index()?; self.refresh_state_weight(); Ok(())
     }

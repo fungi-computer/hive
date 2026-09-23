@@ -21,12 +21,17 @@ pub(crate) fn validate_key(key: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) fn counts(records: &Records) -> [u32; 9] {
+pub(crate) fn counts(records: &Records) -> [u32; 9] { counts_keys(records.keys()) }
+
+pub(crate) fn counts_keys<'a>(keys: impl Iterator<Item = &'a String>) -> [u32; 9] {
     let mut counts = [0; 9];
-    counts[0] = u32::from(records.contains_key(ROOT));
-    for (index, family) in FAMILIES.iter().enumerate() {
-        let prefix = format!("kernel/state/{family}/");
-        counts[index + 1] = records.keys().filter(|key| key.starts_with(&prefix)).count() as u32;
+    for key in keys {
+        if key == ROOT { counts[0] += 1; }
+        else if let Some(suffix) = key.strip_prefix("kernel/state/") {
+            if let Some((family, _)) = suffix.split_once('/') {
+                if let Some(index) = FAMILIES.iter().position(|candidate| *candidate == family) { counts[index + 1] += 1; }
+            }
+        }
     }
     counts
 }

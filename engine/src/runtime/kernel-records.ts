@@ -12,6 +12,7 @@ export interface NativeRecordHandle {
 export interface NativeRecordBinding {
   capture_records(since?: number): NativeRecordHandle;
   restore_records(handle: NativeRecordHandle): number;
+  accept_records(sequence: number): void;
 }
 
 export interface KernelEntitySnapshot {
@@ -179,6 +180,8 @@ export class KernelRecordCapture {
     this.records = new Map(snapshot.records.map(record => [record.key, { key: record.key, bytes: record.bytes.slice() }]));
     this.priorKeys = snapshot.records.map(record => record.key);
   }
+
+  acceptCapture(): void { this.binding.accept_records(this.sequence); }
 
   capture(): KernelRecordCaptureResult {
     const handle = this.binding.capture_records(this.sequence);
