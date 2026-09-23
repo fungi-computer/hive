@@ -16,6 +16,8 @@ export type RegionOccurrence = {
 export type RegionStateRecord = { readonly key: string; readonly bytes: Uint8Array | ArrayBuffer };
 export type RegionRecordReader = {
   readonly read: (key: string) => Uint8Array | undefined;
+  /** Bounded, key-sorted committed record inventory for current-format recovery. */
+  readonly records: () => readonly { readonly key: string; readonly bytes: Uint8Array }[];
 };
 export type RegionInitial<State> = {
   readonly state: State;
@@ -453,7 +455,7 @@ export function openRegion<State, Command>(options: {
       };
     } else {
       const candidate = stateFrom(current.state_json);
-      const reader = createRecordReader(owner, limits.recordBytes);
+      const reader = createRecordReader(owner, limits.recordBytes, limits.records);
       let transition: RegionTransition;
       try {
         transition = program.execute(candidate, checkedCommand(), reader, current.revision, { principal,

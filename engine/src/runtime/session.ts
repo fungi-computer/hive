@@ -71,7 +71,7 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 11;
+  readonly version: 12;
   readonly cues: CueSnapshot;
   readonly game: string;
   readonly gameVersion: number;
@@ -1058,7 +1058,7 @@ export class GameSession {
   private sessionSnapshot(kernel: KernelRecordSnapshot): SessionSnapshot {
     return {
       format: "hive-session",
-      version: 11,
+      version: 12,
       cues: structuredClone(this.cues),
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
@@ -1087,7 +1087,7 @@ export class GameSession {
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 11 ||
+      snapshot.version !== 12 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||

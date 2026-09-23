@@ -62,7 +62,10 @@ test("real scheduled commands, physical step, capture and clock receipt roll bac
     return openRegion({owner, region:"scheduled-driver-law", program:runtime.program, clock:{principal:"host"}});
   };
   let region = open();
-  const records = { read: (key: string) => db.prepare("SELECT record_bytes FROM hive_region_records WHERE record_key=?").get(key)?.record_bytes as Uint8Array | undefined };
+  const records = {
+    read: (key: string) => db.prepare("SELECT record_bytes FROM hive_region_records WHERE record_key=?").get(key)?.record_bytes as Uint8Array | undefined,
+    records: () => db.prepare("SELECT record_key AS key,record_bytes AS bytes FROM hive_region_records ORDER BY record_key").all() as { key: string; bytes: Uint8Array }[],
+  };
   const occurrence = (sequence: number) => ({sequence,request:{id:`clock-${sequence}`,command:{kind:"step",delta:.1}}});
   const apply = (sequence: number) => {
     const committed = region.readCommitted(); runtime!.resident.begin(committed.revision, committed.state, records);

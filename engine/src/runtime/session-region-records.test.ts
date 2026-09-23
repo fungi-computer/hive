@@ -6,7 +6,7 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { openRegion } from "../../../src/engine/region/index.ts";
 import { sqliteTestOwner } from "../../../src/engine/region/sqlite-test-owner.mjs";
 import { createSessionRegionRuntime, type SessionResident } from "./region-program";
-import { hydrateSession } from "./session-record-store";
+import { checkedStoredSession, hydrateSession } from "./session-record-store";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
 import { colonyPack, colonyServerPack } from "../games/colony";
@@ -16,6 +16,22 @@ import { WorkParticipation } from "../sdk/work-control";
 import { Worker } from "../games/colony-components";
 import { ColonyTreePolicy } from "../games/colony-work";
 import { JobTaskWork } from "../sdk/common";
+
+function allRecords(region: ReturnType<typeof openRegion>, revision: number) {
+  const records: { key: string; bytes: Uint8Array }[] = [];
+  let afterKey = "";
+  while (true) {
+    const page = region.readRecords(revision, afterKey, 128);
+    records.push(...page.records);
+    if (!page.nextKey) return records;
+    afterKey = page.nextKey;
+  }
+}
+function recordReader(records: readonly { key: string; bytes: Uint8Array }[]) {
+  const byKey = new Map(records.map(record => [record.key, record.bytes]));
+  const ordered = [...records].sort((left, right) => left.key < right.key ? -1 : left.key > right.key ? 1 : 0);
+  return { read: (key: string) => byKey.get(key), records: () => ordered };
+}
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -87,8 +103,8 @@ test("disconnected party residents remain eligible for automatic work while anot
   const region = openRegion({ owner, region: "disconnected-resident-work", program: runtime.program });
   const dispatch = (principal: string, id: string, command: unknown) => {
     const committed = region.readCommitted();
-    const records = new Map(region.readRecords(committed.revision, "", 40).records.map(record => [record.key, record.bytes]));
-    resident.begin(committed.revision, committed.state, { read: key => records.get(key) });
+    const records = allRecords(region, committed.revision);
+    resident.begin(committed.revision, committed.state, recordReader(records));
     try {
       const receipt = region.dispatch(principal, { id, replayEpoch: region.readReplayWindow().epoch, command });
       resident.accept(receipt.revision);
@@ -108,14 +124,14 @@ test("disconnected party residents remain eligible for automatic work while anot
     for (let tick = 0; tick < 20; tick++) dispatch("clock", `clock-${tick}`, { kind: "step", delta: 0.1 });
 
     const committed = region.readCommitted();
-    const records = new Map(region.readRecords(committed.revision, "", 40).records.map(record => [record.key, record.bytes]));
+    const records = allRecords(region, committed.revision);
     assert.deepEqual(
-      resident.observe(committed.revision, committed.state, { read: key => records.get(key) }, session =>
+      resident.observe(committed.revision, committed.state, recordReader(records), session =>
         session.query(query(Worker, PartyMember, WorkParticipation)).filter(row => row.get(PartyMember).party === "party:1").map(row => row.id).sort()),
       ["party:1.person.0", "party:1.person.1"],
       "party residents survive without a player connection",
     );
-    resident.observe(committed.revision, committed.state, { read: key => records.get(key) }, session => {
+    resident.observe(committed.revision, committed.state, recordReader(records), session => {
       const workers = session.query(query(Worker, PartyMember, WorkParticipation)).filter(row => row.get(PartyMember).party === "party:1");
       assert.equal(workers.length, 2);
       assert.ok(workers.every(row => row.get(WorkParticipation).automatic), "disconnected residents remain automatic workers");
@@ -135,7 +151,7 @@ test("actual Colony water records commit with session and recover after failed S
   const db = new DatabaseSync(":memory:");
   let failRecord = false;
   const owner = sqliteTestOwner(db, (statement: string) => {
-    if (failRecord && statement.startsWith("INSERT OR REPLACE INTO hive_region_records")) throw new Error("injected record failure");
+    if (failRecord && statement.startsWith("INSERT INTO hive_region_records")) throw new Error("injected record failure");
   });
   const pack = colonyPack;
   const environment = JSON.parse(new TextDecoder().decode(pack.environmentDefinition));
@@ -156,8 +172,7 @@ test("actual Colony water records commit with session and recover after failed S
   };
   const dispatch = (region: ReturnType<typeof open>, command: unknown) => {
     const committed = region.readCommitted();
-    const page = region.readRecords(committed.revision, "", 40);
-    resident.begin(committed.revision, committed.state, { read: key => page.records.find(record => record.key === key)?.bytes });
+    resident.begin(committed.revision, committed.state, recordReader(allRecords(region, committed.revision)));
     try {
       const receipt = region.dispatch("clock", command);
       resident.accept(region.readCommitted().revision);
@@ -174,6 +189,9 @@ test("actual Colony water records commit with session and recover after failed S
     const saved = records(region);
     assert.ok(saved.some(record => record.key === "kernel/environment/water"));
     assert.equal(Object.hasOwn(region.readCommitted().state.session.kernel, "records"), false);
+    assert.equal(region.readCommitted().state.session.version, 12);
+    assert.equal(Object.hasOwn(region.readCommitted().state.session.kernel, "recordKeys"), false,
+      "the SQL record table, not session JSON, owns the recovery inventory");
     region = open();
     assert.deepEqual(dispatch(region, command), receipt);
     assert.deepEqual(records(region), saved);
@@ -188,10 +206,17 @@ test("actual Colony water records commit with session and recover after failed S
     assert.equal(dispatch(region, next).status, "applied");
     const current = region.readCommitted();
     const bytes = new Map(records(region).map(record => [record.key, record.bytes]));
+    assert.equal(current.state.session.version, 12);
+    assert.equal(Object.hasOwn(current.state.session.kernel, "recordKeys"), false);
+    assert.throws(() => checkedStoredSession({ ...current.state.session, version: 11 }), /invalid stored session header/);
+    assert.throws(() => checkedStoredSession({ ...current.state.session,
+      kernel: { ...current.state.session.kernel, recordKeys: [...bytes.keys()] },
+    }), /invalid stored session header/);
     const port = wasmKernelPort(new WasmKernel());
     try {
       const session = new GameSession({ port, pack, seed: 17 });
-      session.restore(hydrateSession(current.state.session, { read: key => bytes.get(key) }));
+      const inventory = [...bytes].map(([key, value]) => ({ key, bytes: value }));
+      session.restore(hydrateSession(current.state.session, recordReader(inventory)));
       assert.equal(session.simulationTime, 0.2);
       const saved = session.save();
       const otherPort = wasmKernelPort(new WasmKernel());
@@ -205,6 +230,19 @@ test("actual Colony water records commit with session and recover after failed S
       } finally { otherPort.dispose(); }
       assert.ok((port.environmentFacts() as { totalKg: number }).totalKg > 0);
     } finally { port.dispose(); }
+    const valid = allRecords(region, current.revision);
+    const omittedEntity = valid.filter(record => record.key !== valid.find(row => row.key.startsWith("kernel/state/entities/"))?.key);
+    const orphanGeometry = [...valid, { key: "kernel/state/paths/orphan/p/0000", bytes: new TextEncoder().encode("[]") }];
+    const corruptWater = valid.map(record => record.key === "kernel/environment/water"
+      ? { ...record, bytes: new Uint8Array([255, 0, 1]) }
+      : record);
+    for (const damaged of [omittedEntity, orphanGeometry, corruptWater]) {
+      const damagedPort = wasmKernelPort(new WasmKernel());
+      try {
+        const damagedSession = new GameSession({ port: damagedPort, pack, seed: 17 });
+        assert.throws(() => damagedSession.restore(hydrateSession(current.state.session, recordReader(damaged))));
+      } finally { damagedPort.dispose(); }
+    }
   } finally { resident?.dispose(); db.close(); }
 });
 
@@ -238,8 +276,7 @@ test("resident discards rolled-back multi-command work and accepts historical re
   });
   const region = openRegion({ owner, region: "outer-resident", program: runtime.program });
   const reader = (revision: number) => {
-    const records = new Map(region.readRecords(revision, "", 40).records.map(record => [record.key, record.bytes]));
-    return { read: (key: string) => records.get(key) };
+    return recordReader(allRecords(region, revision));
   };
   const first = { id: "first", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } };
   const second = { id: "second", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } };
@@ -297,11 +334,14 @@ test("resident session reuses accepted candidate and fails closed across retry a
   let recordReads = 0;
   const reader = (revision: number) => {
     let records: Map<string, Uint8Array> | undefined;
-    return { read: (key: string) => {
-      recordReads++;
-      if (!records) records = new Map(region.readRecords(revision, "", 40).records.map(record => [record.key, record.bytes]));
-      return records.get(key);
-    } };
+    const load = () => {
+      if (!records) records = new Map(allRecords(region, revision).map(record => [record.key, record.bytes]));
+      return records;
+    };
+    return {
+      read: (key: string) => { recordReads++; return load().get(key); },
+      records: () => { recordReads++; return [...load()].map(([key, bytes]) => ({ key, bytes })).sort((left, right) => left.key < right.key ? -1 : left.key > right.key ? 1 : 0); },
+    };
   };
   try {
     const first = region.readCommitted();
@@ -373,8 +413,7 @@ test("resident detaches failed native candidates and preserves primary errors", 
   const region = openRegion({ owner, region: "resident-failure-cleanup", program: runtime.program });
   const disposalsBeforeResident = disposals;
   const reader = (revision: number) => {
-    const records = new Map(region.readRecords(revision, "", 40).records.map(record => [record.key, record.bytes]));
-    return { read: (key: string) => records.get(key) };
+    return recordReader(allRecords(region, revision));
   };
   try {
     const committed = region.readCommitted();
@@ -436,14 +475,15 @@ test("resident preserves an undefined application failure during cleanup", () =>
   const region = openRegion({ owner, region: "resident-undefined-failure", program: runtime.program });
   const disposalsBeforeResident = disposals;
   const committed = region.readCommitted();
-  const records = new Map(region.readRecords(committed.revision, "", 40).records.map(record => [record.key, record.bytes]));
+  const records = allRecords(region, committed.revision);
+  const reader = recordReader(records);
   try {
-    resident.begin(committed.revision, committed.state, { read: key => records.get(key) });
+    resident.begin(committed.revision, committed.state, reader);
     resident.accept(committed.revision);
     failDispose = true;
     let threw = false;
     try {
-      resident.observe(committed.revision, committed.state, { read: key => records.get(key) }, () => {
+      resident.observe(committed.revision, committed.state, reader, () => {
         throw undefined;
       });
     } catch (error) {
@@ -565,11 +605,11 @@ for (const failure of ["advance", "capture"] as const) {
       return openRegion({ owner, region: "disposable", program: runtime.program, clock: { principal: "clock" } });
     };
     let region = open();
-    const records = () => region.readRecords(region.readCommitted().revision, "", 40).records;
+    const records = () => allRecords(region, region.readCommitted().revision);
     const begin = () => {
       const committed = region.readCommitted();
       const bytes = new Map(records().map(record => [record.key, record.bytes]));
-      runtime.resident.begin(committed.revision, committed.state, { read: key => bytes.get(key) });
+      runtime.resident.begin(committed.revision, committed.state, recordReader([...bytes].map(([key, value]) => ({ key, bytes: value }))));
     };
     const command = { id: "step-command", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } };
     const occurrence = { sequence: 0, request: { id: "clock-1", command: { kind: "step", delta: 0.1 } } };
@@ -580,7 +620,7 @@ for (const failure of ["advance", "capture"] as const) {
       const ordinaryBefore = ordinary;
       for (const dispatch of [() => region.dispatch("clock", command), () => region.dispatchOccurrence("clock", occurrence)]) {
         begin();
-        assert.throws(() => runtime.resident.observe(before.revision, before.state, { read: () => undefined }, () => {}), /resident-attempt-active/);
+        assert.throws(() => runtime.resident.observe(before.revision, before.state, { read: () => undefined, records: () => [] }, () => {}), /resident-attempt-active/);
         const disposedBefore = disposed;
         fail = true;
         assert.throws(dispatch, /injected candidate failure/);
