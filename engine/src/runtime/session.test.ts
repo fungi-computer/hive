@@ -204,6 +204,9 @@ class TestPort implements KernelPort {
     });
     return { revision: this.revision, results, impacts };
   }
+  capture(): import("./kernel-records").KernelRecordCaptureResult {
+    throw new Error("unexpected resident capture in session fixture");
+  }
   snapshot(): KernelSnapshot {
     this.snapshotCalls++;
     if (this.throwOnSnapshot) throw new Error("snapshot should not be used");

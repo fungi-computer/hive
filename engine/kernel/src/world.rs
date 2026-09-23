@@ -3947,6 +3947,7 @@ impl Kernel {
         }).collect::<Vec<_>>());
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
+    pub(crate) fn record_frontier(&self) -> (u64, f64) { (self.revision, self.time) }
     pub fn save_records(&self) -> Result<KernelRecords> {
         self.ensure_ready()?;
         let environment = self.environment.as_ref().map(|environment| {

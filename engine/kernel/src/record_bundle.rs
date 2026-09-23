@@ -33,6 +33,52 @@ pub struct RecordBundle {
     records: BTreeMap<String, Vec<u8>>,
 }
 
+/// Disposable exact-byte baseline. The Region receipt still owns commitment;
+/// dropping a failed resident drops this cursor with it.
+#[derive(Default)]
+pub(crate) struct RecordCapture {
+    sequence: u32,
+    baseline: Option<RecordBundle>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct CaptureManifest {
+    pub sequence: u32,
+    pub base: Option<u32>,
+    pub revision: u64,
+    pub time: f64,
+    pub keys: Vec<String>,
+}
+
+impl RecordCapture {
+    pub fn restore(&mut self, baseline: RecordBundle, restore: impl FnOnce(&RecordBundle) -> Result<(), String>) -> Result<u32, String> {
+        let sequence = self.sequence.checked_add(1).ok_or("record capture sequence exhausted")?;
+        // Failure leaves both the physical world and its capture frontier intact.
+        restore(&baseline)?;
+        self.sequence = sequence;
+        self.baseline = Some(baseline);
+        Ok(sequence)
+    }
+    pub fn capture(&mut self, next: RecordBundle, since: Option<u32>, revision: u64, time: f64)
+        -> Result<(RecordBundle, CaptureManifest), String> {
+        let keys = next.keys();
+        // No cursor means a detached export. It cannot disturb a resident's
+        // incremental baseline, even when a save is requested between steps.
+        let Some(since) = since else {
+            return Ok((next, CaptureManifest { sequence: 0, base: None, revision, time, keys }));
+        };
+        let sequence = self.sequence.checked_add(1).ok_or("record capture sequence exhausted")?;
+        let baseline = self.baseline.as_ref().filter(|_| since == self.sequence);
+        let records = next.records.iter().filter(|(key, bytes)|
+            baseline.and_then(|prior| prior.records.get(*key)) != Some(*bytes))
+            .map(|(key, bytes)| (key.clone(), bytes.clone())).collect();
+        let manifest = CaptureManifest { sequence, base: baseline.map(|_| since), revision, time, keys };
+        self.sequence = sequence;
+        self.baseline = Some(next);
+        Ok((RecordBundle { records }, manifest))
+    }
+}
+
 impl RecordBundle {
     pub fn new() -> Self {
         Self {
@@ -152,7 +198,7 @@ impl RecordBundle {
         Ok(bundle)
     }
 
-    pub fn into_records(self) -> Result<KernelRecords, String> {
+    pub fn decode(&self) -> Result<KernelRecords, String> {
         let header_bytes = self
             .records
             .get(HEADER_KEY)
@@ -389,6 +435,38 @@ fn collect_chunks(
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn capture_bundle(entity: &str) -> RecordBundle {
+        RecordBundle::from_records(KernelRecords { entities: entity.into(), environment: None, atmosphere: None }).unwrap()
+    }
+
+    #[test]
+    fn capture_transfers_only_exact_changed_records_and_tracks_removals() {
+        let mut cursor = RecordCapture::default();
+        let (first, first_manifest) = cursor.capture(capture_bundle(&"a".repeat(RECORD_BYTES + 1)), Some(0), 1, 0.1).unwrap();
+        assert_eq!(first.keys(), first_manifest.keys);
+        let (same, same_manifest) = cursor.capture(capture_bundle(&"a".repeat(RECORD_BYTES + 1)), Some(first_manifest.sequence), 1, 0.1).unwrap();
+        assert!(same.keys().is_empty());
+        assert_eq!(same_manifest.base, Some(first_manifest.sequence));
+        let (changed, manifest) = cursor.capture(capture_bundle("b"), Some(same_manifest.sequence), 2, 0.2).unwrap();
+        assert_eq!(changed.keys(), manifest.keys);
+        assert!(!manifest.keys.contains(&"kernel/entities/0001".to_owned()));
+        assert_eq!(changed.read("kernel/entities/0000").unwrap(), b"b");
+    }
+
+    #[test]
+    fn detached_exports_leave_cursor_intact_and_stale_cursors_get_full_records() {
+        let mut cursor = RecordCapture::default();
+        let (_, first) = cursor.capture(capture_bundle("one"), Some(0), 0, 0.0).unwrap();
+        let (export, detached) = cursor.capture(capture_bundle("one"), None, 0, 0.0).unwrap();
+        assert_eq!(export.keys(), detached.keys);
+        assert_eq!(detached.sequence, 0);
+        let (unchanged, second) = cursor.capture(capture_bundle("one"), Some(first.sequence), 0, 0.0).unwrap();
+        assert!(unchanged.keys().is_empty());
+        let (resync, third) = cursor.capture(capture_bundle("one"), Some(first.sequence), 0, 0.0).unwrap();
+        assert_eq!(resync.keys(), third.keys);
+        assert!(third.base.is_none());
+        assert!(third.sequence > second.sequence);
+    }
     #[test]
     fn entity_chunk_roundtrip_and_limits() {
         let entities = format!("{}é", "a".repeat(RECORD_BYTES - 1));
@@ -398,7 +476,7 @@ mod tests {
             atmosphere: None,
         };
         let bundle = RecordBundle::from_records(records).unwrap();
-        assert_eq!(bundle.into_records().unwrap().entities, entities);
+        assert_eq!(bundle.decode().unwrap().entities, entities);
     }
     #[test]
     fn opaque_empty_environment_roundtrips() {
@@ -416,7 +494,7 @@ mod tests {
             atmosphere: None,
         };
         let bundle = RecordBundle::from_records(records).unwrap();
-        let roundtrip = bundle.into_records().unwrap();
+        let roundtrip = bundle.decode().unwrap();
         let (definition, environment) = roundtrip.environment.unwrap();
         assert_eq!(definition, "");
         assert_eq!(environment.header, [1, 0]);
@@ -441,7 +519,7 @@ mod tests {
         };
         let mut bundle = RecordBundle::from_records(records).unwrap();
         bundle.records.remove(STRUCTURES_KEY);
-        assert!(bundle.into_records().is_err());
+        assert!(bundle.decode().is_err());
     }
 
     #[test]
@@ -453,7 +531,7 @@ mod tests {
         };
         let mut bundle = RecordBundle::from_records(records).unwrap();
         bundle.records.get_mut(HEADER_KEY).unwrap()[0] = 1;
-        assert!(bundle.into_records().is_err());
+        assert!(bundle.decode().is_err());
     }
 
     #[test]
@@ -466,7 +544,7 @@ mod tests {
         let mut bundle = RecordBundle::from_records(records).unwrap();
         let header = bundle.records.get_mut(HEADER_KEY).unwrap();
         header.push(0);
-        assert!(bundle.into_records().is_err());
+        assert!(bundle.decode().is_err());
         let mut bundle = RecordBundle::from_records(KernelRecords {
             entities: "{}".into(),
             environment: None,
@@ -474,7 +552,7 @@ mod tests {
         })
         .unwrap();
         bundle.records.remove(HEADER_KEY);
-        assert!(bundle.into_records().is_err());
+        assert!(bundle.decode().is_err());
         let mut bundle = RecordBundle::from_records(KernelRecords {
             entities: "{}".into(),
             environment: None,
@@ -482,7 +560,7 @@ mod tests {
         })
         .unwrap();
         bundle.records.insert("kernel/extra".into(), vec![]);
-        assert!(bundle.into_records().is_err());
+        assert!(bundle.decode().is_err());
         let mut bundle = RecordBundle::new();
         assert!(bundle.insert("kernel/extra", &[]).is_err());
         let oversized = vec![0; RECORD_BYTES + 1];
@@ -518,12 +596,12 @@ mod tests {
             ),
         ] {
             let bundle = RecordBundle::from_records(atmosphere_records(source.clone())).unwrap();
-            assert_eq!(bundle.into_records().unwrap().atmosphere, source);
+            assert_eq!(bundle.decode().unwrap().atmosphere, source);
         }
         assert_eq!(
             RecordBundle::from_records(atmosphere_records(None))
                 .unwrap()
-                .into_records()
+                .decode()
                 .unwrap()
                 .atmosphere,
             None
@@ -536,7 +614,7 @@ mod tests {
             RecordBundle::from_records(atmosphere_records(Some(vec![7; RECORD_BYTES + 1])))
                 .unwrap();
         bundle.records.remove("kernel/atmosphere/0001");
-        assert!(bundle.into_records().is_err());
+        assert!(bundle.decode().is_err());
 
         let mut no_environment = RecordBundle::from_records(KernelRecords {
             entities: "{}".into(),
@@ -547,6 +625,6 @@ mod tests {
         no_environment
             .records
             .insert("kernel/atmosphere/0000".into(), vec![]);
-        assert!(no_environment.into_records().is_err());
+        assert!(no_environment.decode().is_err());
     }
 }

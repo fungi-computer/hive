@@ -36,6 +36,7 @@ import type {
 import { WasmKernelRecords } from "../../generated/hive_kernel.js";
 import {
   captureKernelRecords,
+  KernelRecordCapture,
   restoreKernelRecords,
   type NativeRecordBinding,
 } from "./kernel-records";
@@ -267,6 +268,7 @@ function parseConstructionReadiness(value: unknown, sites: readonly EntityId[]):
 }
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
+  const capture = new KernelRecordCapture(binding);
   return {
     routeCosts(requests) {
       if (
@@ -785,8 +787,10 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     snapshot() {
       return captureKernelRecords(binding);
     },
+    capture() { return capture.capture(); },
     restore(snapshot) {
-      restoreKernelRecords(binding, () => new WasmKernelRecords(), snapshot);
+      const sequence = restoreKernelRecords(binding, () => new WasmKernelRecords(), snapshot);
+      capture.restored(snapshot, sequence);
     },
     renderFacts(limit = 512) {
       return (JSON.parse(binding.render_facts()) as RenderFact[]).slice(

@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { terrainSurfaceSchema } from "./runtime/terrain-surface";
-import type { KernelRecordSnapshot } from "./runtime/kernel-records";
+import type { KernelRecordSnapshot, KernelRecordCaptureResult } from "./runtime/kernel-records";
 import type { WorkActivity } from "./runtime/work-activity";
 import type { GamePresentation } from "./presentation";
 import type { ActorDefinition } from "./sdk/behavior";
@@ -799,6 +799,8 @@ export interface KernelPort {
     },
   ) => AdvanceResult;
   readonly snapshot: () => KernelSnapshot;
+  /** Resident-only capture; do not mutate or expose its borrowed record bytes. */
+  readonly capture: () => KernelRecordCaptureResult;
   readonly restore: (snapshot: KernelSnapshot) => void;
   readonly renderFacts: (limit?: number) => readonly RenderFact[];
   readonly worldPoses: (entities: readonly EntityId[]) => readonly WorldPose[];

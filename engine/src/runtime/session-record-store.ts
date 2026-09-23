@@ -1,6 +1,6 @@
 import type { SessionSnapshot } from "./session";
 import { MAX_KERNEL_RECORDS, type KernelRecordSnapshot } from "./kernel-records";
-import type { RegionRecordReader, RegionStateRecord, RegionRecordChange } from "../../../src/engine/region/index.ts";
+import type { RegionRecordReader, RegionStateRecord } from "../../../src/engine/region/index.ts";
 
 type KernelHeader = Omit<KernelRecordSnapshot, "records"> & { readonly recordKeys: readonly string[] };
 export type StoredSession = Omit<SessionSnapshot, "kernel"> & { readonly kernel: KernelHeader };
@@ -36,17 +36,4 @@ export function hydrateSession(stored: StoredSession, reader: RegionRecordReader
     return { key, bytes };
   });
   return { ...state, kernel: { ...kernel, records } };
-}
-
-/** Compare captures already owned by this attempt; never reread old records from SQL. */
-export function changedSessionRecords(before: KernelRecordSnapshot, after: KernelRecordSnapshot): RegionRecordChange {
-  const prior = new Map(before.records.map(record => [record.key, record.bytes]));
-  const next = new Set(after.records.map(record => record.key));
-  const puts = after.records.filter(({ key, bytes }) => {
-    const old = prior.get(key);
-    if (!old || old.byteLength !== bytes.byteLength) return true;
-    for (let i = 0; i < bytes.byteLength; i++) if (old[i] !== bytes[i]) return true;
-    return false;
-  });
-  return { puts, removes: before.records.filter(record => !next.has(record.key)).map(record => record.key) };
 }
