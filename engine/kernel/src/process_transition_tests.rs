@@ -542,6 +542,7 @@ fn process_labor_contribution_waits_for_attendance_contact_and_unclaimed_task() 
         key: crate::work_attempt::AttemptKey { task: process.clone(), generation: 1 },
         worker: "worker".into(),
         execution: WorkExecution { pool: "party:process".into(), initiating_player: None, policy_id: crate::work_planner::POLICY_PROCESS.into() },
+        continuation_owner: crate::work_attempt::ContinuationOwner::External,
         phase: crate::work_attempt::AttemptPhase::Ready,
     }).id();
     claimed.work_attempts.insert(process.clone(), attempt);

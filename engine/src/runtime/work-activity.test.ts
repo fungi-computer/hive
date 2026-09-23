@@ -131,7 +131,7 @@ test("activity projection rejects competing native and game attendance", () => {
     id: actor as never,
     get: () => ({ x: 1, y: 0, z: 2, expected: 1, replacement: 0, seconds: 1 }),
   };
-  const attempt: WorkAttempt = {
+  const attempt: WorkAttempt = { continuationOwner: "external",
     key: { task: actor, generation: 1 },
     worker: actor,
     execution: { pool: entity("party.activity"), initiatingPlayer: null, policyId: "test" },
@@ -198,7 +198,7 @@ test("native delivery operations project without a client-owned phase", () => {
     { id: actor, pose: { position: { x: 0, y: 0, z: 0 }, facing: 0 } },
   ] as unknown as RenderFact[];
   const attempts: WorkAttempt[] = [
-    {
+    { continuationOwner: "external",
       key: { task, generation: 1 },
       worker: actor,
       execution: { pool: entity("delivery.party"), initiatingPlayer: null, policyId: "test" },

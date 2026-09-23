@@ -51,6 +51,7 @@ struct SupplySlot {
     lot: String,
     source_position: Position,
     source_contacts: Arc<Vec<Point>>,
+    delivery_lower_bound: f64,
     quantity: u32,
     policy: InputPolicy,
 }
@@ -153,13 +154,19 @@ impl Kernel {
         if self.planner.continuation.is_none() && !self.planner_indexes.has_due_task(tick) {
             return Ok(progressed);
         }
-        let higher_priority = self.planner.continuation.as_ref().is_some_and(|continuation| {
+        let competing_due_work = self.planner.continuation.as_ref().is_some_and(|continuation| {
             continuation.source_window.tasks.first().is_some_and(|retained| {
                 self.planner_indexes.tasks_by_pool.get(&retained.party).into_iter().flatten()
-                    .any(|task| task.priority > retained.priority && task.due_tick <= tick)
+                    .any(|task| task.due_tick <= tick && !self.work_attempts.contains_key(&task.id)
+                        && (task.priority > retained.priority || (task.priority == retained.priority
+                            && !continuation.source_window.tasks.iter().any(|held| held.id == task.id))))
             })
         });
-        if higher_priority { self.planner.continuation = None; }
+        // A retained matrix is speculative computation, not a claim on the
+        // party. Equal-priority due work outside that bounded view must get a
+        // turn before residual expensive commutes are admitted. SearchBank
+        // retains pending physical frontiers independently of this window.
+        if competing_due_work { self.planner.continuation = None; }
         let mut window = if let Some(continuation) = &self.planner.continuation {
             continuation.source_window.clone()
         } else { self.next_native_planning_window(tick) };
@@ -483,7 +490,7 @@ impl Kernel {
             BTreeMap::<String, u32>::new(),
             |mut limits, worker| {
                 limits.entry(worker.party.clone())
-                    .and_modify(|limit| *limit = (*limit).min(worker.free_capacity))
+                    .and_modify(|limit| *limit = (*limit).max(worker.free_capacity))
                     .or_insert(worker.free_capacity);
                 limits
             },
@@ -527,7 +534,8 @@ impl Kernel {
             self.entity(&task.id).ok().and_then(|entity| self.ecs.get::<FieldWaterWork>(entity)).is_some_and(|work| work.lot.is_none())
         });
         let water_contacts = if needs_water_contacts {
-            workers.chunks(16).try_fold(Vec::new(), |mut contacts, batch| {
+            workers.iter().filter(|worker| self.water_vessel_for_worker(&worker.id).is_some())
+                .collect::<Vec<_>>().chunks(16).try_fold(Vec::new(), |mut contacts, batch| {
                 if contacts.len() < 8 {
                     let remaining = 8 - contacts.len();
                     contacts.extend(self.native_water_contacts(&batch.iter().map(|worker| worker.position).collect::<Vec<_>>())?.into_iter().take(remaining));
@@ -615,7 +623,7 @@ impl Kernel {
                         ((worker.position.x - contact.x).powi(2)
                             + (worker.position.y - contact.y).powi(2)
                             + (worker.position.z - contact.z).powi(2)).sqrt()
-                    }).min_by(f64::total_cmp),
+                    }).min_by(f64::total_cmp).map(|pickup| pickup + slot.delivery_lower_bound),
                     PlanningObligation::Supply(_) => None,
                     PlanningObligation::FieldWater(slot) => self.water_vessel_for_worker(&worker.id).and_then(|(_, free)| {
                         if free < u32::from(slot.portions) { return None; }
@@ -667,7 +675,7 @@ impl Kernel {
                             }
                             let points = std::iter::once(crate::navigation::point(position)).chain(route.points.iter().cloned()).collect::<Vec<_>>();
                             let cost = crate::terrain_route::waypoint_cost_micrometres(points)? as f64 / 1_000_000.0;
-                            Ok(SearchOutcome::Reachable((cost, PlanningWitness::Supply { destination, route })))
+                            Ok(SearchOutcome::Reachable((cost + slot.delivery_lower_bound, PlanningWitness::Supply { destination, route })))
                         }
                         SearchOutcome::NoPath(error) => Ok(SearchOutcome::NoPath(error)),
                         SearchOutcome::Deferred(error) => Ok(SearchOutcome::Deferred(error)),
@@ -1116,80 +1124,66 @@ impl Kernel {
         let mut slots = Vec::new();
         let mut prospective_source = BTreeMap::<String, u32>::new();
         let per_requirement = (limit / requirements.len().max(1)).max(1);
-        for requirement in requirements {
-            if slots.len() == limit {
-                break;
-            }
-            let requirement_start = slots.len();
+        let mut edges = Vec::new();
+        // Source selection is shared by all finite deliveries. Rank complete
+        // source-to-destination legs before allocating provisional portions;
+        // stable lot IDs must not ship one district's stock across another.
+        for (requirement_index, requirement) in requirements.iter().enumerate() {
+            let destination = self.world_pose(&requirement.destination)?;
             let source_ids = requirement.source_lots.as_ref()
                 .map(|sources| sources.iter().cloned().collect::<Vec<_>>())
                 .unwrap_or_else(|| self.visible_ground_lot_ids());
-            let sources = source_ids
-                .iter()
-                .filter_map(|lot_id| {
-                    let entity = *self.ids.get(lot_id)?;
-                    let lot = self.ecs.get::<Lot>(entity)?;
-                    if !lot_matches_material(lot, self.ecs.get::<LotWater>(entity), &requirement.material) {
-                        return None;
-                    }
-                    let container = self.entity(&lot.container).ok()?;
-                    let public_ground = self.ecs.get::<GroundStock>(container).is_some()
-                        && self.ecs.get::<OwnedByParty>(container).is_none();
-                    let source_party_ok = self.ecs.get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || public_ground;
-                    let lot_party_ok = self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || (public_ground && self.ecs.get::<OwnedByParty>(entity).is_none());
-                    if !source_party_ok || !lot_party_ok
-                        || !self.is_supply_source_container(container)
-                        || self.ecs.get::<SealedContainer>(container).is_some()
-                    {
-                        return None;
-                    }
-                    let position = *self.ecs.get::<Position>(container)?;
-                    let free = lot
-                        .quantity
-                        .saturating_sub(crate::supply_allocation::reserved_source(
-                            self, lot_id, None,
-                        ))
-                        .saturating_sub(*prospective_source.get(lot_id).unwrap_or(&0));
-                    let eligible = match requirement.policy {
-                        InputPolicy::Portion => free > 0,
-                        InputPolicy::WholeLot => free == lot.quantity && lot.quantity == requirement.missing,
-                    };
-                    eligible.then(|| (lot_id.clone(), position, free))
-                })
-                .take(limit)
-                .collect::<Vec<_>>();
-            let mut remaining = requirement.missing;
-            for (lot, source_position, free) in sources {
-                let mut source_remaining = free;
-                while remaining > 0
-                    && source_remaining > 0
-                    && slots.len() < limit
-                    && slots.len() - requirement_start < per_requirement
-                {
-                    let quantity = match requirement.policy {
-                        InputPolicy::Portion => remaining.min(source_remaining).min(MAX_CARRY_PORTION),
-                        InputPolicy::WholeLot if source_remaining == remaining => remaining,
-                        InputPolicy::WholeLot => 0,
-                    };
-                    if quantity == 0 { break; }
-                    let index = slots.len();
-                    slots.push(SupplySlot {
-                        task: format!("supply-slot-{index}"),
-                        requirement: requirement.clone(),
-                        lot: lot.clone(),
-                        source_position,
-                        source_contacts: Arc::new(Vec::new()),
-                        quantity,
-                        policy: requirement.policy,
-                    });
-                    *prospective_source.entry(lot.clone()).or_default() += quantity;
-                    remaining -= quantity;
-                    source_remaining -= quantity;
-                }
-                if remaining == 0 || slots.len() == limit || slots.len() - requirement_start == per_requirement {
-                    break;
-                }
+            let mut sources = source_ids.iter().filter_map(|lot_id| {
+                let entity = *self.ids.get(lot_id)?;
+                let lot = self.ecs.get::<Lot>(entity)?;
+                if !lot_matches_material(lot, self.ecs.get::<LotWater>(entity), &requirement.material) { return None; }
+                let container = self.entity(&lot.container).ok()?;
+                let public_ground = self.ecs.get::<GroundStock>(container).is_some()
+                    && self.ecs.get::<OwnedByParty>(container).is_none();
+                let source_party_ok = self.ecs.get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || public_ground;
+                let lot_party_ok = self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || (public_ground && self.ecs.get::<OwnedByParty>(entity).is_none());
+                if !source_party_ok || !lot_party_ok || !self.is_supply_source_container(container)
+                    || self.ecs.get::<SealedContainer>(container).is_some() { return None; }
+                let position = *self.ecs.get::<Position>(container)?;
+                let free = lot.quantity.saturating_sub(crate::supply_allocation::reserved_source(self, lot_id, None));
+                let eligible = match requirement.policy {
+                    InputPolicy::Portion => free > 0,
+                    InputPolicy::WholeLot => free == lot.quantity && lot.quantity == requirement.missing,
+                };
+                // Contacts may be one metre from either container; this is a
+                // conservative delivery bound, not a reachability witness.
+                let distance = ((position.x-destination.x).powi(2) + (position.y-destination.y).powi(2) + (position.z-destination.z).powi(2)).sqrt();
+                eligible.then(|| (distance, lot_id.clone(), position, free))
+            }).collect::<Vec<_>>();
+            sources.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+            edges.extend(sources.into_iter().take(limit).map(|(distance, lot, position, free)| (distance, requirement_index, lot, position, free)));
+        }
+        edges.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)).then(a.2.cmp(&b.2)));
+        let mut remaining = requirements.iter().map(|requirement| requirement.missing).collect::<Vec<_>>();
+        let mut counts = vec![0; requirements.len()];
+        for (distance, requirement_index, lot, source_position, free) in edges {
+            let requirement = &requirements[requirement_index];
+            let mut source_remaining = free.saturating_sub(*prospective_source.get(&lot).unwrap_or(&0));
+            while remaining[requirement_index] > 0 && source_remaining > 0
+                && slots.len() < limit && counts[requirement_index] < per_requirement
+            {
+                let quantity = match requirement.policy {
+                    InputPolicy::Portion => remaining[requirement_index].min(source_remaining).min(MAX_CARRY_PORTION),
+                    InputPolicy::WholeLot if source_remaining == remaining[requirement_index] => remaining[requirement_index],
+                    InputPolicy::WholeLot => 0,
+                };
+                if quantity == 0 { break; }
+                slots.push(SupplySlot {
+                    task: format!("supply-slot-{}", slots.len()), requirement: requirement.clone(),
+                    lot: lot.clone(), source_position, source_contacts: Arc::new(Vec::new()),
+                    delivery_lower_bound: (distance - 2.0).max(0.0), quantity, policy: requirement.policy,
+                });
+                *prospective_source.entry(lot.clone()).or_default() += quantity;
+                remaining[requirement_index] -= quantity;
+                source_remaining -= quantity;
+                counts[requirement_index] += 1;
             }
+            if slots.len() == limit { break; }
         }
         Ok(slots)
     }
@@ -1256,17 +1250,16 @@ impl Kernel {
             return Ok(Vec::new());
         }
 
-        // A batch size is an upper preference, never a required carrier
-        // capability. Split the provisional source portions to the smallest
-        // currently eligible carrier for their party so every generated slot
-        // has at least one possible worker. Later reviews can admit the
-        // remainder when this bounded window is full.
+        // A batch needs at least one eligible carrier, not every carrier.
+        // Use the largest currently free capacity; pair eligibility handles
+        // smaller workers, which get smaller portions when larger carriers
+        // are occupied. A partially full carrier cannot shrink every haul.
         let carry_limit_by_party = workers.iter().fold(
             BTreeMap::<String, u32>::new(),
             |mut limits, (_, party, _, capacity)| {
                 limits
                     .entry(party.clone())
-                    .and_modify(|limit| *limit = (*limit).min(*capacity))
+                    .and_modify(|limit| *limit = (*limit).max(*capacity))
                     .or_insert(*capacity);
                 limits
             },
@@ -1331,7 +1324,7 @@ impl Kernel {
                         cost: ((position.x - slot.source_position.x).powi(2)
                             + (position.y - slot.source_position.y).powi(2)
                             + (position.z - slot.source_position.z).powi(2))
-                        .sqrt(),
+                        .sqrt() + slot.delivery_lower_bound,
                     })
             })
             .collect::<Vec<_>>();
@@ -1368,7 +1361,7 @@ impl Kernel {
                         .collect::<Vec<_>>();
                     let cost = crate::terrain_route::waypoint_cost_micrometres(points)? as f64
                         / 1_000_000.0;
-                    Ok(SearchOutcome::Reachable((cost, route)))
+                    Ok(SearchOutcome::Reachable((cost + slot.delivery_lower_bound, route)))
                 }
                 SearchOutcome::NoPath(error) => Ok(SearchOutcome::NoPath(error)),
                 SearchOutcome::Deferred(error) => Ok(SearchOutcome::Deferred(error)),
@@ -2027,6 +2020,50 @@ mod tests {
     }
 
     #[test]
+    fn equal_priority_due_work_competes_with_retained_matching_after_restore() {
+        let mut kernel = thirty_two_ready_construction_tasks();
+        assert_eq!(kernel.advance_native_work_planner(1).unwrap(), 8);
+        let entity = kernel.entity("site").unwrap();
+        kernel.ecs.entity_mut(entity).insert(WorkPolicy { pool: "party".into(), priority: 0, enabled: true });
+        kernel.ecs.entity_mut(entity).insert(WorkSchedule { next_review_tick: 2, last_considered: 0 });
+        kernel.refresh_planner_index("site");
+        let saved = kernel.save_records().unwrap();
+        let mut recovered = Kernel::new();
+        recovered.restore_records(&saved).unwrap();
+        for world in [&mut kernel, &mut recovered] {
+            assert_eq!(world.advance_native_work_planner(2).unwrap(), 2);
+            assert_eq!(world.supply_allocations().filter(|(_, allocation)| allocation.requirement_owner == "site").count(), 2);
+            assert_eq!(world.planner.assignment_generation, 2);
+        }
+        assert_eq!(kernel.save_records().unwrap().entities, recovered.save_records().unwrap().entities);
+        assert_eq!(kernel.planner, recovered.planner);
+    }
+
+    #[test]
+    fn supply_sources_compete_by_delivery_distance_before_stable_identity() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"supply-locality","components":[],"materialCatalog":[],"initial":[
+            {"id":"party","components":{"hive.party":{}}},
+            {"id":"near","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":20},"hive.ground-stock":{},"hive.owned-by-party":{"party":"party"}}},
+            {"id":"far","components":{"hive.position":{"x":100,"y":0,"z":0,"facing":0},"hive.container":{"capacity":20},"hive.ground-stock":{},"hive.owned-by-party":{"party":"party"}}},
+            {"id":"a-far-lot","components":{"hive.lot":{"container":"far","kind":"wood","quantity":3},"hive.owned-by-party":{"party":"party"}}},
+            {"id":"z-near-lot","components":{"hive.lot":{"container":"near","kind":"wood","quantity":3},"hive.owned-by-party":{"party":"party"}}}
+        ]}).to_string()).unwrap();
+        let requirements = ["near", "far"].map(|destination| SupplyRequirement {
+            owner: destination.into(), role: "wood".into(), generation: 1, party: "party".into(),
+            material: "wood".into(), policy: InputPolicy::Portion, destination: destination.into(), missing: 3, source_lots: None,
+        });
+        let slots = kernel.prepare_supply_slots(&requirements, 8).unwrap();
+        assert_eq!(slots.len(), 2);
+        assert_eq!(slots[0].lot, "z-near-lot");
+        assert_eq!(slots[0].requirement.destination, "near");
+        assert_eq!(slots[1].lot, "a-far-lot");
+        assert_eq!(slots[1].requirement.destination, "far");
+        assert_eq!(slots.iter().map(|slot| slot.quantity).sum::<u32>(), 6);
+        assert!(kernel.supply_allocations().next().is_none(), "pricing cannot claim physical stock");
+    }
+
+    #[test]
     fn newly_higher_priority_task_preempts_retained_low_priority_window() {
         let mut kernel = thirty_two_ready_construction_tasks();
         assert_eq!(kernel.advance_native_work_planner(1).unwrap(), 8);
@@ -2104,6 +2141,22 @@ mod tests {
         assert_eq!(kernel.save_records().unwrap().entities, before.entities);
         assert_eq!(kernel.revision, before_revision);
         assert!(!kernel.discard_required);
+    }
+
+    #[test]
+    fn one_small_carrier_does_not_shrink_every_delivery_portion() {
+        let (mut kernel, _, _) = construction_world(2);
+        let small = kernel.entity("worker-2").unwrap();
+        kernel.ecs.entity_mut(small).insert(Container { capacity: 1 });
+        let admitted = kernel.plan_construction_supply("site", "party").unwrap();
+        assert_eq!(admitted.len(), 1);
+        assert_eq!(kernel.supply_allocation(&admitted[0]).unwrap().quantity, 3);
+        assert_eq!(kernel.work_attempt(&admitted[0]).unwrap().worker, "worker-1");
+        let small_delivery = kernel.plan_construction_supply("site", "party").unwrap();
+        assert_eq!(small_delivery.len(), 1, "small carrier stays eligible while larger carrier is occupied");
+        assert_eq!(kernel.supply_allocation(&small_delivery[0]).unwrap().quantity, 1);
+        assert_eq!(kernel.work_attempt(&small_delivery[0]).unwrap().worker, "worker-2");
+        assert_eq!(crate::supply_allocation::reserved_source(&kernel, "wood", None), 4);
     }
 
     #[test]
