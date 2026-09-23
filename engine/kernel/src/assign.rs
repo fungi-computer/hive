@@ -10,14 +10,14 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const COST_SCALE: f64 = 1_000_000.0;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Candidate {
     pub worker: String,
     pub task: String,
     pub cost: f64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Assignment {
     pub worker: String,
     pub task: String,

@@ -34,7 +34,7 @@ mod construction_work;
 #[path = "deconstruction_work.rs"]
 mod deconstruction_work;
 #[path = "native_work_planner.rs"]
-mod native_work_planner;
+pub(crate) mod native_work_planner;
 #[path = "state_accounting.rs"]
 mod state_accounting;
 #[path = "resource_work.rs"]
@@ -2344,6 +2344,7 @@ pub struct Kernel {
     ground_stocks_by_position: BTreeMap<(u64, u64, u64), BTreeSet<String>>,
     storage_providers_by_position: BTreeMap<(u64, u64, u64), BTreeSet<String>>,
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
+    assignment_topology: [u8; 32],
     route_cost_failures: route_query::FailureCache,
     routes: BTreeMap<Entity, VecDeque<Point>>,
     terrain_routes: BTreeMap<Entity, TerrainRouteState>,
@@ -2586,6 +2587,7 @@ impl Kernel {
             ground_stocks_by_position: BTreeMap::new(),
             storage_providers_by_position: BTreeMap::new(),
             blocked_by_frame: BTreeMap::new(),
+            assignment_topology: [0; 32],
             route_cost_failures: route_query::FailureCache::default(),
             routes: BTreeMap::new(),
             terrain_routes: BTreeMap::new(),
@@ -2661,7 +2663,7 @@ impl Kernel {
         crate::work_candidates::next_fair_indexed_window(&mut self.planner, &self.planner_indexes, tick)
     }
     fn native_planner_may_mutate(&self, tick: u64) -> bool {
-        self.planner_indexes.has_due_task(tick)
+        self.planner.continuation.is_some() || self.planner_indexes.has_due_task(tick)
     }
     pub(crate) fn external_id(&self, entity: Entity) -> Result<String> { self.ecs.get::<ExternalId>(entity).map(|id| id.0.clone()).ok_or("entity has no external identity".into()) }
     pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = (&str, &SupplyAllocation)> {
@@ -3476,6 +3478,7 @@ impl Kernel {
                 self.blocked_by_frame.entry(Some(id.clone())).or_default();
             }
         }
+        self.refresh_assignment_topology();
         let indexed_entities: Vec<_> = self.ids.iter().map(|(id, entity)| (id.clone(), *entity)).collect();
         for (id, entity) in indexed_entities {
             if let Some(container) = self.ecs.get::<Container>(entity) {
@@ -4037,13 +4040,13 @@ impl Kernel {
             return Err("direct state exceeds canonical capacity".into());
         }
         let party_bindings = self.party_bindings.snapshot();
-        let owned_bytes = serde_json::to_vec(&(&jobs, &tasks, &party_bindings)).map_err(|e| e.to_string())?.len();
+        let owned_bytes = serde_json::to_vec(&(&jobs, &tasks, &party_bindings, &self.planner)).map_err(|e| e.to_string())?.len();
         if self.state_weight.saturating_add(route_bytes).saturating_add(direct_bytes).saturating_add(owned_bytes) > STATE_BYTES {
             return Err("job state exceeds canonical capacity".into());
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 18,
+            version: 19,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -4085,7 +4088,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 18
+            || state.version != 19
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -4179,6 +4182,10 @@ impl Kernel {
             state.next_party_sequence,
         )?;
         state.planner.validate().map_err(str::to_owned)?;
+        let planner_bytes = serde_json::to_vec(&state.planner).map_err(|error| error.to_string())?.len();
+        if candidate.state_weight.saturating_add(route_bytes).saturating_add(planner_bytes) > STATE_BYTES {
+            return Err("planner state exceeds canonical capacity".into());
+        }
         candidate.planner = state.planner;
         candidate.rebuild_planner_index();
         for (task, attempt) in attempts {

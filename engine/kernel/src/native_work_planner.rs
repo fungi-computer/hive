@@ -102,6 +102,45 @@ struct PlannerWorker {
     free_capacity: u32,
 }
 
+/// Saved computation owned by the native planner. No route, claim, or physical
+/// resource is held here. Each slice reconstructs contributions and checks
+/// participating facts before reusing the remaining Hungarian proposals.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct NativeAssignmentContinuation {
+    version: u8,
+    generation: u64,
+    source_window: crate::work_candidates::PlanningWindow,
+    window: crate::work_candidates::PlanningWindow,
+    dependencies: BTreeMap<String, String>,
+    matching: crate::work_candidates::AssignmentEpisode,
+}
+
+impl NativeAssignmentContinuation {
+    pub(crate) fn generation(&self) -> u64 { self.generation }
+
+    pub(crate) fn validate(&self) -> std::result::Result<(), &'static str> {
+        if self.version != 1 || self.generation == 0 || self.source_window.tasks.len() > MAX_TASK_REVIEWS
+            || self.source_window.workers.len() > crate::work_planner::MAX_ELIGIBLE_WORKERS
+            || self.window.tasks.len() > MAX_TASK_REVIEWS
+            || self.window.workers.len() > crate::work_planner::MAX_ELIGIBLE_WORKERS
+            || self.dependencies.len() > MAX_TASK_REVIEWS + crate::work_planner::MAX_ELIGIBLE_WORKERS + 1
+            || self.dependencies.values().any(|digest| digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        { return Err("invalid retained native assignment"); }
+        for window in [&self.source_window, &self.window] {
+            let mut workers = BTreeSet::new();
+            let mut tasks = BTreeSet::new();
+            if window.workers.iter().any(|worker| !valid_id(&worker.id) || !valid_id(&worker.party) || !workers.insert(&worker.id))
+                || window.tasks.iter().any(|task| !valid_id(&task.id) || !valid_id(&task.party) || !tasks.insert(&task.id))
+            { return Err("invalid retained assignment identities"); }
+        }
+        if serde_json::to_vec(self).map_err(|_| "invalid retained assignment encoding")?.len() > 2 * 1024 * 1024 {
+            return Err("retained assignment capacity exceeded");
+        }
+        self.matching.validate(&self.window).map_err(|_| "invalid retained native matching")
+    }
+}
+
 impl Kernel {
     /// Run the first native automatic labor slice. Domain modules contribute
     /// requirements; this owner alone chooses workers, verifies routes and
@@ -133,10 +172,33 @@ impl Kernel {
             self.acknowledge_work_attempt(task, operation.attempt.generation, operation.sequence)?;
             progressed += 1;
         }
-        if !self.planner_indexes.has_due_task(tick) {
+        if self.planner.continuation.is_none() && !self.planner_indexes.has_due_task(tick) {
             return Ok(progressed);
         }
-        let mut window = self.next_native_planning_window(tick);
+        let higher_priority = self.planner.continuation.as_ref().is_some_and(|continuation| {
+            continuation.source_window.tasks.first().is_some_and(|retained| {
+                self.planner_indexes.tasks_by_pool.get(&retained.party).into_iter().flatten()
+                    .any(|task| task.priority > retained.priority && task.due_tick <= tick)
+            })
+        });
+        if higher_priority { self.planner.continuation = None; }
+        let mut window = if let Some(continuation) = &self.planner.continuation {
+            continuation.source_window.clone()
+        } else { self.next_native_planning_window(tick) };
+        // Fresh capability membership admits newly idle/created workers. Already
+        // dispatched workers filter out through the normal eligibility owner.
+        if let Some(task) = window.tasks.first() {
+            window.workers = crate::work_candidates::eligible_workers(&self.planner_indexes, &task.party, crate::work_planner::MAX_ELIGIBLE_WORKERS);
+        }
+        window.tasks.retain(|task| self.entity(&task.id).ok().is_some_and(|entity| {
+            self.ecs.get::<WorkPolicy>(entity).is_some_and(|policy| policy.enabled && policy.pool == task.party)
+        }));
+        for task in &mut window.tasks {
+            if let Ok(entity) = self.entity(&task.id) && let Some(policy) = self.ecs.get::<WorkPolicy>(entity) {
+                task.priority = policy.priority;
+            }
+        }
+        window.tasks.sort_by(|left, right| right.priority.cmp(&left.priority).then(left.last_considered.cmp(&right.last_considered)).then(left.id.cmp(&right.id)));
         // Priority is authoritative for admission, while lower tiers remain due
         // for a later window. Advancing every reviewed schedule here would let a
         // continuously replenished high tier starve lower-priority work.
@@ -156,7 +218,8 @@ impl Kernel {
             }
         }
         if window.tasks.is_empty() {
-            return Ok(0);
+            self.planner.continuation = None;
+            return Ok(progressed);
         }
 
         // Reconcile already-delivered process inputs before taking the
@@ -534,6 +597,85 @@ impl Kernel {
         Ok(())
     }
 
+    /// Derived once at the existing physical-index mutation/rebuild boundary;
+    /// continuation steps compare a fixed-size key, not the world's blockers.
+    pub(super) fn refresh_assignment_topology(&mut self) {
+        let surfaces = self.blocked_by_frame.keys().flatten().filter_map(|id| {
+            self.entity(id).ok().and_then(|entity| self.ecs.get::<Surface>(entity)).map(|surface| (id, surface))
+        }).collect::<Vec<_>>();
+        self.assignment_topology = Sha256::digest(serde_json::to_vec(&serde_json::json!([
+            self.blocked_by_frame.iter().collect::<Vec<_>>(), surfaces,
+        ])).expect("native navigation facts serialize")).into();
+    }
+
+    fn assignment_entity_facts(&self, id: &str) -> serde_json::Value {
+        let Ok(entity) = self.entity(id) else { return serde_json::Value::Null; };
+        serde_json::json!({
+            "position": self.ecs.get::<Position>(entity),
+            "body": self.ecs.get::<Body>(entity),
+            "traversal": self.ecs.get::<Traversal>(entity),
+            "support": self.ecs.get::<Support>(entity),
+            "container": self.ecs.get::<Container>(entity),
+            "lot": self.ecs.get::<Lot>(entity),
+            "vessel": self.ecs.get::<VesselCapability>(entity),
+            "party": self.ecs.get::<PartyMember>(entity),
+            "owner": self.ecs.get::<OwnedByParty>(entity),
+            "participation": self.ecs.get::<crate::work_planner::WorkParticipation>(entity),
+            "policy": self.ecs.get::<WorkPolicy>(entity),
+            "execution": self.ecs.get::<WorkExecution>(entity),
+            "process": self.ecs.get::<StagedProcess>(entity),
+            "construction": self.ecs.get::<ConstructionSite>(entity),
+            "resource": self.ecs.get::<ResourceOrder>(entity),
+            "excavation": self.ecs.get::<ExcavationOrder>(entity),
+            "deconstruction": self.ecs.get::<DeconstructionOrder>(entity),
+            "fieldWater": self.ecs.get::<FieldWaterWork>(entity),
+            "supply": self.ecs.get::<SupplyAllocation>(entity),
+            "task": self.ecs.get::<crate::job::Task>(entity),
+            "stockpile": self.ecs.get::<StockpileCell>(entity),
+        })
+    }
+
+    /// Fingerprints are bounded by the admitted worker/task set. Region revision,
+    /// unrelated entities and cosmetic frame clocks are deliberately absent.
+    /// Terrain/placement changes conservatively invalidate the retained graph.
+    fn assignment_dependencies(&self, window: &crate::work_candidates::PlanningWindow, obligations: &[PlanningObligation]) -> Result<BTreeMap<String, String>> {
+        let digest = |value: serde_json::Value| -> Result<String> {
+            Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(&value).map_err(|error| error.to_string())?)))
+        };
+        let mut dependencies = BTreeMap::new();
+        dependencies.insert("topology".into(), digest(serde_json::json!([
+            self.environment.as_ref().map(|environment| environment.world.terrain_revision()),
+            self.assignment_topology,
+        ]))?);
+        for worker in &window.workers {
+            let contents = self.contents.get(&worker.id).into_iter().flatten()
+                .map(|entity| self.external_id(*entity).map(|id| (id.clone(), self.assignment_entity_facts(&id))))
+                .collect::<Result<BTreeMap<_, _>>>()?;
+            dependencies.insert(format!("worker:{}", worker.id), digest(serde_json::json!([self.assignment_entity_facts(&worker.id), contents]))?);
+        }
+        for obligation in obligations {
+            let facts = match obligation {
+                PlanningObligation::Labor(requirement) => {
+                    let mut requirement = serde_json::to_value(requirement).map_err(|error| error.to_string())?;
+                    requirement.as_object_mut().expect("work requirement object").remove("schedule");
+                    serde_json::json!([self.assignment_entity_facts(obligation.owner()), requirement])
+                }
+                PlanningObligation::Supply(slot) => serde_json::json!([
+                    self.assignment_entity_facts(obligation.owner()), self.assignment_entity_facts(&slot.lot),
+                    self.assignment_entity_facts(&slot.requirement.destination),
+                    slot.requirement.role, slot.requirement.generation, slot.requirement.material, slot.requirement.missing,
+                    slot.quantity, slot.source_position, slot.source_contacts.as_ref(),
+                ]),
+                PlanningObligation::FieldWater(slot) => serde_json::json!([
+                    self.assignment_entity_facts(obligation.owner()), self.assignment_entity_facts(&slot.requirement.owner),
+                    self.assignment_entity_facts(&slot.requirement.destination), slot.portions, slot.contacts.flat,
+                ]),
+            };
+            dependencies.insert(format!("task:{}", obligation.task()), digest(facts)?);
+        }
+        Ok(dependencies)
+    }
+
     /// Match finite-material deliveries and ready labor in one bounded solver
     /// invocation. Domain contributors describe obligations; this owner alone
     /// narrows workers, prices real routes and publishes the selected work.
@@ -551,7 +693,9 @@ impl Kernel {
                     u32::try_from(self.quantity_in_container(&worker.id)).unwrap_or(u32::MAX),
                 )
             }).unwrap_or(0);
-            (self.ecs.get::<Body>(entity).is_some_and(|body| body.speed.is_finite() && body.speed > 0.0)
+            (self.ecs.get::<PartyMember>(entity).is_some_and(|member| member.party == worker.party)
+                && self.ecs.get::<crate::work_planner::WorkParticipation>(entity).is_some_and(|participation| participation.automatic)
+                && self.ecs.get::<Body>(entity).is_some_and(|body| body.speed.is_finite() && body.speed > 0.0)
                 && self.ecs.get::<Traversal>(entity).is_some()
                 && !self.attempts_by_worker.contains_key(&worker.id)
                 && self.ecs.get::<Destination>(entity).is_none()
@@ -559,7 +703,7 @@ impl Kernel {
                 && self.ecs.get::<ExcavationWork>(entity).is_none())
                 .then_some(PlannerWorker { id: worker.id.clone(), party: worker.party.clone(), position, free_capacity })
         }).collect::<Vec<_>>();
-        if workers.is_empty() { return Ok(0); }
+        if workers.is_empty() { self.planner.continuation = None; return Ok(0); }
 
         let carry_limit_by_party = workers.iter().filter(|worker| worker.free_capacity > 0).fold(
             BTreeMap::<String, u32>::new(),
@@ -656,37 +800,10 @@ impl Kernel {
             }
             if obligations.len() == MAX_TASK_REVIEWS { break; }
         }
-        if obligations.is_empty() { return Ok(0); }
+        if obligations.is_empty() { self.planner.continuation = None; return Ok(0); }
 
         // The caller contributes one priority tier at a time. Lower tiers keep
         // their due schedule and enter the next fair window.
-
-        let bound = |worker: &PlannerWorker, obligation: &PlanningObligation| -> Option<f64> {
-            if worker.party != obligation.party() { return None; }
-            match obligation {
-                PlanningObligation::Supply(slot) if slot.quantity <= worker.free_capacity => slot.source_contacts.iter().map(|contact| {
-                    ((worker.position.x - contact.x).powi(2)
-                        + (worker.position.y - contact.y).powi(2)
-                        + (worker.position.z - contact.z).powi(2)).sqrt()
-                }).min_by(f64::total_cmp),
-                PlanningObligation::Supply(_) => None,
-                PlanningObligation::FieldWater(slot) => self.water_vessel_for_worker(&worker.id).and_then(|(_, free)| {
-                    if free < u32::from(slot.portions) { return None; }
-                    slot.contacts.targets.iter().map(|contact| {
-                        ((worker.position.x - contact.x).powi(2)
-                            + (worker.position.y - contact.y).powi(2)
-                            + (worker.position.z - contact.z).powi(2)).sqrt()
-                    }).min_by(f64::total_cmp)
-                }),
-                PlanningObligation::Labor(requirement) if requirement.free_capacity_required <= worker.free_capacity
-                    && requirement.required_worker.as_deref().is_none_or(|required| required == worker.id) => requirement.contacts.iter().map(|contact| {
-                    ((worker.position.x - contact.x).powi(2)
-                        + (worker.position.y - contact.y).powi(2)
-                        + (worker.position.z - contact.z).powi(2)).sqrt()
-                }).min_by(f64::total_cmp),
-                PlanningObligation::Labor(_) => None,
-            }
-        };
 
         let task_metadata = source_window.tasks.iter().map(|task| (task.id.as_str(), task)).collect::<BTreeMap<_, _>>();
         let planning_window = crate::work_candidates::PlanningWindow {
@@ -708,18 +825,58 @@ impl Kernel {
         {
             return Err("native planning obligation identity collision".into());
         }
-        let workers_per_obligation = (MAX_CANDIDATE_PAIRS / obligations.len()).max(1);
-        let mut candidates = Vec::new();
-        for obligation in &obligations {
-            let mut nearby = workers.iter().filter_map(|worker| bound(worker, obligation).map(|cost| (worker, cost))).collect::<Vec<_>>();
-            nearby.sort_by(|(left_worker, left_cost), (right_worker, right_cost)| left_cost.total_cmp(right_cost).then(left_worker.id.cmp(&right_worker.id)));
-            candidates.extend(nearby.into_iter().take(workers_per_obligation).map(|(worker, cost)| crate::assign::Candidate {
-                worker: worker.id.clone(), task: obligation.task().to_owned(), cost,
-            }));
-        }
-        if candidates.is_empty() { return Ok(0); }
+        let dependencies = self.assignment_dependencies(&planning_window, &obligations)?;
+        let previous = self.planner.continuation.take();
+        let mut matching = if let Some(previous) = previous.filter(|previous| {
+            previous.dependencies == dependencies
+                && previous.window.workers == planning_window.workers
+                && previous.window.tasks.iter().map(|task| (&task.id, &task.party, task.priority)).eq(planning_window.tasks.iter().map(|task| (&task.id, &task.party, task.priority)))
+        }) {
+            previous.matching
+        } else {
+            let bound = |worker: &PlannerWorker, obligation: &PlanningObligation| -> Option<f64> {
+                if worker.party != obligation.party() { return None; }
+                match obligation {
+                    PlanningObligation::Supply(slot) if slot.quantity <= worker.free_capacity => slot.source_contacts.iter().map(|contact| {
+                        ((worker.position.x - contact.x).powi(2)
+                            + (worker.position.y - contact.y).powi(2)
+                            + (worker.position.z - contact.z).powi(2)).sqrt()
+                    }).min_by(f64::total_cmp),
+                    PlanningObligation::Supply(_) => None,
+                    PlanningObligation::FieldWater(slot) => self.water_vessel_for_worker(&worker.id).and_then(|(_, free)| {
+                        if free < u32::from(slot.portions) { return None; }
+                        slot.contacts.targets.iter().map(|contact| {
+                            ((worker.position.x - contact.x).powi(2)
+                                + (worker.position.y - contact.y).powi(2)
+                                + (worker.position.z - contact.z).powi(2)).sqrt()
+                        }).min_by(f64::total_cmp)
+                    }),
+                    PlanningObligation::Labor(requirement) if requirement.free_capacity_required <= worker.free_capacity
+                        && requirement.required_worker.as_deref().is_none_or(|required| required == worker.id) => requirement.contacts.iter().map(|contact| {
+                        ((worker.position.x - contact.x).powi(2)
+                            + (worker.position.y - contact.y).powi(2)
+                            + (worker.position.z - contact.z).powi(2)).sqrt()
+                    }).min_by(f64::total_cmp),
+                    PlanningObligation::Labor(_) => None,
+                }
+            };
 
-        let selected = crate::work_candidates::assign_verified(&planning_window, &candidates, |candidate| {
+            let workers_per_obligation = (MAX_CANDIDATE_PAIRS / obligations.len()).max(1);
+            let mut candidates = Vec::new();
+            for obligation in &obligations {
+                let mut nearby = workers.iter().filter_map(|worker| bound(worker, obligation).map(|cost| (worker, cost))).collect::<Vec<_>>();
+                nearby.sort_by(|(left_worker, left_cost), (right_worker, right_cost)| left_cost.total_cmp(right_cost).then(left_worker.id.cmp(&right_worker.id)));
+                candidates.extend(nearby.into_iter().take(workers_per_obligation).map(|(worker, cost)| crate::assign::Candidate {
+                    worker: worker.id.clone(), task: obligation.task().to_owned(), cost,
+                }));
+            }
+            if candidates.is_empty() { self.planner.continuation = None; return Ok(0); }
+
+            self.planner.assignment_generation = self.planner.assignment_generation.checked_add(1).ok_or("assignment episode sequence exhausted")?;
+            crate::work_candidates::AssignmentEpisode::new(&planning_window, &candidates)
+                .map_err(|error| format!("native joint assignment failed: {error:?}"))?
+        };
+        let selected = matching.advance(&planning_window, |candidate| {
             let worker_entity = self.entity(&candidate.worker)?;
             let position = *self.ecs.get::<Position>(worker_entity).ok_or("native planner worker lost position")?;
             let obligation = obligations_by_task.get(&candidate.task).ok_or("native planner obligation disappeared")?;
@@ -767,6 +924,24 @@ impl Kernel {
                 },
             }
         }).map_err(|error| format!("native joint assignment failed: {error:?}"))?;
+
+        // Keep the exact residual graph and proposal order; releasing one slice
+        // is not a reason to solve the same worker/task matrix again.
+        if !matching.is_empty() {
+            let assigned_workers = selected.assignments.iter().map(|assignment| assignment.worker.as_str()).collect::<BTreeSet<_>>();
+            let remaining_workers = planning_window.workers.iter().filter(|worker| !assigned_workers.contains(worker.id.as_str())).map(|worker| worker.id.as_str()).collect::<BTreeSet<_>>();
+            let remaining_tasks = matching.candidates().iter().map(|pair| pair.task.as_str()).collect::<BTreeSet<_>>();
+            let remaining_owners = remaining_tasks.iter().filter_map(|task| obligations_by_task.get(*task).map(PlanningObligation::owner)).collect::<BTreeSet<_>>();
+            let mut source_window = source_window.clone();
+            source_window.workers.retain(|worker| remaining_workers.contains(worker.id.as_str()));
+            source_window.tasks.retain(|task| remaining_owners.contains(task.id.as_str()));
+            let mut window = planning_window.clone();
+            window.workers.retain(|worker| remaining_workers.contains(worker.id.as_str()));
+            window.tasks.retain(|task| remaining_tasks.contains(task.id.as_str()));
+            let mut dependencies = dependencies;
+            dependencies.retain(|key, _| key == "topology" || key.strip_prefix("worker:").is_some_and(|id| remaining_workers.contains(id)) || key.strip_prefix("task:").is_some_and(|id| remaining_tasks.contains(id)));
+            self.planner.continuation = Some(NativeAssignmentContinuation { version: 1, generation: self.planner.assignment_generation, source_window, window, dependencies, matching });
+        }
 
         let mut supply = Vec::new();
         let mut field = Vec::new();
@@ -2009,6 +2184,97 @@ mod tests {
             9,
             "the still-due lower tier must receive the following window",
         );
+    }
+
+    fn thirty_two_ready_construction_tasks() -> Kernel {
+        let (mut kernel, _, _) = construction_world(32);
+        let first = kernel.entity("site").unwrap();
+        kernel.ecs.entity_mut(first).insert(WorkPolicy { pool: "party".into(), priority: 0, enabled: false });
+        kernel.refresh_planner_index("site");
+        let columns = (2..6).flat_map(|z| (-4..4).map(move |x| (x, z))).collect::<Vec<_>>();
+        let surfaces = kernel.environment.as_mut().unwrap().world.surface_cells(&columns).unwrap();
+        let plans = surfaces.into_iter().enumerate().map(|(index, surface)| ConstructionPlan {
+            catalog: "floor".into(), site: format!("batch-{index:02}"),
+            target: ConstructionTarget::Cell { cell: surface.unwrap().cell, orientation: Cardinal::North },
+        }).collect();
+        kernel.plan_constructions("party".into(), plans, &ActionScope::Host).unwrap();
+        kernel
+    }
+
+    #[test]
+    fn native_episode_dispatches_eight_per_step_and_resumes_records_without_rematching() {
+        let mut kernel = thirty_two_ready_construction_tasks();
+        for slice in 1..=4 {
+            assert_eq!(kernel.advance_native_work_planner(slice).unwrap(), 8);
+            assert_eq!(kernel.attempts_by_worker.len(), slice as usize * 8);
+            assert_eq!(kernel.planner.assignment_generation, 1, "unchanged remaining work must reuse one matching");
+            let saved = kernel.save_records().unwrap();
+            let mut restored = Kernel::new();
+            restored.restore_records(&saved).unwrap();
+            assert_eq!(restored.planner, kernel.planner);
+            kernel = restored;
+        }
+        assert!(kernel.planner.continuation.is_none());
+    }
+
+    #[test]
+    fn newly_higher_priority_task_preempts_retained_low_priority_window() {
+        let mut kernel = thirty_two_ready_construction_tasks();
+        assert_eq!(kernel.advance_native_work_planner(1).unwrap(), 8);
+        let task = "site".to_owned(); // previously disabled and outside the admitted window
+        let entity = kernel.entity(&task).unwrap();
+        kernel.ecs.entity_mut(entity).insert(WorkPolicy { pool: "party".into(), priority: 9, enabled: true });
+        kernel.ecs.entity_mut(entity).insert(WorkSchedule { next_review_tick: 2, last_considered: 1 });
+        kernel.refresh_planner_index(&task);
+        assert_eq!(kernel.advance_native_work_planner(2).unwrap(), 2);
+        assert_eq!(kernel.supply_allocations().filter(|(_, allocation)| allocation.requirement_owner == task).count(), 2);
+        assert_eq!(kernel.planner.assignment_generation, 2);
+    }
+
+    #[test]
+    fn retained_episode_rechecks_changed_worker_and_ignores_unrelated_entity_motion() {
+        let mut kernel = thirty_two_ready_construction_tasks();
+        assert_eq!(kernel.advance_native_work_planner(1).unwrap(), 8);
+        let source = kernel.entity("source").unwrap();
+        kernel.ecs.get_mut::<Position>(source).unwrap().x += 1.0;
+        kernel.rebuild_physical_indexes(false).unwrap();
+        assert_eq!(kernel.advance_native_work_planner(2).unwrap(), 8);
+        assert_eq!(kernel.planner.assignment_generation, 1);
+        let worker = kernel.planner.continuation.as_ref().unwrap().window.workers[0].id.clone();
+        let entity = kernel.entity(&worker).unwrap();
+        kernel.ecs.entity_mut(entity).insert(crate::work_planner::WorkParticipation { automatic: false });
+        kernel.refresh_planner_index(&worker);
+        assert_eq!(kernel.advance_native_work_planner(3).unwrap(), 8);
+        assert_eq!(kernel.planner.assignment_generation, 2);
+        assert!(!kernel.attempts_by_worker.contains_key(&worker));
+    }
+
+    #[test]
+    fn cancelling_retained_task_replans_other_work_without_losing_it() {
+        let mut kernel = thirty_two_ready_construction_tasks();
+        assert_eq!(kernel.advance_native_work_planner(1).unwrap(), 8);
+        let task = kernel.planner.continuation.as_ref().unwrap().source_window.tasks[0].id.clone();
+        let entity = kernel.entity(&task).unwrap();
+        kernel.ecs.entity_mut(entity).insert(WorkPolicy { pool: "party".into(), priority: 0, enabled: false });
+        kernel.refresh_planner_index(&task);
+        for (tick, expected) in [(2, 8), (3, 8), (4, 7)] {
+            assert_eq!(kernel.advance_native_work_planner(tick).unwrap(), expected);
+        }
+        assert_eq!(kernel.attempts_by_worker.len(), 31);
+        assert!(!kernel.work_attempts.contains_key(&task));
+        assert!(kernel.planner.continuation.is_none());
+    }
+
+    #[test]
+    fn failed_admission_restores_retained_episode_and_all_claims() {
+        let mut kernel = thirty_two_ready_construction_tasks();
+        assert_eq!(kernel.advance_native_work_planner(1).unwrap(), 8);
+        kernel.next_work_generation = u64::MAX;
+        let before = kernel.save_records().unwrap();
+        assert!(kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[]}"#).unwrap_err().contains("generation exhausted"));
+        assert_eq!(kernel.save_records().unwrap().entities, before.entities);
+        assert_eq!(kernel.attempts_by_worker.len(), 8);
+        assert!(kernel.planner.continuation.is_some());
     }
 
     #[test]

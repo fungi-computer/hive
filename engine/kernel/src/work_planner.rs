@@ -125,17 +125,24 @@ impl WorkOperation {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PlannerState {
     pub party_cursor: u64,
     pub task_cursor: u64,
     pub review_tick: u64,
+    /// Identity of the latest admitted planning computation.
+    pub assignment_generation: u64,
+    pub(crate) continuation: Option<crate::world::native_work_planner::NativeAssignmentContinuation>,
 }
 
 impl PlannerState {
     pub fn validate(&self) -> Result<(), &'static str> {
         if self.review_tick > u64::MAX - DEFAULT_REVIEW_INTERVAL { return Err("planner tick overflow"); }
+        if let Some(continuation) = &self.continuation {
+            continuation.validate()?;
+            if continuation.generation() != self.assignment_generation { return Err("retained assignment generation mismatch"); }
+        }
         Ok(())
     }
 }
