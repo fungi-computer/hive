@@ -468,6 +468,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return run;
   }
 
+  private wallNow(): number {
+    return Date.now();
+  }
+
   private nextDue(row: HostRow, now: number) {
     if (this.hostStatus(row).state !== "running") return row;
     const deadline = occurrenceWakeDeadline(
@@ -948,7 +952,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           throw new Error("public-scheduled-receipt-mismatch");
       }
       dispatchWallMs = performance.now() - dispatchStarted;
-      const completedAt = now + Math.ceil(performance.now() - dispatchStarted);
+      // Wall time includes queue and transaction work; dispatch duration alone
+      // would let a slow transaction arm an already-overdue next occurrence.
+      const completedAt = Math.max(now, this.wallNow());
       const advancedClock = advanceClockOccurrence(row.due_sequence, dueDeadline, completedAt);
       const advanced: HostRow = {
         ...row,
