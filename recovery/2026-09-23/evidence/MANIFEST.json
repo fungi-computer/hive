@@ -1,0 +1,118 @@
+{
+  "purpose": "retained raw local proof evidence, not a hosted pass",
+  "createdUtc": "2026-09-23T15:06:16.601753+00:00",
+  "files": [
+    {
+      "localPath": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-v3-ledger-3dee1bdb.json",
+      "archivePath": "recovery/2026-09-23/evidence/v3/framework-v3-ledger-3dee1bdb.json",
+      "sha256": "d1d0dee8190a1dc190a14d0cd559a10210b7c1521108a1690baeec433eb8da60",
+      "bytes": 2224522,
+      "gitBlob": "6e806813bccb226f333f8d15062b1fabbcf29ae7"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-v3-stockpile-phases-f633a292.json",
+      "archivePath": "recovery/2026-09-23/evidence/v3/framework-v3-stockpile-phases-f633a292.json",
+      "sha256": "f169abe206b6deca87a6f4c214e08885fe11775004fef93a45f8bf87baa3708f",
+      "bytes": 2185043,
+      "gitBlob": "6fd3f35b5365ee0b03b9a8be37555ea37ea1769e"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-v3-native-phases-f9f29cf4.json",
+      "archivePath": "recovery/2026-09-23/evidence/v3/framework-v3-native-phases-f9f29cf4.json",
+      "sha256": "0417c1847e5868a1eb6435e702c4919fe9d02728a71726c06b98b10e31735b0c",
+      "bytes": 2184337,
+      "gitBlob": "35949420d1ee2f68b7f91b6371c9a68cf0b057e4"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-v3-residual-diagnostic-full.json",
+      "archivePath": "recovery/2026-09-23/evidence/v3/framework-v3-residual-diagnostic-full.json",
+      "sha256": "3323c46d1487e69c4bddfa37f6df591d2b9c636320616fd5577c442150a59dab",
+      "bytes": 2182214,
+      "gitBlob": "9f44a9c1ba56974d1d199ce3c15adf1bfdd6fc54"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-v3-ledger-cursor-bdd26a9b.json",
+      "archivePath": "recovery/2026-09-23/evidence/v3/framework-v3-ledger-cursor-bdd26a9b.json",
+      "sha256": "7b7bc514bac2c7cd4bd6d053328de8b5ed76374e773e8781832fcef99ea26a76",
+      "bytes": 2180591,
+      "gitBlob": "a86cd193cfaaf4005aa388830296aa2e4285590b"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-v3-ledger-integrated-5bc649a1.json",
+      "archivePath": "recovery/2026-09-23/evidence/v3/framework-v3-ledger-integrated-5bc649a1.json",
+      "sha256": "18b2cce22efa90daa25eedc3be54cacd9856e43a30fa453fcf49d4e8b10bef5b",
+      "bytes": 2180498,
+      "gitBlob": "646f60cf105b9945b42a3bba090760859a858556"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-v3-ledger-air-4b7ffac0.json",
+      "archivePath": "recovery/2026-09-23/evidence/v3/framework-v3-ledger-air-4b7ffac0.json",
+      "sha256": "089d1d7fc7b1bd1769557ceb6c55fc3bc58e02953627c7dd26467e184dd9b193",
+      "bytes": 2180486,
+      "gitBlob": "2b3d9c9524577607b7affebd225c57567a023b17"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/workload-gate-owner-20260923/.botanical/framework-v4/local-6000.json",
+      "archivePath": "recovery/2026-09-23/evidence/v4/local-6000.json",
+      "sha256": "827a5d1154bcbb5d2caf5624b7aaa2ecb83a3f5dd7890175223e469b8cf061e3",
+      "bytes": 5759977,
+      "gitBlob": "ff4ba523abfb8c2904bbd560ad2dd62402a33fcc"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/workload-gate-owner-20260923/.botanical/framework-v4/local-6000-attributed.json",
+      "archivePath": "recovery/2026-09-23/evidence/v4/local-6000-attributed.json",
+      "sha256": "38c232aef00d9f90df99eb5b41142acb49ffee3d877b7d6d741ee28da91ee86b",
+      "bytes": 5760302,
+      "gitBlob": "a177b8aaf130859ac086b3707c5a6d7fc591434d"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/workload-gate-owner-20260923/.botanical/framework-v4/local-600.json",
+      "archivePath": "recovery/2026-09-23/evidence/v4/local-600.json",
+      "sha256": "b5fd7afa1eab17e5ef00cf39fedf4abffbc7c941e27e932d34fbebb88e68c1ca",
+      "bytes": 532070,
+      "gitBlob": "141709a7a040160a271d3c2369164048278e2eb6"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/host-cadence-owner-20260923/.botanical/host-cadence-workerd-proof-final/RESULT.json",
+      "archivePath": "recovery/2026-09-23/evidence/host/host-cadence-workerd-proof-final.json",
+      "sha256": "b56d70e1399fbf5ad76363dddb334be85a40888e117c64b0bad4184812ccc1f7",
+      "bytes": 35778,
+      "gitBlob": "05f85816b0e815854a36e3b47b66f6ca22a73ec5"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/host-cadence-owner-20260923/.botanical/host-cadence-workerd-proof-transaction-owner/RESULT.json",
+      "archivePath": "recovery/2026-09-23/evidence/host/host-cadence-workerd-proof-transaction-owner.json",
+      "sha256": "53b4fa467d73615da3c671f1b89b7f38648aef7e43407fc364a2018e885aed36",
+      "bytes": 35703,
+      "gitBlob": "e222a0899e0bc1e589d60910f6d49816d649653d"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/host-cadence-owner-20260923/.botanical/host-cadence-fault-proof-final/RESULT.json",
+      "archivePath": "recovery/2026-09-23/evidence/host/host-cadence-fault-proof-final.json",
+      "sha256": "0f52318ae4293ecf4501e0ab5129e734b4f5ea442bf53bf2a486621c0f6df0fd",
+      "bytes": 1838,
+      "gitBlob": "f283cc742c8880e4f6fe2403043c33551e6b326e"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/publication-owner-20260923/.botanical/publication-owner-before/RESULT.json",
+      "archivePath": "recovery/2026-09-23/evidence/publication/publication-owner-before.json",
+      "sha256": "d9ef6b944ad905eaf83af500447ac164b9ca06f129a2480a70d138f5f5e5a19d",
+      "bytes": 57387,
+      "gitBlob": "d7aeff23b63029a4eb1cbc894e7510091f52d851"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/publication-owner-20260923/.botanical/publication-owner-final/RESULT.json",
+      "archivePath": "recovery/2026-09-23/evidence/publication/publication-owner-final.json",
+      "sha256": "06f73c1426772abea1ac4317285a56786ee6e34846618574b708f0679e0b9979",
+      "bytes": 60066,
+      "gitBlob": "c64416af5dbca11120ec33bbbcf895702b3ef779"
+    },
+    {
+      "localPath": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-driver-proof-cursor-bdd26a9b/RESULT.json",
+      "archivePath": "recovery/2026-09-23/evidence/region/framework-driver-proof-cursor-bdd26a9b.json",
+      "sha256": "6930483ab4ebdfdd0228bfdf8a197b26a22a27dc27d7eb38bfaec8983cbcc64a",
+      "bytes": 59942,
+      "gitBlob": "3ba6f0a20e30883db972a336861fb2d822dea995"
+    }
+  ]
+}
