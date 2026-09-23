@@ -9,6 +9,7 @@ import { SIZE, sourceAccessCells } from "./world.js";
 import {
   constructionBuffer,
   footprint,
+  resolveMaterialEndpoint,
   shelfContainer,
 } from "./construction.js";
 import {
@@ -23,9 +24,12 @@ export type FiniteSourceDefinition =
       preferred: Cell;
       access: "open";
       provider: { material: "water"; capacity: PositiveInt };
-      initial: readonly [
-        { slot: "provider"; material: "water"; quantity: PositiveInt },
-      ];
+      initial: readonly {
+        slot: "provider";
+        material: "water";
+        quantity: PositiveInt;
+        identity?: "care-grant";
+      }[];
     }
   | {
       kind: "reclaimed-timber-cache";
@@ -34,17 +38,54 @@ export type FiniteSourceDefinition =
       provider: { material: "wood"; capacity: PositiveInt };
       pail: { capacity: PositiveInt };
       supplies: { capacity: PositiveInt };
-      initial: readonly [
-        { slot: "provider"; material: "wood"; quantity: PositiveInt },
-        { slot: "pail"; material: "pail"; quantity: PositiveInt },
-        { slot: "supplies"; material: "malt"; quantity: PositiveInt },
-        { slot: "supplies"; material: "barm"; quantity: PositiveInt },
-        { slot: "supplies"; material: "keg"; quantity: PositiveInt },
-      ];
+      initial: readonly (
+        | { slot: "provider"; material: "wood"; quantity: PositiveInt }
+        | { slot: "pail"; material: "pail"; quantity: PositiveInt }
+        | {
+            slot: "supplies";
+            material: "malt" | "barm" | "keg" | "ration";
+            quantity: PositiveInt;
+          }
+      )[];
     };
 
 /** The one bounded source policy: placement metadata and finite stock. */
 export const FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
+  {
+    kind: "spring",
+    preferred: { x: 13, z: 13, level: 0 },
+    access: "open",
+    provider: { material: "water", capacity: 16 as PositiveInt },
+    initial: [
+      { slot: "provider", material: "water", quantity: 8 as PositiveInt },
+      {
+        slot: "provider",
+        material: "water",
+        quantity: 8 as PositiveInt,
+        identity: "care-grant",
+      },
+    ],
+  },
+  {
+    kind: "reclaimed-timber-cache",
+    preferred: { x: 1, z: 13, level: 0 },
+    access: "sealed",
+    provider: { material: "wood", capacity: 10 as PositiveInt },
+    pail: { capacity: 1 as PositiveInt },
+    supplies: { capacity: 12 as PositiveInt },
+    initial: [
+      { slot: "provider", material: "wood", quantity: 10 as PositiveInt },
+      { slot: "pail", material: "pail", quantity: 1 as PositiveInt },
+      { slot: "supplies", material: "malt", quantity: 4 as PositiveInt },
+      { slot: "supplies", material: "barm", quantity: 1 as PositiveInt },
+      { slot: "supplies", material: "keg", quantity: 1 as PositiveInt },
+      { slot: "supplies", material: "ration", quantity: 6 as PositiveInt },
+    ],
+  },
+];
+
+/** Frozen source facts shared by schema 10–14 admission and migration. */
+export const V14_FINITE_SOURCE_DEFINITIONS: readonly FiniteSourceDefinition[] = [
   {
     kind: "spring",
     preferred: { x: 13, z: 13, level: 0 },
@@ -110,8 +151,11 @@ function featureIdMatches(kind: SourceFeatureKind, id: string): boolean {
   return new RegExp(`^feature:${kind}(?::[1-9][0-9]*)?$`).test(id);
 }
 
-function sourceDefinition(kind: SourceFeatureKind): FiniteSourceDefinition {
-  const definition = FINITE_SOURCE_DEFINITIONS.find(
+function sourceDefinition(
+  kind: SourceFeatureKind,
+  definitions: readonly FiniteSourceDefinition[] = FINITE_SOURCE_DEFINITIONS,
+): FiniteSourceDefinition {
+  const definition = definitions.find(
     (candidate) => candidate.kind === kind,
   );
   if (!definition) throw new Error(`unknown finite source ${kind}`);
@@ -120,8 +164,9 @@ function sourceDefinition(kind: SourceFeatureKind): FiniteSourceDefinition {
 
 export function sourceContainerSpec(
   source: Pick<SourceFeature, "id" | "kind">,
+  definitions: readonly FiniteSourceDefinition[] = FINITE_SOURCE_DEFINITIONS,
 ): ContainerSpec {
-  const definition = sourceDefinition(source.kind);
+  const definition = sourceDefinition(source.kind, definitions);
   return {
     id: sourceContainer(source.id),
     capacity: definition.provider.capacity,
@@ -147,7 +192,9 @@ function initialLotId(
   initial: FiniteSourceDefinition["initial"][number],
 ): string {
   return initial.slot === "provider"
-    ? `source-lot:${id}`
+    ? ("identity" in initial && initial.identity === "care-grant"
+        ? `needs-water-lot:${id}`
+        : `source-lot:${id}`)
     : initial.slot === "pail"
       ? sourcePailLot(id)
       : sourceSupplyLot(id, initial.material);
@@ -155,8 +202,9 @@ function initialLotId(
 
 function sourceInitialIdentityKeys(
   source: Pick<SourceFeature, "id" | "kind">,
+  definitions: readonly FiniteSourceDefinition[] = FINITE_SOURCE_DEFINITIONS,
 ): readonly string[] {
-  const definition = sourceDefinition(source.kind);
+  const definition = sourceDefinition(source.kind, definitions);
   return definition.initial.flatMap((initial) => {
     const container =
       initial.slot === "provider"
@@ -170,8 +218,9 @@ function sourceInitialIdentityKeys(
 
 export function sourcePailContainerSpec(
   source: Pick<SourceFeature, "id" | "kind">,
+  definitions: readonly FiniteSourceDefinition[] = FINITE_SOURCE_DEFINITIONS,
 ): ContainerSpec | null {
-  const definition = sourceDefinition(source.kind);
+  const definition = sourceDefinition(source.kind, definitions);
   return "pail" in definition
     ? {
         id: sourcePailContainer(source.id),
@@ -184,17 +233,19 @@ export function sourcePailContainerSpec(
 
 export function sourceSuppliesContainerSpec(
   source: Pick<SourceFeature, "id" | "kind">,
+  definitions: readonly FiniteSourceDefinition[] = FINITE_SOURCE_DEFINITIONS,
 ): ContainerSpec | null {
-  const definition = sourceDefinition(source.kind);
+  const definition = sourceDefinition(source.kind, definitions);
   return "supplies" in definition
     ? {
         id: sourceSuppliesContainer(source.id),
         capacity: definition.supplies.capacity,
-        accepts: ["malt", "barm", "keg"],
+        accepts: ["malt", "barm", "keg", "ration"],
         bulk: {
           malt: 1 as PositiveInt,
           barm: 1 as PositiveInt,
           keg: 1 as PositiveInt,
+          ration: 1 as PositiveInt,
         },
       }
     : null;
@@ -202,7 +253,7 @@ export function sourceSuppliesContainerSpec(
 
 function sourceSupplyLot(
   id: string,
-  material: "malt" | "barm" | "keg",
+  material: "malt" | "barm" | "keg" | "ration",
 ): string {
   return `source-${material}-lot:${id}`;
 }
@@ -281,6 +332,22 @@ export function resolveOpenFiniteSourceContainer(
         : sourceSuppliesContainerSpec(source);
   return provider
     ? { source, provider, accessCells: sourceAccessCells(source) }
+    : null;
+}
+
+/** One lookup for physical container withdrawal; callers retain path ownership. */
+export function resolveMaterialWithdrawal(
+  state: Pick<Clearing, "sites" | "sources">,
+  container: string,
+):
+  | { kind: "site"; site: Clearing["sites"][number] }
+  | { kind: "finite-source"; accessCells: readonly Cell[] }
+  | null {
+  const endpoint = resolveMaterialEndpoint(state.sites, container, "withdraw");
+  if (endpoint) return { kind: "site", site: endpoint.site };
+  const source = resolveOpenFiniteSourceContainer(state, container);
+  return source
+    ? { kind: "finite-source", accessCells: source.accessCells }
     : null;
 }
 
@@ -555,12 +622,18 @@ export function introduceRecipeCacheSupplies(state: SourceState): void {
     (source) => source.kind === "reclaimed-timber-cache",
   );
   if (!cache) return;
-  const definition = sourceDefinition(cache.kind);
+  const definition = sourceDefinition(
+    cache.kind,
+    V14_FINITE_SOURCE_DEFINITIONS,
+  );
   const supplies = definition.initial.filter(
     (entry) => entry.slot === "supplies",
   );
   if (!supplies.length) return;
-  const container = sourceSuppliesContainerSpec(cache);
+  const container = sourceSuppliesContainerSpec(
+    cache,
+    V14_FINITE_SOURCE_DEFINITIONS,
+  );
   if (!container) throw new Error("missing recipe cache supplies container");
   const keys = [
     container.id,
@@ -590,6 +663,54 @@ export function introduceRecipeCacheSupplies(state: SourceState): void {
       throw new Error(
         `cannot introduce recipe cache supplies: ${result.reason}`,
       );
+  }
+  state.materials = next;
+}
+
+/** Adds only the source lots introduced by the current profile to active sources. */
+export function introduceCurrentFiniteSourceProvisions(
+  state: SourceState,
+): void {
+  const additions = state.sources.flatMap((source) => {
+    const current = sourceDefinition(source.kind);
+    const predecessor = sourceDefinition(
+      source.kind,
+      V14_FINITE_SOURCE_DEFINITIONS,
+    );
+    const predecessorIds = new Set(
+      predecessor.initial.map((entry) => initialLotId(source.id, entry)),
+    );
+    return current.initial
+      .filter(
+        (entry) => !predecessorIds.has(initialLotId(source.id, entry)),
+      )
+      .map((entry) => ({ source, entry }));
+  });
+  const foreign = foreignIdentityKeys(state);
+  if (
+    additions.some(({ source, entry }) =>
+      foreign.has(initialLotId(source.id, entry)),
+    )
+  )
+    throw new Error("cannot introduce current provisions: identity collision");
+  const next = structuredClone(state.materials);
+  for (const { source, entry } of additions) {
+    const container =
+      entry.slot === "provider"
+        ? sourceContainerSpec(source)
+        : entry.slot === "pail"
+          ? sourcePailContainerSpec(source)
+          : sourceSuppliesContainerSpec(source);
+    if (!container)
+      throw new Error("cannot introduce current provisions: missing container");
+    const result = introduceFiniteSourceLot(next, {
+      source: container,
+      material: entry.material,
+      quantity: entry.quantity,
+      preferredId: initialLotId(source.id, entry),
+    });
+    if (!result.ok)
+      throw new Error(`cannot introduce current provisions: ${result.reason}`);
   }
   state.materials = next;
 }
@@ -627,6 +748,7 @@ export function repairReclaimedCache(
 export function finiteSourceProblem(
   state: SourceState,
   requireAll = true,
+  definitions: readonly FiniteSourceDefinition[] = FINITE_SOURCE_DEFINITIONS,
 ): string | null {
   const ids = new Set<string>();
   const kinds = new Set<SourceFeatureKind>();
@@ -642,10 +764,12 @@ export function finiteSourceProblem(
   const fixed = fixedIdentityKeys(state);
   for (const source of state.sources) {
     const key = `${source.x},${source.z},${source.level}`;
-    const provider = sourceContainerSpec(source);
+    const definition = sourceDefinition(source.kind, definitions);
+    const provider = sourceContainerSpec(source, definitions);
     const namedLotId = `source-lot:${source.id}`;
-    const pailProvider = sourcePailContainerSpec(source);
+    const pailProvider = sourcePailContainerSpec(source, definitions);
     const pailLotId = pailProvider ? sourcePailLot(source.id) : null;
+    const suppliesProvider = sourceSuppliesContainerSpec(source, definitions);
     const contents = state.materials.lots.filter(
       (lot) =>
         lot.location.kind === "container" &&
@@ -662,6 +786,13 @@ export function finiteSourceProblem(
     const pailLot = pailLotId
       ? state.materials.lots.find((lot) => lot.id === pailLotId)
       : undefined;
+    const suppliesContents = suppliesProvider
+      ? state.materials.lots.filter(
+          (lot) =>
+            lot.location.kind === "container" &&
+            lot.location.container === suppliesProvider.id,
+        )
+      : [];
     // This is provenance, not permanent provider custody: the final portion
     // may be held or in another valid container after a draw.  Its ID is not
     // a competing identity while the material lot itself remains unique.
@@ -688,22 +819,34 @@ export function finiteSourceProblem(
           namedLotIds.has(pailLotId!) ||
           used.has(pailLotId!))) ||
       !featureIdMatches(source.kind, source.id) ||
-      source.access !== sourceDefinition(source.kind).access
+      source.access !== definition.access
     )
       return `source ${source.id} is invalid`;
+    const providerEntries = definition.initial.filter(
+      (entry) => entry.slot === "provider",
+    );
+    const providerIds = new Map(
+      providerEntries.map((entry) => [initialLotId(source.id, entry), entry]),
+    );
     if (
-      contents.length > 1 ||
       (namedLot !== undefined &&
         (namedLot.material !== provider.accepts[0] ||
           namedLot.quantity > provider.capacity)) ||
       contents.some(
         (lot) =>
-          lot.id !== `source-lot:${source.id}` ||
-          lot.material !== provider.accepts[0] ||
-          lot.quantity > provider.capacity,
-      )
+          !providerIds.has(lot.id) || lot.material !== provider.accepts[0],
+      ) ||
+      contents.reduce((sum, lot) => sum + lot.quantity, 0) > provider.capacity
     )
       return `source ${source.id} has invalid finite contents`;
+    for (const [lotId, entry] of providerIds) {
+      const lot = state.materials.lots.find((candidate) => candidate.id === lotId);
+      if (
+        lot &&
+        (lot.material !== entry.material || lot.quantity > entry.quantity)
+      )
+        return `source ${source.id} has invalid finite contents`;
+    }
     if (
       pailProvider &&
       (!pailLot ||
@@ -713,6 +856,33 @@ export function finiteSourceProblem(
         pailContents.some((lot) => lot.id !== pailLotId))
     )
       return `source ${source.id} has invalid pail contents`;
+    if (suppliesProvider) {
+      const supplyEntries = definition.initial.filter(
+        (entry) => entry.slot === "supplies",
+      );
+      const supplyIds = new Map(
+        supplyEntries.map((entry) => [initialLotId(source.id, entry), entry]),
+      );
+      if (
+        suppliesContents.some((lot) => {
+          const entry = supplyIds.get(lot.id);
+          return !entry || lot.material !== entry.material;
+        }) ||
+        suppliesContents.reduce((sum, lot) => sum + lot.quantity, 0) >
+          suppliesProvider.capacity
+      )
+        return `source ${source.id} has invalid supplies`;
+      for (const [lotId, entry] of supplyIds) {
+        const lot = state.materials.lots.find(
+          (candidate) => candidate.id === lotId,
+        );
+        if (
+          lot &&
+          (lot.material !== entry.material || lot.quantity > entry.quantity)
+        )
+          return `source ${source.id} has invalid supplies`;
+      }
+    }
     ids.add(source.id);
     kinds.add(source.kind);
     cells.add(key);
@@ -777,7 +947,7 @@ export function finiteSourceProblem(
       used.add(pailLotId!);
     }
   }
-  return requireAll && kinds.size !== FINITE_SOURCE_DEFINITIONS.length
+  return requireAll && kinds.size !== definitions.length
     ? "finite source introduction is incomplete"
     : null;
 }

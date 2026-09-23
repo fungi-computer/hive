@@ -49,17 +49,42 @@ live Three references or arbitrary editor commands crossing the boundary.
 - Scene replacement and frame disposal release the session's geometries/materials/
   textures; renderer animation loop and context are stopped when the frame closes.
 
-Renderer/project display settings are included in native project JSON but are not
-restored in this checkpoint. The project envelope and Open status disclose that
-limitation. Scene loading sets background/environment types before setScene and
-preserves the incoming camera UUID in the native camera registry. History admission
-checks known non-script command types, IDs, nested records, transforms and references
-before mutation; it does not prove arbitrary historical command replay validity.
+The interaction candidate restores renderer type, antialias, shadows, shadow type,
+tone mapping and exposure through the native renderer panel's controls/configuration
+writer. `upstream-patches.mjs` verifies the pristine resource SHA before each exact
+replacement; dev and static build apply the same changes. `runtime-patches.json`
+records pristine/result hashes. The vendored pin and notices remain unchanged.
+The small owner patch also includes antialias in Editor.toJSON and preserves scene
+background/environment rotations and environment intensity in Editor.setScene.
+Renderer creation is serialized through its retained native Promise; frame readiness,
+imports and exports await completion. A failed creation rejects its caller, disposes
+the unpublished candidate and retains the current renderer; a later native selection
+or project restore may retry. Project restore resolves renderer recovery before
+clearing the scene and reapplies settings after native clear resets them.
+
+Original admission attaches detached directional/spot light targets to the native
+scene graph with Object3D.attach, preserving their world transform. Each normalized
+target records `original-detached-light-target-v1` in userData; immutable recipe
+provenance remains unchanged. Native ObjectLoader can then restore the serialized
+light-to-target UUID relationship. This does not repair arbitrary older projects
+whose detached target data was never serialized.
+
+Admission (`project-admission.js`) validates/decode/parses a detached candidate;
+application (`project-application.js`) calls native renderer/scene/camera/History
+owners; `scene-resources.js` closes candidate/session resources. Session retains
+only immutable source-provenance bytes alongside the sole native editor owner.
+
+Native `Sidebar.Settings.Shortcuts` already installs W/E/R, Ctrl/Cmd-Z and
+Shift-Ctrl/Cmd-Z handlers, plus configurable focus/camera keys. The frame uses those
+handlers directly. Native text/number inputs stop key propagation while editing;
+viewport/outliner focus resumes editor shortcuts. No parallel keyboard dispatcher
+was added. History admission checks known non-script command records before native
+History.fromJSON; arbitrary historical replay validity remains a separate limit.
 
 Parsing/admission failures occur before replacement. Native clear/setScene/history
 signals are not a transactional host API: an unexpected renderer/UI failure after
 clear may interrupt replacement. The first checkpoint does not claim an unconditional
-"bad file never clears the scene" guarantee or complete project-settings round-trip.
+"bad file never clears the scene" guarantee before runtime interaction verification.
 
 This is a source checkpoint, not rendered art acceptance or full Fiend parity.
 The pending first readiness proof must validate native menu startup, actual original
@@ -68,6 +93,6 @@ malformed import cleanup, complete object-history round-trip and native export
 resource paths require source review and focused proof before claiming coverage.
 
 Build/config: `../editor.config.mjs`; NEW portable output:
-`.botanical/asset-mcp/editor-source-checkpoint-20260909-v2`. It cannot empty or replace
+`.botanical/asset-mcp/editor-interaction-checkpoint-20260909`. It cannot empty or replace
 the accepted portable viewer directory or frozen hosting archive. Root owns builds,
 proof acceptance and publication coordination for this source checkpoint.

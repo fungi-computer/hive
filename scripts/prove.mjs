@@ -42,7 +42,6 @@ try {
   await page.waitForFunction(() => window.__GOBLIN?.artReady, null, {
     timeout: 90000,
   });
-  await wait(() => !!window.__GOBLIN.state.demand);
   const initial = await state();
   assert.equal(initial.piles.length, 0);
   assert.equal(initial.sites.length, 0);
@@ -55,7 +54,6 @@ try {
   await page.waitForTimeout(200);
   await shot("02-wall-ghost");
   await click(7, 5);
-  await page.locator("#task").click();
   await wait(() => window.__GOBLIN.state.jobs[0]?.reason?.includes("wood"));
   const waiting = await state();
   assert.equal(waiting.sites[0].delivered, 0);
@@ -69,22 +67,30 @@ try {
   await page.getByRole("button", { name: "Build", exact: true }).click();
   await page.locator('[data-build="wall"]').click();
   await click(7, 5);
-  await page.locator("#task").click();
+  await page.locator("#select-rowan").click();
+  assert.deepEqual(
+    await page.evaluate(() => window.__GOBLIN.selection.selectedIds),
+    ["rowan"],
+  );
   await click(3, 4, 1.5);
-  await page.locator("#chop").click();
-  await wait(() => window.__GOBLIN.state.pawn.mode === "chop");
+  assert.deepEqual(
+    await page.evaluate(() => window.__GOBLIN.selection.selectedIds),
+    ["rowan"],
+  );
+  await page.locator("#chop-now").click();
+  await wait(() => window.__GOBLIN.state.actors.rowan.mode === "chop");
   await page.waitForTimeout(1100);
   const chopping = await state();
-  assert.equal(chopping.assignment.character, "rowan");
+  assert.equal(chopping.actors.rowan.assignment.character, "rowan");
   await shot("04-chopping");
-  await wait(() => window.__GOBLIN.state.pawn.carry > 0);
+  await wait(() => window.__GOBLIN.state.actors.rowan.cargo?.amount > 0);
   const carrying = await state();
   assert.equal(carrying.felled, 1);
   assert.equal(carrying.sites[0].delivered, 0);
   await shot("05-carrying");
   await wait(
     () =>
-      window.__GOBLIN.state.pawn.mode === "build" &&
+      window.__GOBLIN.state.actors.rowan.mode === "build" &&
       window.__GOBLIN.state.sites[0].work > 8,
   );
   const building = await state();
@@ -101,7 +107,11 @@ try {
   // The complete home is laid out through the same visible placement controls.
   await page.getByRole("button", { name: "Open game menu" }).click();
   await page.locator("#reset").click();
-  await click(7, 10, 1);
+  await click(10, 12, 1);
+  await page.locator("#recruit").click();
+  await wait(() => window.__GOBLIN.state.parties.home.members.length === 2);
+  await page.locator("#select-rowan").click();
+  await page.locator("#select-sedge").click({ modifiers: ["Shift"] });
   await page.locator("#speed").click();
   await page.getByRole("button", { name: "Build", exact: true }).click();
   async function row(type, from, to = from) {
@@ -140,7 +150,7 @@ try {
     [11, 10],
   ]) {
     await click(x, z, 1.9);
-    await page.locator("#chop").click();
+    await page.locator("#chop-queued").click();
   }
   await wait(
     () =>
@@ -166,22 +176,41 @@ try {
   await shot("10-home-roof");
   await page.locator("#cutaway").check();
   await shot("11-home-cutaway");
-  await page.locator("#select").click();
+  await page.locator("#select-rowan").click();
+  await page.locator("#select-sedge").click({ modifiers: ["Shift"] });
   await page.locator("#rest").click();
-  await wait(() => window.__GOBLIN.state.pawn.mode === "sleep");
+  await wait(() =>
+    Object.values(window.__GOBLIN.state.actors).some(
+      (actor) => actor.mode === "sleep",
+    ),
+  );
   await page.locator("#pause").click();
   const sleeping = await state();
-  assert.deepEqual([sleeping.pawn.x, sleeping.pawn.z], [7, 6]);
+  const firstSleeper = Object.values(sleeping.actors).find(
+    (actor) => actor.mode === "sleep",
+  );
+  assert.deepEqual([firstSleeper.x, firstSleeper.z], [7, 6]);
   await page.waitForTimeout(650);
   assert.deepEqual(await state(), sleeping);
   await shot("12-sleep-paused");
   await page.locator("#pause").click();
   await click(6, 2, 1.9);
-  await page.locator("#chop").click();
-  await wait(() => window.__GOBLIN.state.rested === 1);
-  await wait(() => window.__GOBLIN.state.pawn.mode === "chop");
+  await page.locator("#chop-queued").click();
+  await wait(() => window.__GOBLIN.state.rested >= 2);
+  await wait(() =>
+    window.__GOBLIN.state.felled === 5 ||
+    Object.values(window.__GOBLIN.state.actors).some(
+      (actor) => actor.mode === "chop",
+    ),
+  );
   const resumed = await state();
-  assert.equal(resumed.pawn.task.target, "oak-5");
+  assert.equal(
+    resumed.felled === 5 ||
+      Object.values(resumed.actors).some(
+        (actor) => actor.task?.target === "oak-5",
+      ),
+    true,
+  );
   await shot("13-work-resumed");
   await wait(
     () =>
@@ -194,14 +223,21 @@ try {
     11,
   );
   // The standing schedule is real browser input; the simulation clock reaches night.
-  await page.locator("#select").click();
+  await page.locator("#select-rowan").click();
+  await page.locator("#select-sedge").click({ modifiers: ["Shift"] });
   await page.locator("#routine").check();
-  await wait(() => window.__GOBLIN.state.pawn.mode === "sleep");
+  await wait(() =>
+    Object.values(window.__GOBLIN.state.actors).some(
+      (actor) => actor.mode === "sleep",
+    ),
+  );
   await shot("14-night-routine");
   await wait(
     () =>
-      window.__GOBLIN.state.rested >= 2 &&
-      window.__GOBLIN.state.pawn.mode !== "sleep",
+      window.__GOBLIN.state.rested >= 4 &&
+      Object.values(window.__GOBLIN.state.actors).every(
+        (actor) => actor.mode !== "sleep",
+      ),
   );
   const morning = await state();
   await shot("15-morning");
@@ -214,7 +250,8 @@ try {
   assert.equal(reset.jobs.length, 0);
   assert.equal(reset.felled, 0);
   assert.equal(reset.rested, 0);
-  assert.equal(reset.routine, false);
+  assert.equal(reset.actors.rowan.routine, false);
+  assert.deepEqual(reset.parties.home.members, ["rowan"]);
   assert.equal(reset.commands.length, 0);
   assert.equal(reset.feed.sequence, 0);
   await shot("16-reset");
@@ -240,7 +277,10 @@ try {
   ]) {
     assert.equal(
       sample.piles.reduce((n, pile) => n + pile.amount, 0) +
-        sample.pawn.carry +
+        Object.values(sample.actors).reduce(
+          (total, actor) => total + (actor.cargo?.amount ?? 0),
+          0,
+        ) +
         sample.sites.reduce((n, site) => n + site.delivered, 0),
       sample.felled * 6,
     );

@@ -1,3 +1,4 @@
+import { finiteWorkLifecycle } from "./water-delivery.ts";
 import type {
   Clearing,
   Command,
@@ -23,9 +24,7 @@ import {
 import { recipeOutputActionForWire } from "./recipes.ts";
 import {
   containerContents,
-  interruptOperationPail,
   releaseContainer,
-  retireOperationPail,
 } from "./materials.ts";
 import {
   blockedCells,
@@ -173,6 +172,8 @@ export function commandProblem(s: Clearing, c: Command): string {
   if (c.kind === "cancel" || c.kind === "next") {
     const job = s.jobs.find((entry) => entry.id === c.job);
     if (!job) return "That order is no longer available.";
+    if (job.kind === "care" && !s.parties[c.party]?.members.includes(job.target))
+      return "Only home members' care can be ordered.";
     if (c.kind === "cancel" && job.kind === "repair-cache") {
       const cache = s.sources.find((source) => source.id === job.target);
       const buffer = cache && cacheRepairBuffer(cache);
@@ -224,6 +225,8 @@ export function commandProblem(s: Clearing, c: Command): string {
         ? "That person has already joined this party."
         : "";
   }
+  if (c.kind === "rest" && !c.actors?.length)
+    return "Select a home member to rest.";
   return scopeProblem(s, c);
 }
 function scope(
@@ -407,14 +410,16 @@ function add(
   } else
     j = {
       id,
-      kind: "rest",
+      kind: "care",
       target: sc.actors![0],
-      scope: sc,
+      need: "rest",
+      policy: "manual-rest",
       reason: "Ordered",
       routine: false,
     };
   s.jobs.push(j);
   s.workDirty = true;
+  return j.id;
 }
 function cancel(s: Clearing, id: string) {
   const j = s.jobs.find((x) => x.id === id);
@@ -454,25 +459,30 @@ function cancel(s: Clearing, id: string) {
       });
       if (!r.ok) throw new Error(r.reason);
     }
-  } else if (j.kind === "fill-kettle" || j.kind === "water-mugwort") {
+  } else if (
+    j.kind === "fill-kettle" ||
+    j.kind === "water-mugwort" ||
+    j.kind === "care"
+  ) {
     const active = s.operations.find((operation) => operation.job === j.id);
-    if (active) {
+    if (active?.kind === "water-delivery") {
       const custody = s.materials.transfers.find(
         (transfer) =>
           transfer.owner.kind === "operation" &&
           transfer.owner.operation === active.id,
       );
-      if (custody) {
-        const actor = s.actors[custody.actor];
-        if (!actor) throw new Error("water operation has missing actor");
-        const released = interruptOperationPail(s.materials, active.id, {
-          cell: { x: actor.x, z: actor.z, level: actor.level },
-          legal: true,
-        });
-        if (!released.ok) throw new Error(released.reason);
-      }
-      retireOperationPail(s.materials, active.id);
-      s.operations = s.operations.filter((operation) => operation !== active);
+      const actor = custody ? s.actors[custody.actor] : undefined;
+      if (custody && !actor) throw new Error("water operation has missing actor");
+      const released = finiteWorkLifecycle.interrupt(s.operations, s.materials, {
+        kind: "release", operation: active.id,
+        drop: actor ? { cell: { x: actor.x, z: actor.z, level: actor.level }, legal: true } : undefined,
+      });
+      if (!released.ok) throw new Error(released.reason);
+    } else if (active?.kind === "consume") {
+      const released = finiteWorkLifecycle.interrupt(s.operations, s.materials, {
+        kind: "release", operation: active.id,
+      });
+      if (!released.ok) throw new Error(released.reason);
     }
   } else if (j.kind === "brew") {
     const released = cancelPreparingBrew(s, j.id);
@@ -496,10 +506,21 @@ function cancel(s: Clearing, id: string) {
   s.jobs = s.jobs.filter((x) => x.id !== id);
   s.workDirty = true;
 }
-function accept(s: Clearing, c: Command): CommandResult {
+export type CommandAdmission =
+  | { status: "applied"; createdJobs: string[] }
+  | { status: "rejected"; reason: string };
+/** Admit intent without advancing time; creation IDs come from the job owner. */
+export function admitCommand(s: Clearing, c: Command): CommandAdmission {
   const e = commandProblem(s, c);
   if (e) return { status: "rejected", reason: e };
-  if (c.kind === "cancel") {
+  const createdJobs: string[] = [];
+  if (c.kind === "rest") {
+    for (const actor of new Set(c.actors!)) {
+      if (s.jobs.some((job) => job.kind === "care" && job.target === actor && job.need === "rest"))
+        continue;
+      createdJobs.push(add(s, { ...c, actors: [actor] }));
+    }
+  } else if (c.kind === "cancel") {
     cancel(s, c.job);
   } else if (c.kind === "next") {
     const j = s.jobs.find((x) => x.id === c.job)!;
@@ -542,13 +563,16 @@ function accept(s: Clearing, c: Command): CommandResult {
     c.kind === "water-mugwort" ||
     c.kind === "brew" ||
     c.kind === "tap" ||
-    c.kind === "clear-spent-grain" ||
-    c.kind === "rest"
+    c.kind === "clear-spent-grain"
   )
-    add(s, c);
-  s.commands.push({ ...structuredClone(c), tick: s.tick } as any);
-  return { status: "applied" };
+    createdJobs.push(add(s, c));
+  return { status: "applied", createdJobs };
 }
 export function admitCommands(s: Clearing, cs: Command[]): CommandResult[] {
-  return cs.map((c) => accept(s, c));
+  return cs.map((c) => {
+    const result = admitCommand(s, c);
+    if (result.status === "rejected") return result;
+    s.commands.push({ ...structuredClone(c), tick: s.tick });
+    return { status: "applied" };
+  });
 }

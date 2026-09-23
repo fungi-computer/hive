@@ -1,0 +1,65 @@
+{
+  "source": "accepted point-consumer u3474, same volume-with-pit owner as u3421",
+  "files": [
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/volume.mjs",
+      "sha256": "5e75a75ad9ded602721a5be429745c4ec34d710ee329827828e59636ca43fa39",
+      "file": "volume.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/column-v1/source-v2/soil.mjs",
+      "sha256": "8664df3a99269437a88d8f33ef26ad2b61d961ca802f31f28d7473b885aff6d1",
+      "file": "soil.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/geometry.mjs",
+      "sha256": "147b3b62e090844d5d0f4a675d5d01e03c66677498447fe678057609a55ac104",
+      "file": "geometry.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/pit.mjs",
+      "sha256": "2f6b7065835ad2078ecf048f96104ca42b660b35b9484f6e1e38e86b46399e16",
+      "file": "pit.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/newton.mjs",
+      "sha256": "df612a3cf2509a6a6b66312e861128f93c04eb159b7b962371443eb2df816059",
+      "file": "newton.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/residual.mjs",
+      "sha256": "b30ab60ecef97a9d91222b98af7ad31f6401304bb76ac6685b6ff71570d593d8",
+      "file": "residual.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/faces.mjs",
+      "sha256": "ef409d6b041d885963bf30f84ab63ea801cd6b69594d230741078fd4682c9cbf",
+      "file": "faces.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/pit-face-v1/vertical-face.mjs",
+      "sha256": "37d468f546b0818cc59b59d4f40beced449903b7f4d82d8057ee4219216001ca",
+      "file": "vertical-face.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/guess.mjs",
+      "sha256": "666cd8f7f14388ec789d446fd8689a674ee4e8c10fdcb40cd8aed10112d17341",
+      "file": "guess.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/state.mjs",
+      "sha256": "f2cfa872d955bf326e405415b7d1a7304780bc574dde2e1b681108b9364088df",
+      "file": "state.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/linear.mjs",
+      "sha256": "4ede98c670b6bee94ceeb0c342888973302bf7f4624999efc3a1e51e5f0e7613",
+      "file": "linear.mjs"
+    },
+    {
+      "source": ".botanical/research/environment-round3-20260908/soil-water-v1/excavation-v1/volume-with-pit-v1/closure.mjs",
+      "sha256": "f9046f422c529bcd96a210e58f8edf5808f911e540fa50b17fd926c02f45af7f",
+      "file": "closure.mjs"
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import { createActor } from "xstate";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Card } from "@fungi.computer/caps/components/card";
 import { Checkbox } from "@fungi.computer/caps/components/checkbox";
+import { Progress } from "@fungi.computer/caps/components/progress";
 import "@fungi.computer/caps/styles.css";
 import {
   BUILDINGS,
@@ -32,6 +33,7 @@ import {
   sourcePailContainerSpec,
 } from "./finite-sources.ts";
 import { commandProblem } from "./orders.ts";
+import { careFacts } from "./needs.ts";
 import { looseWood } from "./resources.ts";
 import { DAY_TICKS, hour } from "./routine.ts";
 import { SIZE, stairLanding } from "./world.js";
@@ -66,6 +68,7 @@ const ACTIVITIES = {
   harvest: "Harvesting mugwort",
   "brew-water": "Filling brew kettle",
   "water-delivery": "Delivering water",
+  consume: "Eating",
   brew: "Brewing herbal ale",
   tap: "Tapping herbal ale",
   sleep: "Sleeping in the bedroll",
@@ -87,7 +90,9 @@ function materialLabel(material) {
     .join(" ");
 }
 
-function actorFact(actor, materials) {
+function actorFact(state, actor) {
+  const care = careFacts(state, actor.id);
+  const materials = state.materials;
   const transfer = transferForActor(materials, actor.id);
   const hand = carriedLot(materials, actor.id);
   return {
@@ -96,7 +101,12 @@ function actorFact(actor, materials) {
     figure: actor.figure,
     mode: actor.mode,
     drafted: actor.drafted,
-    rest: actor.rest,
+    nourishment: Math.round(care?.nourishment ?? 0),
+    hydration: Math.round(care?.hydration ?? 0),
+    rest: Math.round(care?.rest ?? 0),
+    careQueued: care?.queued ?? null,
+    careActive: care?.active ?? null,
+    careReason: care?.reason ?? null,
     routine: actor.routine,
     chopAllowed: actor.allowedWork.chop,
     haulAllowed: actor.allowedWork.haul,
@@ -162,7 +172,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
   const nextActors = Object.fromEntries(
     Object.values(state.actors).map((actor) => [
       actor.id,
-      actorFact(actor, state.materials),
+      actorFact(state, actor),
     ]),
   );
   const actors =
@@ -181,7 +191,7 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
         );
   const beds = shelteredBeds(state).length;
   const time = hour(state);
-  const nextRestProblems = Object.fromEntries(
+  const nextManualRestProblems = Object.fromEntries(
     state.parties.home.members.map((id) => {
       const problem = commandProblem(state, {
         party: "home",
@@ -191,10 +201,10 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
       return [id, problem];
     }),
   );
-  const restProblems =
-    previous && sameObject(nextRestProblems, previous.restProblems)
-      ? previous.restProblems
-      : nextRestProblems;
+  const manualRestProblems =
+    previous && sameObject(nextManualRestProblems, previous.manualRestProblems)
+      ? previous.manualRestProblems
+      : nextManualRestProblems;
   const homeIds = [...state.parties.home.members];
   const treesNext = state.trees.map((tree) => ({
     id: tree.id,
@@ -212,8 +222,8 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     shelf: job.kind === "store" ? job.destination.replace("shelf:", "") : null,
     reason: job.reason,
     routine: job.routine,
-    actors: job.scope.actors ? [...job.scope.actors] : null,
-    party: job.scope.party,
+    actors: "scope" in job && job.scope.actors ? [...job.scope.actors] : null,
+    party: "scope" in job ? job.scope.party : null,
   }));
   const sitesNext = state.sites.map((site) => {
     const shelf = shelfContainer(site.id);
@@ -310,17 +320,50 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     establishment: herb.establishment?.kind ?? null,
     establishedAt: herb.establishment?.at ?? null,
   }));
-  const waterDeliveriesNext = state.operations.map((operation) => ({
-    id: operation.id,
-    job: operation.job,
-    targetKind: operation.target.kind,
-    targetId:
-      operation.target.kind === "kettle"
-        ? operation.target.station
-        : operation.target.herb,
-    phase: operation.phase,
-    quantity: operation.quantity,
-  }));
+  const waterDeliveriesNext = state.operations
+    .filter((operation) => operation.kind === "water-delivery")
+    .map((operation) => ({
+      id: operation.id,
+      job: operation.job,
+      targetKind: operation.target.kind,
+      targetId:
+        operation.target.kind === "kettle"
+          ? operation.target.station
+          : operation.target.kind === "mugwort"
+            ? operation.target.herb
+            : operation.target.actor,
+      phase: operation.phase,
+      quantity: operation.quantity,
+    }));
+  const provisionsNext = {
+    rations: state.materials.lots
+      .filter((lot) => lot.material === "ration")
+      .reduce((total, lot) => total + lot.quantity, 0),
+    pailWater: state.materials.lots
+      .filter((lot) => lot.material === "pail")
+      .reduce(
+        (total, lot) =>
+          total +
+          containerQuantity(state.materials, vesselContainer(lot.id), "water"),
+        0,
+      ),
+    springWater: state.sources
+      .filter((source) => source.kind === "spring")
+      .reduce(
+        (total, source) =>
+          total +
+          containerQuantity(
+            state.materials,
+            sourceContainerSpec(source).id,
+            "water",
+          ),
+        0,
+      ),
+    sealedCache: state.sources.some(
+      (source) =>
+        source.kind === "reclaimed-timber-cache" && !sourceIsOpen(source),
+    ),
+  };
   const lotsNext = state.materials.lots.map((lot) => ({
     id: lot.id,
     material: lot.material,
@@ -382,6 +425,10 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     )
       ? previous.waterDeliveries
       : waterDeliveriesNext;
+  const provisions =
+    previous && sameObject(provisionsNext, previous.provisions)
+      ? previous.provisions
+      : provisionsNext;
   const demand =
     state.demand &&
     previous?.demand &&
@@ -418,9 +465,9 @@ function displayFacts(state, notice, speed, zoom, keys, save, previous) {
     demand,
     wood: looseWood(state),
     felled: state.felled,
-    rested: state.rested,
     beds,
-    restProblems,
+    manualRestProblems,
+    provisions,
     notice,
   };
 }
@@ -442,10 +489,8 @@ function orderModel(display, job) {
           ? "Harvest mugwort"
           : job.kind === "water-mugwort"
             ? "Water mugwort"
-            : job.kind === "rest"
-              ? job.routine
-                ? "Sleep until morning"
-                : "Rest in bedroll"
+            : job.kind === "care"
+              ? `Care · ${display.actors[job.target]?.name || job.target}`
               : job.kind === "store"
                 ? "Store material"
                 : job.kind === "repair-cache"
@@ -476,8 +521,9 @@ function orderModel(display, job) {
     reason: job.reason,
     title,
     active: active.length > 0,
+    manageable: job.kind !== "care" || display.homeIds.includes(job.target),
     detail:
-      `${job.actors ? `Personal (${job.actors.map((id) => display.actors[id]?.name || id).join(" + ")})` : "Shared (home)"} · ` +
+      `${job.kind === "care" ? "Personal care" : job.actors ? `Personal (${job.actors.map((id) => display.actors[id]?.name || id).join(" + ")})` : "Shared (home)"} · ` +
       (active.length
         ? `${active.map((actor) => actor.name).join(" + ")} · ${ACTIVITIES[active[0].mode]}`
         : job.reason || "Ordered") +
@@ -517,7 +563,6 @@ const statusAtom = atom((get) => {
       wood: facts.wood,
       notice: facts.notice,
       felled: facts.felled,
-      rested: facts.rested,
       beds: facts.beds,
       save: facts.save,
     }
@@ -533,7 +578,11 @@ const rosterAtom = atom((get) => {
   const work = selected.map((actor) => {
     const active = facts.jobs.find((job) => job.id === actor.activeJobId);
     const next = facts.jobs.find(
-      (job) => job.id !== actor.activeJobId && job.actors?.includes(actor.id),
+      (job) =>
+        job.id !== actor.activeJobId &&
+        (job.kind === "care"
+          ? job.target === actor.id
+          : job.actors?.includes(actor.id)),
     );
     return {
       id: actor.id,
@@ -563,15 +612,17 @@ const rosterAtom = atom((get) => {
         ? facts.actors[selection.inspectedTarget.id]
         : null,
     carry: selected.reduce((total, actor) => total + actor.carriedAmount, 0),
+    provisions: facts.provisions,
     routine: selected.length
       ? selected.every((actor) => actor.routine)
       : !!facts.actors.rowan?.routine,
     routineMixed:
       selected.length > 1 &&
       selected.some((actor) => actor.routine !== selected[0].routine),
-    restProblem: selected.length
-      ? selected.map((actor) => facts.restProblems[actor.id]).find(Boolean) ||
-        ""
+    manualRestProblem: selected.length
+      ? selected
+          .map((actor) => facts.manualRestProblems[actor.id])
+          .find(Boolean) || ""
       : "Select a home member for a personal order.",
   };
 });
@@ -674,8 +725,6 @@ const tutorialAtom = atom((get) => {
     return "Lovely wood. Open Build and place a wall. He will carry the logs over.";
   if (!facts.beds)
     return "A room needs walls and a doorway. Put a bedroll inside and roof both its tiles.";
-  if (!facts.rested)
-    return "A roof, a bed. Click Rowan and order a rest. You have earned it.";
   return "There. A home. I suppose we can stay a little longer.";
 });
 
@@ -724,36 +773,40 @@ function Orders({ model: m, send }) {
               <strong>{job.title}</strong>
               <small>{job.detail}</small>
             </span>
-            <Button
-              data-action="next"
-              data-job={job.id}
-              variant="ghost"
-              size="icon"
-              aria-label={`Move ${job.title} next`}
-              onClick={() =>
-                send({
-                  kind: "command",
-                  command: { kind: "next", job: job.id },
-                })
-              }
-            >
-              ↑
-            </Button>
-            <Button
-              data-action="cancel"
-              data-job={job.id}
-              variant="ghost"
-              size="icon"
-              aria-label={`Cancel ${job.title}`}
-              onClick={() =>
-                send({
-                  kind: "command",
-                  command: { kind: "cancel", job: job.id },
-                })
-              }
-            >
-              ×
-            </Button>
+            {job.manageable && (
+              <>
+                <Button
+                  data-action="next"
+                  data-job={job.id}
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Move ${job.title} next`}
+                  onClick={() =>
+                    send({
+                      kind: "command",
+                      command: { kind: "next", job: job.id },
+                    })
+                  }
+                >
+                  ↑
+                </Button>
+                <Button
+                  data-action="cancel"
+                  data-job={job.id}
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Cancel ${job.title}`}
+                  onClick={() =>
+                    send({
+                      kind: "command",
+                      command: { kind: "cancel", job: job.id },
+                    })
+                  }
+                >
+                  ×
+                </Button>
+              </>
+            )}
           </li>
         ))
       ) : (
@@ -834,6 +887,19 @@ function Character({ model: m, send, portraits }) {
   const visitor = !!m.visitor;
   const individuallySelected =
     !visitor && m.selectedIds.length === 1 && m.selectedIds[0] === person.id;
+  const careStatus = person.careActive
+    ? person.careActive === "consume"
+      ? person.mode === "walk"
+        ? "Fetching food."
+        : "Eating."
+      : person.careActive === "sleep"
+        ? person.mode === "walk"
+          ? "Heading to the bedroll."
+          : "Resting in bedroll."
+        : "Fetching water."
+    : person.careQueued
+      ? `${person.careQueued[0].toUpperCase() + person.careQueued.slice(1)} care queued${person.careReason ? ` · ${person.careReason}` : ""}`
+      : person.careReason || "No care action is queued.";
   return (
     <Panel
       title={person.name}
@@ -857,6 +923,41 @@ function Character({ model: m, send, portraits }) {
           </small>
         </div>
       </div>
+      <section className="needs-panel" aria-label={`${person.name} needs`}>
+        {[
+          ["Nourishment", "nourishment", person.nourishment],
+          ["Hydration", "hydration", person.hydration],
+          ["Rest", "rest", person.rest],
+        ].map(([label, key, value]) => (
+          <div className="need-meter" key={key}>
+            <label htmlFor={`${person.id}-${key}`}>
+              {label} <b>{value}%</b>
+            </label>
+            <Progress
+              id={`${person.id}-${key}`}
+              value={value}
+              max="100"
+              tone={value <= 35 ? "warning" : "success"}
+            />
+          </div>
+        ))}
+        <p className="care-status">{careStatus}</p>
+        <p className="care-provisions">
+          Clearing provisions · {m.provisions.rations} rations ·{" "}
+          {m.provisions.springWater + m.provisions.pailWater} water
+          {m.provisions.pailWater
+            ? ` (${m.provisions.pailWater} in pails)`
+            : ""}
+          {m.provisions.sealedCache
+            ? " · Inspect the reclaimed cache → Repair cache for rations and a pail."
+            : ""}
+        </p>
+        {person.drafted && (
+          <p className="care-warning">
+            Needs continue to fall; self-care is paused while drafted.
+          </p>
+        )}
+      </section>
       {visitor ? (
         <div className="button-row">
           <Button
@@ -881,17 +982,11 @@ function Character({ model: m, send, portraits }) {
               </p>
             ))}
           </div>
-          <div className="rest-meter">
-            <label htmlFor="rest-meter">
-              Rest <b>{Math.round(person.rest)}%</b>
-            </label>
-            <meter id="rest-meter" min="0" max="100" value={person.rest} />
-          </div>
           <div className="button-row">
             <Button
               id="rest"
               variant="primary"
-              disabled={!!m.restProblem}
+              disabled={!!m.manualRestProblem}
               onClick={() =>
                 send({ kind: "command", command: { kind: "rest" } })
               }
@@ -1148,8 +1243,8 @@ function Target({ model: m, send }) {
               : "Held for its current operation"}
           </p>
           <small className="action-reason">
-            Water {m.target.vesselWater}/2 · This vessel is used by shared brew
-            work.
+            Water {m.target.vesselWater}/2 · Used for drinking, watering and
+            brewing.
           </small>
         </Card>
       );

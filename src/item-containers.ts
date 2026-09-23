@@ -1,45 +1,47 @@
-import type { ContainerId, ItemLot, LotId, PositiveInt } from "./model.ts";
+import type {
+  ContainerId,
+  ItemLot,
+  LotId,
+  Material,
+  PositiveInt,
+} from "./model.ts";
 import type { ContainerSpec } from "./materials.ts";
+import {
+  checkedMaterialDefinitions,
+  resolvePortableInterior,
+} from "./engine/materials/definitions.ts";
 
-/** Portable container facts live with the two authored portable items. */
-type PortableContainerDefinition = {
-  readonly material: "pail" | "keg";
-  readonly capacity: PositiveInt;
-  readonly accepts: readonly ("water" | "ale")[];
-  readonly bulk: Readonly<Partial<Record<"water" | "ale", PositiveInt>>>;
-};
-
-const PORTABLE_CONTAINERS = [
-  {
-    material: "pail",
-    capacity: 2 as PositiveInt,
-    accepts: ["water"],
-    bulk: { water: 1 as PositiveInt },
+/** Goblin's physical content capabilities. Visual assets confer no capability. */
+export const MATERIAL_DEFINITIONS = checkedMaterialDefinitions<Material>({
+  wood: { carry: "portion" },
+  mugwort: { carry: "portion" },
+  water: { carry: "contained" },
+  pail: {
+    carry: "whole",
+    interior: {
+      capacity: 2 as PositiveInt,
+      accepts: ["water"],
+      bulk: { water: 1 as PositiveInt },
+    },
   },
-  {
-    material: "keg",
-    capacity: 4 as PositiveInt,
-    accepts: ["ale"],
-    bulk: { ale: 1 as PositiveInt },
+  malt: { carry: "portion" },
+  barm: { carry: "portion" },
+  keg: {
+    carry: "portion",
+    interior: {
+      capacity: 4 as PositiveInt,
+      accepts: ["ale"],
+      bulk: { ale: 1 as PositiveInt },
+    },
   },
-] as const satisfies readonly PortableContainerDefinition[];
-
+  ale: { carry: "portion" },
+  "spent-grain": { carry: "portion" },
+  soil: { carry: "portion" },
+  ration: { carry: "portion" },
+});
 export function vesselContainer(lot: LotId): ContainerId {
   return `vessel:${lot}`;
 }
-
 export function portableContainerInterior(lot: ItemLot): ContainerSpec | null {
-  if (lot.quantity !== 1 || (lot.material !== "pail" && lot.material !== "keg"))
-    return null;
-  const definition = PORTABLE_CONTAINERS.find(
-    (candidate) => candidate.material === lot.material,
-  );
-  return definition
-    ? {
-        id: vesselContainer(lot.id),
-        capacity: definition.capacity,
-        accepts: definition.accepts,
-        bulk: definition.bulk,
-      }
-    : null;
+  return resolvePortableInterior(MATERIAL_DEFINITIONS, lot);
 }

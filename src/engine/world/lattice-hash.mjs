@@ -33,3 +33,8 @@ const pipe = (hash) => Math.imul(hash ^ 124, 16777619);
 export function latticeHash2(prefix, x, z, salt) {
   return hashString(salt, pipe(integerHash(pipe(integerHash(prefix, x)), z)));
 }
+
+export function latticeHash3(prefix, x, y, z, salt) {
+  const xy = pipe(integerHash(pipe(integerHash(prefix, x)), y));
+  return hashString(salt, pipe(integerHash(xy, z)));
+}
