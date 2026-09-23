@@ -11,6 +11,7 @@ import { colonyPack } from "../games/colony";
 import { survivalPack, Condition, Fatigue } from "../games/survival";
 import { formationsPack, FormationMember } from "../games/formations";
 import { Container, MaterialLot, Position, encodeDefinition } from "../sdk/common";
+import { OwnedBy } from "../sdk/party";
 import { command, component, entity, query, system } from "../sdk/authoring";
 import { z } from "zod";
 const emptyInput = z.object({}).strict();
@@ -145,6 +146,38 @@ test("survival can take and eat successive owned portions, including after resto
       6,
     );
     assert.ok(session.query(query(Condition))[0].get(Condition).hunger < 1);
+  } finally {
+    port.dispose();
+  }
+});
+
+test("survival partial pickup preserves player ownership on the source remainder", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: survivalPack });
+    session.start();
+    const scope = { kind: "player", player: "local" } as const;
+    session.request({
+      kind: "move",
+      entity: entity("survival.survivor.1"),
+      destination: { x: 1, y: 0, z: 0, frame: null },
+    });
+    for (let i = 0; i < 15; i++) session.step(0.1);
+
+    session.command("takeFood", null, scope);
+    const [transfer] = session.step(0.1);
+    assert.equal(transfer.accepted, true, `partial pickup: ${transfer.reason ?? "rejected"}`);
+
+    const lots = session.query(query(MaterialLot));
+    const ownedBy = new Map(session.query(query(OwnedBy)).map((row) => [row.id, row.get(OwnedBy).player]));
+    assert.equal(lots.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 8,
+      "partial transfer preserves the total bread quantity");
+    assert.equal(lots.filter((row) => row.get(MaterialLot).container === entity("survival.survivor.1"))
+      .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 1);
+    assert.equal(lots.filter((row) => row.get(MaterialLot).container === entity("survival.locker"))
+      .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 7);
+    for (const lot of lots)
+      assert.equal(ownedBy.get(lot.id), "local", `player ownership must survive the split for ${lot.id}`);
   } finally {
     port.dispose();
   }
