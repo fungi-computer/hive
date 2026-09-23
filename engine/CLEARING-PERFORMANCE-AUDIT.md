@@ -25,6 +25,16 @@ costs, and a length-changing early entity field may dirty later chunks. The next
 capacity proof needs at least as many real jobs as active workers, 100 ms host
 steps, separate commit/publication measurements, and a pinned hosted source.
 
+The reproducible [100-worker/100-tree fixture](scripts/measure-active-colony.ts)
+supplies that larger useful-work population locally and advances 900 steps of
+100 ms. It completed all 100 trees. Across two shared-host runs, the first 100
+active `session.step()` calls had medians **82–99 ms** and p95 **206–224 ms**;
+the cold first call took **2.18–2.50 s**. Later settled ticks make the whole-run
+median uninformative. These numbers establish that the integrated engine is
+still too bursty for a smooth 10 Hz active world even before DO commitment,
+observation publication and drawing. The fixture does not count how many of the
+100 workers held productive claims simultaneously.
+
 Integrated native unit suite: 430 passed, one ignored. The four-file current
 WASM/JS session and record suite: 47 passed, two pre-existing fixture failures
 (water activity assertion and an obsolete `party` field in a disconnected-party
