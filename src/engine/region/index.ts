@@ -105,7 +105,9 @@ const limitsSchema = z
     events: z.number().int().min(1).max(65_536).default(4096),
     recordBytes: z.number().int().min(1).max(256 * 1024).default(256 * 1024),
     records: z.number().int().min(1).max(65_536).default(4096),
-    changedRecords: z.number().int().min(1).max(128).default(128),
+    // Stable entity/job/route rows can change together; the independent 1 MiB
+    // changed-byte budget remains the occurrence admission bound.
+    changedRecords: z.number().int().min(1).max(4096).default(1024),
     storageBytes: z
       .number()
       .int()

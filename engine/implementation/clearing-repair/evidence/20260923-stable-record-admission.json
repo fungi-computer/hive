@@ -1,0 +1,434 @@
+{
+  "fixture": "colony-framework-proof-256-100-v1",
+  "steps": 300,
+  "initialCaptureBytes": 126089,
+  "advanceMs": {
+    "p50": 3.9676899999999478,
+    "p95": 16.21574200000032,
+    "p99": 84.1718109999997,
+    "max": 648.8189160000002,
+    "total": 3271.4615760000083
+  },
+  "captureMs": {
+    "p50": 30.350136999999904,
+    "p95": 56.40894500000104,
+    "p99": 65.19083100000171,
+    "max": 76.76460600000064,
+    "total": 10173.968077000003
+  },
+  "changedBytes": {
+    "p50": 186772,
+    "p95": 258557,
+    "p99": 266285,
+    "max": 479881,
+    "total": 59646973
+  },
+  "overHostChangeLimit": 0,
+  "samples": [
+    {
+      "tick": 1,
+      "executing": 8,
+      "uniqueWorkers": 8,
+      "completedTrees": 0,
+      "sampleMs": 8.039739000000054
+    },
+    {
+      "tick": 10,
+      "executing": 76,
+      "uniqueWorkers": 76,
+      "completedTrees": 0,
+      "sampleMs": 4.286992999999711
+    },
+    {
+      "tick": 20,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 2.15403600000036
+    },
+    {
+      "tick": 30,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.3242960000002313
+    },
+    {
+      "tick": 40,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.2426430000000437
+    },
+    {
+      "tick": 50,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.6315389999999752
+    },
+    {
+      "tick": 60,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 2.2919849999998405
+    },
+    {
+      "tick": 70,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.9054219999998168
+    },
+    {
+      "tick": 80,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 2.0549169999994774
+    },
+    {
+      "tick": 90,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.371777999999722
+    },
+    {
+      "tick": 100,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 3.197269000000233
+    },
+    {
+      "tick": 110,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.3114159999995536
+    },
+    {
+      "tick": 120,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.3034940000006827
+    },
+    {
+      "tick": 130,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.4685129999998026
+    },
+    {
+      "tick": 140,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.6257890000006228
+    },
+    {
+      "tick": 150,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.0510349999995015
+    },
+    {
+      "tick": 160,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.0126860000000306
+    },
+    {
+      "tick": 170,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.0180749999999534
+    },
+    {
+      "tick": 180,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.0255660000002536
+    },
+    {
+      "tick": 190,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.725560000000769
+    },
+    {
+      "tick": 200,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.7741539999988163
+    },
+    {
+      "tick": 210,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 2.0785630000009405
+    },
+    {
+      "tick": 220,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 3.16295799999898
+    },
+    {
+      "tick": 230,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.6513290000002598
+    },
+    {
+      "tick": 240,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.7135529999995924
+    },
+    {
+      "tick": 250,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.6203629999999976
+    },
+    {
+      "tick": 260,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.8185999999986961
+    },
+    {
+      "tick": 270,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.7108079999998154
+    },
+    {
+      "tick": 280,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.0394360000009328
+    },
+    {
+      "tick": 290,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 0.9825200000013865
+    },
+    {
+      "tick": 300,
+      "executing": 100,
+      "uniqueWorkers": 100,
+      "completedTrees": 0,
+      "sampleMs": 1.3317170000009355
+    }
+  ],
+  "storedStateBytes": [
+    {
+      "tick": 1,
+      "bytes": 162155,
+      "outcomeCount": 128
+    },
+    {
+      "tick": 2,
+      "bytes": 57994,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 3,
+      "bytes": 58847,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 4,
+      "bytes": 59639,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 5,
+      "bytes": 60455,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 6,
+      "bytes": 61271,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 7,
+      "bytes": 62087,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 8,
+      "bytes": 62933,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 9,
+      "bytes": 63341,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 10,
+      "bytes": 64155,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 11,
+      "bytes": 64974,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 12,
+      "bytes": 65775,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 13,
+      "bytes": 66292,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 14,
+      "bytes": 66530,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 15,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 16,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 17,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 18,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 19,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 20,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 21,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 22,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 23,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 24,
+      "bytes": 66632,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 25,
+      "bytes": 66632,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 26,
+      "bytes": 66632,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 27,
+      "bytes": 66632,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 28,
+      "bytes": 66632,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 29,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 30,
+      "bytes": 66634,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 100,
+      "bytes": 66632,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 200,
+      "bytes": 66636,
+      "outcomeCount": 0
+    },
+    {
+      "tick": 300,
+      "bytes": 66636,
+      "outcomeCount": 0
+    }
+  ],
+  "baseCommit": "b44fe823",
+  "runtime": "local Node WASM; no SQL or hosted proof; concurrent TS proof during beginning of run",
+  "nodeVersion": "v24.20.0",
+  "wasmSha256": "45fd99859944dad3186768eb744618d7567cec2ecd1af279af8e483d6de10baf",
+  "format": {
+    "nativeHeader": 4,
+    "kernelEnvelope": 2
+  },
+  "admissionProof": {
+    "steps": 40,
+    "maxChangedRecords": 796,
+    "maxChangedBytes": 479881,
+    "recordCountBudget": 1024,
+    "changedByteBudget": 1048576
+  },
+  "limitations": [
+    "Full native snapshot scan, JSON serialization, parse and byte comparison remain each capture; mutation-proportional CPU is not implemented.",
+    "Environment records retain their existing coarse record granularity.",
+    "This fixture had 100 executing workers by step 20 but zero completed trees at step 300; it proves record admission and recovery, not useful throughput.",
+    "No hosted DO proof is included; parent integration must run local workerd and approved hosted checks."
+  ]
+}

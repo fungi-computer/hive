@@ -32,7 +32,7 @@ export interface KernelEntitySnapshot {
 
 export interface KernelRecordSnapshot {
   readonly format: "hive-kernel-records";
-  readonly version: 1;
+  readonly version: 2;
   readonly revision: number;
   readonly time: number;
   readonly records: readonly { readonly key: string; readonly bytes: Uint8Array }[];
@@ -51,9 +51,10 @@ const RECORD_BYTES = 256 * 1024;
 const ENTITY_BYTES = 8 * 1024 * 1024;
 const TOTAL_BYTES = 9 * 1024 * 1024;
 /** Maximum records in one native snapshot, shared by capture and persistence callers. */
-export const MAX_KERNEL_RECORDS = 48;
-const MAX_KEY_BYTES = 80;
-const ENTITY_PREFIX = "kernel/entities/";
+export const MAX_KERNEL_RECORDS = 65_536;
+const MAX_KEY_BYTES = 160;
+const ENTITY_PREFIX = "kernel/state/";
+const STATE_FAMILIES = { entities: ["scene", "initial", "id"], routes: ["routes", "entity"], direct: ["direct", "entity"], contacts: ["projectile_contacts", "projectile_id"], parties: ["party_bindings", "bindingId"], attempts: ["work_attempts", "key", "task"], jobs: ["jobs", "id"], tasks: ["tasks", "id"] } as const;
 const ATMOSPHERE_PREFIX = "kernel/atmosphere/";
 const ENVIRONMENT_KEYS = [
   "kernel/environment/definition",
@@ -73,7 +74,9 @@ function keyAllowed(key: string): boolean {
   if (key.length === 0 || key.length > MAX_KEY_BYTES || !/^[\x20-\x7e]+$/.test(key)) return false;
   if (key.startsWith(ENTITY_PREFIX)) {
     const suffix = key.slice(ENTITY_PREFIX.length);
-    return /^\d{4}$/.test(suffix) && Number(suffix) < 32;
+    if (suffix === "root") return true;
+    const [family, id, extra] = suffix.split("/");
+    return Object.hasOwn(STATE_FAMILIES, family) && !extra && /^[A-Za-z0-9._:-]{1,128}$/.test(id ?? "");
   }
   if (key.startsWith(ATMOSPHERE_PREFIX)) {
     const suffix = key.slice(ATMOSPHERE_PREFIX.length);
@@ -89,24 +92,33 @@ function validateKeyList(keys: readonly unknown[]): asserts keys is readonly str
     seen.add(key);
   }
   if (!seen.has("kernel/header")) throw new Error("missing native record header");
+  if (!seen.has(`${ENTITY_PREFIX}root`)) throw new Error("missing state root");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
   const airKeys = [...seen].filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
   if (airKeys.length && (!environment || airKeys.some((key, index) => key !== `${ATMOSPHERE_PREFIX}${String(index).padStart(4, "0")}`)))
     throw new Error("atmosphere record set is incomplete");
 }
-function decodeEntities(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): { text: string; parsed: KernelEntitySnapshot } {
-  const chunks = records.filter(({ key }) => key.startsWith(ENTITY_PREFIX)).sort((a, b) => Number(a.key.slice(-4)) - Number(b.key.slice(-4)));
-  if (chunks.length === 0 || chunks.some(({ key }, index) => key !== `${ENTITY_PREFIX}${String(index).padStart(4, "0")}`)) throw new Error("entity chunks are incomplete");
-  const total = chunks.reduce((sum, record) => sum + record.bytes.byteLength, 0);
-  if (total > ENTITY_BYTES) throw new Error("entity records exceed 8MiB");
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk.bytes, offset); offset += chunk.bytes.byteLength; }
-  const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  let parsed: unknown;
-  try { parsed = JSON.parse(text); } catch { throw new Error("entity records are not JSON"); }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("entity records are not an object");
+function decodeEntities(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): KernelEntitySnapshot {
+  const stateRecords = records.filter(({ key }) => key.startsWith(ENTITY_PREFIX));
+  if (stateRecords.reduce((sum, record) => sum + record.bytes.byteLength, 0) > ENTITY_BYTES) throw new Error("entity records exceed 8MiB");
+  const root = stateRecords.find(({ key }) => key === `${ENTITY_PREFIX}root`);
+  if (!root) throw new Error("missing state root");
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  const parsed = JSON.parse(decoder.decode(root.bytes));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid state root");
+  for (const [family, path] of Object.entries(STATE_FAMILIES)) {
+    const rows = family === "entities" ? parsed.scene?.initial : parsed[path[0]];
+    if (!Array.isArray(rows) || rows.length) throw new Error("state root contains inline rows");
+    const prefix = `${ENTITY_PREFIX}${family}/`;
+    const selected = stateRecords.filter(({ key }) => key.startsWith(prefix)).sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+    for (const record of selected) {
+      const row = JSON.parse(decoder.decode(record.bytes));
+      const id = family === "attempts" ? row?.key?.task : row?.[path[path.length - 1]];
+      if (id !== record.key.slice(prefix.length)) throw new Error("state record identity mismatch");
+      rows.push(row);
+    }
+  }
   const value = parsed as Partial<KernelEntitySnapshot>;
   if (
     value.format !== "hive-kernel" ||
@@ -121,7 +133,7 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
     !Array.isArray(value.scene.initial) ||
     !Array.isArray(value.scene.materialCatalog)
   ) throw new Error("unsupported kernel entity snapshot");
-  return { text, parsed: value as KernelEntitySnapshot };
+  return value as KernelEntitySnapshot;
 }
 
 function validateRecordEnvelope(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): void {
@@ -134,6 +146,7 @@ function validateRecordEnvelope(records: readonly { readonly key: string; readon
   }
   if (total > TOTAL_BYTES) throw new Error("kernel record bytes exceed 9MiB");
   if (!seen.has("kernel/header")) throw new Error("missing native record header");
+  if (!seen.has(`${ENTITY_PREFIX}root`)) throw new Error("missing state root");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
   const airKeys = [...seen].filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
@@ -144,8 +157,7 @@ function preflightRecords(records: readonly { readonly key: string; readonly byt
   validateRecordEnvelope(records);
   const definition = records.find(record => record.key === ENVIRONMENT_KEYS[0]);
   if (definition) new TextDecoder("utf-8", { fatal: true }).decode(definition.bytes);
-  const entities = decodeEntities(records);
-  return entities.parsed;
+  return decodeEntities(records);
 }
 
 /** One resident's disposable capture cursor. Only native-produced records use
@@ -179,9 +191,10 @@ export class KernelRecordCapture {
           !isSafeRevision(manifest.revision) || !isFiniteTime(manifest.time) || !Array.isArray(manifest.keys))
         throw new Error("invalid native capture manifest");
       validateKeyList(manifest.keys);
+      const nextKeys = new Set(manifest.keys);
       const changedKeys: unknown = JSON.parse(handle.keys());
       if (!Array.isArray(changedKeys) || changedKeys.length > MAX_KERNEL_RECORDS || new Set(changedKeys).size !== changedKeys.length ||
-          changedKeys.some(key => typeof key !== "string" || !manifest.keys.includes(key)))
+          changedKeys.some(key => typeof key !== "string" || !nextKeys.has(key)))
         throw new Error("invalid native changed records");
       const puts = changedKeys.map(key => ({ key: key as string, bytes: handle.read(key) }));
       const changed = new Map(puts.map(record => [record.key, record]));
@@ -192,10 +205,9 @@ export class KernelRecordCapture {
       });
       // O(record count), no entity JSON decode and no unchanged bytes crossing WASM.
       validateRecordEnvelope(records);
-      const nextKeys = new Set(manifest.keys);
       const removes = this.priorKeys.filter(key => !nextKeys.has(key));
       const snapshot: KernelRecordSnapshot = {
-        format: "hive-kernel-records", version: 1, revision: manifest.revision, time: manifest.time, records,
+        format: "hive-kernel-records", version: 2, revision: manifest.revision, time: manifest.time, records,
       };
       this.records = new Map(records.map(record => [record.key, record]));
       this.priorKeys = manifest.keys;
@@ -205,7 +217,7 @@ export class KernelRecordCapture {
   }
 }
 function validateSnapshot(snapshot: KernelRecordSnapshot): { entities: KernelEntitySnapshot } {
-  if (snapshot.format !== "hive-kernel-records" || snapshot.version !== 1 || !isSafeRevision(snapshot.revision) || !isFiniteTime(snapshot.time) || !Array.isArray(snapshot.records)) throw new Error("unsupported kernel record snapshot");
+  if (snapshot.format !== "hive-kernel-records" || snapshot.version !== 2 || !isSafeRevision(snapshot.revision) || !isFiniteTime(snapshot.time) || !Array.isArray(snapshot.records)) throw new Error("unsupported kernel record snapshot");
   const entities = preflightRecords(snapshot.records);
   if (entities.revision !== snapshot.revision || entities.time !== snapshot.time) throw new Error("record metadata does not match entity snapshot");
   return { entities };
@@ -219,7 +231,7 @@ export function captureKernelRecords(binding: NativeRecordBinding): KernelRecord
     if (!Array.isArray(keys)) throw new Error("native record keys are not an array");
     validateKeyList(keys);
     const records = keys.map(key => ({ key, bytes: handle.read(key) }));
-    const provisional = { format: "hive-kernel-records" as const, version: 1 as const, revision: 0, time: 0, records };
+    const provisional = { format: "hive-kernel-records" as const, version: 2 as const, revision: 0, time: 0, records };
     const entities = preflightRecords(records);
     const snapshot = { ...provisional, revision: entities.revision, time: entities.time };
     return snapshot;

@@ -1,0 +1,78 @@
+//! Stable persistence identities for canonical entity-owned facts.
+//!
+//! Checkpoint assembly is deliberately separate from record identity. This owner
+//! currently scans the checkpoint; it does not claim mutation-proportional CPU.
+//! Changing a row's encoded length cannot move another row's record boundary.
+use std::collections::BTreeMap;
+use serde_json::Value;
+use crate::record_bundle::{ENTITY_BYTES, RECORD_BYTES};
+
+const ROOT: &str = "kernel/state/root";
+const FAMILIES: [&str; 8] = ["entities", "routes", "direct", "contacts", "parties", "attempts", "jobs", "tasks"];
+const POINTERS: [&str; 8] = ["/scene/initial", "/routes", "/direct", "/projectile_contacts", "/party_bindings", "/work_attempts", "/jobs", "/tasks"];
+const IDENTITIES: [&str; 8] = ["/id", "/entity", "/entity", "/projectile_id", "/bindingId", "/key/task", "/id", "/id"];
+type Records = BTreeMap<String, Vec<u8>>;
+
+pub(crate) fn validate_key(key: &str) -> Result<(), String> {
+    if key == ROOT { return Ok(()); }
+    let suffix = key.strip_prefix("kernel/state/").ok_or("invalid state key")?;
+    let (family, id) = suffix.split_once('/').ok_or("invalid state key")?;
+    if !FAMILIES.contains(&family) || !crate::components::valid_id(id) { return Err("invalid state identity".into()); }
+    Ok(())
+}
+
+pub(crate) fn counts(records: &Records) -> [u32; 9] {
+    let mut counts = [0; 9];
+    counts[0] = u32::from(records.contains_key(ROOT));
+    for (index, family) in FAMILIES.iter().enumerate() {
+        let prefix = format!("kernel/state/{family}/");
+        counts[index + 1] = records.keys().filter(|key| key.starts_with(&prefix)).count() as u32;
+    }
+    counts
+}
+
+fn bytes(value: &Value) -> Result<Vec<u8>, String> {
+    let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
+    if bytes.len() > RECORD_BYTES { return Err("state record exceeds 256KiB".into()); }
+    Ok(bytes)
+}
+
+pub(crate) fn encode(snapshot: &str) -> Result<Records, String> {
+    if snapshot.len() > ENTITY_BYTES { return Err("entity records exceed 8MiB".into()); }
+    let mut root: Value = serde_json::from_str(snapshot).map_err(|error| error.to_string())?;
+    let mut records = Records::new();
+    for index in 0..FAMILIES.len() {
+        let rows = root.pointer_mut(POINTERS[index]).and_then(Value::as_array_mut).ok_or("missing state collection")?;
+        for row in std::mem::take(rows) {
+            let id = row.pointer(IDENTITIES[index]).and_then(Value::as_str).ok_or("missing state identity")?;
+            let key = format!("kernel/state/{}/{id}", FAMILIES[index]);
+            validate_key(&key)?;
+            if records.insert(key, bytes(&row)?).is_some() { return Err("duplicate state identity".into()); }
+        }
+    }
+    records.insert(ROOT.into(), bytes(&root)?);
+    if records.values().map(Vec::len).sum::<usize>() > ENTITY_BYTES { return Err("entity records exceed 8MiB".into()); }
+    Ok(records)
+}
+
+pub(crate) fn decode(records: &Records) -> Result<String, String> {
+    if records.values().map(Vec::len).sum::<usize>() > ENTITY_BYTES { return Err("entity records exceed 8MiB".into()); }
+    let mut root: Value = serde_json::from_slice(records.get(ROOT).ok_or("missing state root")?).map_err(|error| error.to_string())?;
+    for pointer in POINTERS {
+        if !root.pointer(pointer).and_then(Value::as_array).is_some_and(Vec::is_empty) { return Err("state root contains inline rows".into()); }
+    }
+    for (key, value) in records {
+        validate_key(key)?;
+        if key == ROOT { continue; }
+        if value.len() > RECORD_BYTES { return Err("state record exceeds 256KiB".into()); }
+        let suffix = key.strip_prefix("kernel/state/").unwrap();
+        let (family, id) = suffix.split_once('/').unwrap();
+        let index = FAMILIES.iter().position(|candidate| *candidate == family).unwrap();
+        let row: Value = serde_json::from_slice(value).map_err(|error| error.to_string())?;
+        if row.pointer(IDENTITIES[index]).and_then(Value::as_str) != Some(id) { return Err("state record identity mismatch".into()); }
+        root.pointer_mut(POINTERS[index]).and_then(Value::as_array_mut).unwrap().push(row);
+    }
+    let result = serde_json::to_string(&root).map_err(|error| error.to_string())?;
+    if result.len() > ENTITY_BYTES { return Err("entity records exceed 8MiB".into()); }
+    Ok(result)
+}

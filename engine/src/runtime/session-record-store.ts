@@ -13,10 +13,10 @@ export function checkedStoredSession(value: unknown): StoredSession {
   if (state.format !== "hive-session" || state.version !== 11 || typeof state.game !== "string" ||
       typeof state.paused !== "boolean" || !Number.isSafeInteger(state.tick) || state.tick < 0 ||
       !Number.isFinite(state.now) || state.now < 0 || !kernel || kernel.format !== "hive-kernel-records" ||
-      kernel.version !== 1 || kernel.revision !== state.tick || kernel.time !== state.now ||
+      kernel.version !== 2 || kernel.revision !== state.tick || kernel.time !== state.now ||
       !Array.isArray(kernel.recordKeys) || kernel.recordKeys.length < 2 || kernel.recordKeys.length > MAX_KERNEL_RECORDS ||
       new Set(kernel.recordKeys).size !== kernel.recordKeys.length ||
-      kernel.recordKeys.some(key => typeof key !== "string" || key.length > 80 || !key.startsWith("kernel/")) ||
+      kernel.recordKeys.some(key => typeof key !== "string" || key.length > 160 || !key.startsWith("kernel/")) ||
       Object.hasOwn(kernel, "records")) throw new Error("invalid stored session header");
   return state;
 }
