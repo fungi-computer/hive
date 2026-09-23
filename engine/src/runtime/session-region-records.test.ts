@@ -316,6 +316,12 @@ test("resident session reuses accepted candidate and fails closed across retry a
     resident.accept(second.revision);
     assert.equal(created, beforeReuse);
     assert.equal(recordReads, readsBeforeReuse);
+    const replayed = region.readCommitted();
+    resident.begin(replayed.revision, replayed.state, reader(replayed.revision));
+    assert.deepEqual(region.dispatch("clock", { id: "resident-2", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } }), second);
+    resident.accept(replayed.revision);
+    assert.equal(region.readCommitted().revision, replayed.revision);
+    assert.equal(resident.observe(replayed.revision, replayed.state, reader(replayed.revision), session => session.simulationTime), 0.2);
     assert.equal(resident.observe(second.revision, region.readCommitted().state, reader(second.revision), session => session.simulationTime), 0.2);
     const batch = region.readCommitted();
     resident.begin(batch.revision, batch.state, reader(batch.revision));
