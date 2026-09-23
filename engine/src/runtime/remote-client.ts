@@ -13,7 +13,7 @@ import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { activitySchema } from "./work-activity";
 import { WebSocket as PartySocket } from "partysocket";
 import { z } from "zod";
-import { validVisualPlacement } from "./visual-projection";
+import { MAX_RENDER_FACTS, validVisualPlacement } from "./visual-projection";
 import { parsePlacementDecisionResult, placementDecisionQuerySchema } from "./placement-decision";
 import { createTerrainRegionClient } from "./terrain-region-client";
 
@@ -326,7 +326,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
   const environmentVisuals = observation.environmentVisuals;
   if (typeof observation.paused !== "boolean" || !finite(observation.time) || observation.time < 0 ||
     !safeNonnegativeInteger(observation.epoch) || !safeNonnegativeInteger(observation.sequence) ||
-    !Array.isArray(facts) || facts.length > 512 || facts.some((item) => !renderFact(item)) ||
+    !Array.isArray(facts) || facts.length > MAX_RENDER_FACTS || facts.some((item) => !renderFact(item)) ||
     !Array.isArray(presentationFacts) || presentationFacts.length > 32 || presentationFacts.some((item) => !presentationFact(item)) ||
     !completeWhistleUpdate ||
     (whistleAgent !== undefined && (!Array.isArray(whistleAgent) || whistleAgent.length > 256)) ||

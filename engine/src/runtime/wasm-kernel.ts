@@ -29,6 +29,7 @@ import type {
   MoveDestination,
   PartyJoinIdentity,
 } from "../contracts";
+import { MAX_RENDER_FACTS } from "./visual-projection";
 import { WasmKernelRecords } from "../../generated/hive_kernel.js";
 import {
   captureKernelRecords,
@@ -778,11 +779,13 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       const sequence = restoreKernelRecords(binding, () => new WasmKernelRecords(), snapshot);
       capture.restored(snapshot, sequence);
     },
-    renderFacts(limit = 512) {
-      return (JSON.parse(binding.render_facts()) as RenderFact[]).slice(
-        0,
-        limit,
-      );
+    renderFacts(limit = MAX_RENDER_FACTS) {
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_RENDER_FACTS)
+        throw new Error("render facts limit is outside the supported bound");
+      const facts = JSON.parse(binding.render_facts()) as unknown;
+      if (!Array.isArray(facts) || facts.length > limit)
+        throw new Error("render facts exceed the supported bound");
+      return facts as RenderFact[];
     },
     worldPoses(entities) {
       if (entities.length === 0 || entities.length > 128)

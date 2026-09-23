@@ -323,6 +323,29 @@ test("remote observations reject malformed visual placement", async () => {
   } finally { runtime.dispose(); }
 });
 
+test("remote decoder accepts the full v3-shaped fact population and rejects over-bound input", async () => {
+  const socket = new FakeSocket();
+  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque", hostStatus: { state: "running" } }) : Response.json({}), socket);
+  const events: WorkerEvent[] = [];
+  runtime.subscribe(event => events.push(event));
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    const full = observation(1);
+    const fullObservation = { ...full.observation, facts: Array.from({ length: 899 }, (_, index) => ({ id: `v3.entity.${index}` })) };
+    socket.emit("message", { data: JSON.stringify({ type: "observation", ...full, observation: fullObservation }) });
+    const accepted = events.filter(event => event.type === "frame").at(-1);
+    assert.equal(accepted?.type, "frame");
+    if (accepted?.type === "frame") assert.equal(accepted.facts.length, 899);
+
+    const oversized = observation(2);
+    const oversizedObservation = { ...oversized.observation, facts: Array.from({ length: 1025 }, (_, index) => ({ id: `v3.entity.${index}` })) };
+    socket.emit("message", { data: JSON.stringify({ type: "observation", ...oversized, observation: oversizedObservation }) });
+    assert.equal(events.filter(event => event.type === "frame").length, 2);
+    assert.ok(events.some(event => event.type === "error" && event.message === "invalid remote observation"));
+  } finally { runtime.dispose(); }
+});
+
 test("disposing during socket handle admission aborts the request", async () => {
   let aborted = false;
   const runtime = setup((_input, init) => new Promise((_resolve, reject) => {

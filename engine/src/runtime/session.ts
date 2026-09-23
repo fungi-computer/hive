@@ -1,4 +1,4 @@
-import { appendVisualProjections } from "./visual-projection";
+import { appendVisualProjections, MAX_RENDER_FACTS } from "./visual-projection";
 import { TerrainPresentationOwner } from "./terrain-presentation";
 import { createWhistleObservationProjector, type WhistleObservationProjector } from "./whistle";
 import type { EnvironmentDefinition } from "../sdk/environment";
@@ -1336,7 +1336,7 @@ export class GameSession {
     this.ensureLive();
     return structuredClone(this.cues.recent);
   }
-  renderFacts(limit = 512) {
+  renderFacts(limit = MAX_RENDER_FACTS) {
     this.ensureLive();
     const physical = this.port.renderFacts(limit);
     const project = this.pack.presentation?.visuals;
