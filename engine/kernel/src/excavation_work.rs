@@ -545,7 +545,7 @@ mod tests {
         let (mut kernel, work) = fixture();
         begin_excavation(&mut kernel, work);
         let worker = kernel.entity("worker").unwrap();
-        kernel.ecs.get_mut::<Position>(worker).unwrap().x += 10.0;
+        crate::record_changes::edit::<Position>(worker, &mut kernel.ecs).unwrap().x += 10.0;
         kernel.advance_excavation(1.0).unwrap();
         let attempt = kernel.ecs.get::<WorkAttempt>(kernel.entity("task").unwrap()).unwrap();
         assert!(matches!(attempt.phase, AttemptPhase::Outcome { result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost }, .. }));

@@ -40,6 +40,7 @@ pub struct RecordBundle {
 pub(crate) struct RecordCapture {
     sequence: u32,
     baseline: Option<RecordBundle>,
+    journal: Option<crate::world::JournalToken>,
 }
 
 #[derive(Serialize)]
@@ -52,12 +53,51 @@ pub(crate) struct CaptureManifest {
 }
 
 impl RecordCapture {
+    pub(crate) fn current(&self, since: Option<u32>) -> bool { since == Some(self.sequence) && self.baseline.is_some() }
+    pub(crate) fn invalidate(&mut self) { self.baseline = None; self.journal = None; }
+    pub(crate) fn remember(&mut self, token: crate::world::JournalToken) { self.journal = Some(token); }
+    pub(crate) fn accept(&mut self, sequence: u32) -> Result<crate::world::JournalToken, String> {
+        if sequence != self.sequence { return Err("stale record acknowledgement".into()); }
+        self.journal.take().ok_or_else(|| "record capture is not awaiting acknowledgement".into())
+    }
+    pub(crate) fn capture_changed(&mut self, delta: RecordBundle, removes: Vec<String>, since: u32, revision: u64, time: f64, state_weight: usize) -> Result<(RecordBundle, CaptureManifest), String> {
+        if !self.current(Some(since)) { return Err("record capture frontier mismatch".into()); }
+        let sequence = self.sequence.checked_add(1).ok_or("record capture sequence exhausted")?;
+        // Take the disposable baseline: a rejected patch forces a complete
+        // resync, never leaves a partly patched baseline available for reuse.
+        let mut baseline = self.baseline.take().unwrap();
+        let old_header = baseline.read(HEADER_KEY)?;
+        let mut changed = RecordBundle::new();
+        for key in removes { baseline.remove(&key); }
+        for (key, bytes) in delta.records {
+            if key == HEADER_KEY {
+                baseline.replace(&key, bytes)?;
+            } else if baseline.records.get(&key) != Some(&bytes) {
+                changed.insert(&key, &bytes)?;
+                baseline.replace(&key, bytes)?;
+            }
+        }
+        let (mut header, _): (Header, &[u8]) = take_from_bytes(baseline.records.get(HEADER_KEY).ok_or("missing record header")?).map_err(|_| "invalid record header")?;
+        header.entity_counts = crate::stable_entity_records::counts_keys(baseline.records.keys());
+        let entity_bytes: usize = baseline.records.iter().filter(|(key, _)| key.starts_with(ENTITY_PREFIX)).map(|(_, bytes)| bytes.len()).sum();
+        let separators: usize = header.entity_counts[1..].iter().map(|count| count.saturating_sub(1) as usize).sum();
+        if entity_bytes.saturating_add(separators) > ENTITY_BYTES { return Err("entity records exceed 8MiB".into()); }
+        baseline.validate_canonical_capacity(state_weight)?;
+        let header = postcard::to_allocvec(&header).map_err(|_| "record header encoding failed")?;
+        if header != old_header { changed.insert(HEADER_KEY, &header)?; }
+        baseline.replace(HEADER_KEY, header)?;
+        let keys = baseline.keys();
+        self.baseline = Some(baseline);
+        self.sequence = sequence;
+        Ok((changed, CaptureManifest { sequence, base: Some(since), revision, time, keys }))
+    }
     pub fn restore(&mut self, baseline: RecordBundle, restore: impl FnOnce(&RecordBundle) -> Result<(), String>) -> Result<u32, String> {
         let sequence = self.sequence.checked_add(1).ok_or("record capture sequence exhausted")?;
         // Failure leaves both the physical world and its capture frontier intact.
         restore(&baseline)?;
         self.sequence = sequence;
         self.baseline = Some(baseline);
+        self.journal = None;
         Ok(sequence)
     }
     pub fn capture(&mut self, next: RecordBundle, since: Option<u32>, revision: u64, time: f64)
@@ -82,6 +122,31 @@ impl RecordCapture {
 }
 
 impl RecordBundle {
+    fn validate_canonical_capacity(&self, state_weight: usize) -> Result<(), String> {
+        let mut arrays = [2usize; 5];
+        let families = ["routes", "direct", "jobs", "tasks", "parties"];
+        let mut counts = [0usize; 5];
+        for (key, bytes) in &self.records {
+            let Some(suffix) = key.strip_prefix(ENTITY_PREFIX) else { continue; };
+            let Some((family, _)) = suffix.split_once('/') else { continue; };
+            if let Some(index) = families.iter().position(|candidate| *candidate == family) { arrays[index] += bytes.len(); counts[index] += 1; }
+        }
+        for (array, count) in arrays.iter_mut().zip(counts) { *array += count.saturating_sub(1); }
+        let root: serde_json::Value = serde_json::from_slice(self.records.get("kernel/state/root").ok_or("missing state root")?).map_err(|error| error.to_string())?;
+        let planner_bytes = serde_json::to_vec(root.get("planner").ok_or("missing planner state")?).map_err(|error| error.to_string())?.len();
+        // Same route/direct and (jobs,tasks,parties,planner) tuple accounting as
+        // the full checkpoint oracle, using cached encoded row sizes.
+        let owned = arrays.iter().sum::<usize>() + planner_bytes + 5;
+        if state_weight.saturating_add(owned) > ENTITY_BYTES { return Err("job state exceeds canonical capacity".into()); }
+        Ok(())
+    }
+    fn remove(&mut self, key: &str) {
+        if let Some(bytes) = self.records.remove(key) { self.total_bytes -= bytes.len(); }
+    }
+    fn replace(&mut self, key: &str, bytes: Vec<u8>) -> Result<(), String> {
+        self.remove(key);
+        self.insert(key, &bytes)
+    }
     pub fn new() -> Self {
         Self {
             records: BTreeMap::new(),

@@ -37,6 +37,9 @@ mod deconstruction_work;
 pub(crate) mod native_work_planner;
 #[path = "state_accounting.rs"]
 mod state_accounting;
+#[path = "world_records.rs"]
+mod world_records;
+pub(crate) use world_records::JournalToken;
 #[path = "resource_work.rs"]
 mod resource_work;
 #[path = "job_owner.rs"]
@@ -539,7 +542,7 @@ mod process_request_tests {
         let entity = kernel.entity(&id).unwrap();
         assert_eq!(kernel.ecs.get::<StagedProcess>(entity).unwrap().phase, ProcessPhase::Waiting);
         assert_eq!(kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap(), id);
-        kernel.ecs.entity_mut(entity).get_mut::<StagedProcess>().unwrap().phase = ProcessPhase::Complete;
+        crate::record_changes::edit::<StagedProcess>(entity, &mut kernel.ecs).unwrap().phase = ProcessPhase::Complete;
         kernel.revision = 7;
         assert_eq!(kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap(), id);
         let process = kernel.ecs.get::<StagedProcess>(entity).unwrap();
@@ -551,11 +554,11 @@ mod process_request_tests {
         let mut kernel = kernel_with_slot();
         let id = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
         let entity = kernel.entity(&id).unwrap();
-        kernel.ecs.get_mut::<StagedProcess>(entity).unwrap().definition_version = 2;
+        crate::record_changes::edit::<StagedProcess>(entity, &mut kernel.ecs).unwrap().definition_version = 2;
         assert!(kernel.validate_process_records().is_err());
-        kernel.ecs.get_mut::<StagedProcess>(entity).unwrap().definition_version = 1;
+        crate::record_changes::edit::<StagedProcess>(entity, &mut kernel.ecs).unwrap().definition_version = 1;
         let station = kernel.entity("station").unwrap();
-        kernel.ecs.get_mut::<ConstructionSite>(station).unwrap().phase = ConstructionPhase::Planned;
+        crate::record_changes::edit::<ConstructionSite>(station, &mut kernel.ecs).unwrap().phase = ConstructionPhase::Planned;
         assert!(kernel.validate_process_records().is_err());
     }
 
@@ -1804,7 +1807,7 @@ mod construction_tests {
         let carried_lot = kernel.publish_material_output(carried_source);
         let allocation = kernel.reserve_supply_allocation("upper-floor".into(), "material".into(), 1, "party".into(), "stone-spoil".into(), carried_lot.clone(), "upper-floor".into(), 1).unwrap();
         let moved = kernel.transfer_with_identity_excluding(&carried_lot, &carried_ground, "worker-2", 1, false, Some(&allocation)).unwrap();
-        kernel.ecs.get_mut::<SupplyAllocation>(kernel.entity(&allocation).unwrap()).unwrap().portion = moved.clone();
+        crate::record_changes::edit::<SupplyAllocation>(kernel.entity(&allocation).unwrap(), &mut kernel.ecs).unwrap().portion = moved.clone();
         let material_total = kernel.ids.values().filter_map(|entity| kernel.ecs.get::<Lot>(*entity)).map(|lot| u64::from(lot.quantity)).sum::<u64>();
 
         move_worker_to_deconstruction_contact(&mut kernel, "worker-1", "root-wall");
@@ -2591,9 +2594,9 @@ pub struct Kernel {
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
     assignment_topology: [u8; 32],
     route_cost_failures: route_query::FailureCache,
-    routes: BTreeMap<Entity, VecDeque<Point>>,
-    terrain_routes: BTreeMap<Entity, TerrainRouteState>,
-    direct: BTreeMap<Entity, DirectState>,
+    routes: crate::record_changes::RecordMap<Entity, VecDeque<Point>>,
+    terrain_routes: crate::record_changes::RecordMap<Entity, TerrainRouteState>,
+    direct: crate::record_changes::RecordMap<Entity, DirectState>,
     game: String,
     revision: u64,
     placement_revision: u64,
@@ -2602,7 +2605,7 @@ pub struct Kernel {
     next_projectile: u64,
     next_impact: u64,
     projectile_count: usize,
-    projectile_contacts: BTreeMap<String, BTreeSet<String>>,
+    projectile_contacts: crate::record_changes::RecordMap<String, BTreeSet<String>>,
     collider_ids: BTreeSet<String>,
     state_weight: usize,
     material_consumption_owner: Arc<()>,
@@ -2837,6 +2840,9 @@ impl Kernel {
     pub fn new() -> Self {
         let mut ecs = World::new();
         let registry = Registry::new(&mut ecs, vec![], vec![]).expect("builtin schemas");
+        for component in [ecs.register_component::<ExternalId>(), ecs.register_component::<crate::job::Job>(), ecs.register_component::<crate::job::Task>(), ecs.register_component::<WorkAttempt>()] {
+            crate::record_changes::install(&mut ecs, component);
+        }
         Self {
             ecs,
             material_catalog: Default::default(),
@@ -2855,9 +2861,9 @@ impl Kernel {
             blocked_by_frame: BTreeMap::new(),
             assignment_topology: [0; 32],
             route_cost_failures: route_query::FailureCache::default(),
-            routes: BTreeMap::new(),
-            terrain_routes: BTreeMap::new(),
-            direct: BTreeMap::new(),
+            routes: Default::default(),
+            terrain_routes: Default::default(),
+            direct: Default::default(),
             game: String::new(),
             revision: 0,
             placement_revision: 0,
@@ -2866,7 +2872,7 @@ impl Kernel {
             next_projectile: 1,
             next_impact: 1,
             projectile_count: 0,
-            projectile_contacts: BTreeMap::new(),
+            projectile_contacts: Default::default(),
             collider_ids: BTreeSet::new(),
             state_weight: 0,
             material_consumption_owner: Arc::new(()),
@@ -2994,7 +3000,7 @@ impl Kernel {
         let entity = self.entity(allocation)?;
         let state = self.ecs.get::<SupplyAllocation>(entity).ok_or("supply allocation is missing")?.state;
         if state == SupplyAllocationState::Delivered { return Err("delivered supply allocation cannot be cancelled".into()); }
-        self.ecs.get_mut::<SupplyAllocation>(entity).unwrap().state = SupplyAllocationState::Cancelled;
+        crate::record_changes::edit::<SupplyAllocation>(entity, &mut self.ecs).unwrap().state = SupplyAllocationState::Cancelled;
         if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).cloned() {
             self.ecs.entity_mut(entity).insert(crate::work_planner::WorkPolicy { enabled: false, ..policy });
         }
@@ -3590,7 +3596,7 @@ impl Kernel {
         if expected + self.terrain_routes.values().filter(|state| state.suspended).count() != restored.len() {
             return Err("saved route set does not match destinations".into());
         }
-        self.routes = restored;
+        self.routes = restored.into();
         if self.environment.is_some() {
             let route_count = self.routes.len();
             let waiting_before = self.terrain_routes.values().filter(|state| state.waiting).count();
@@ -4311,7 +4317,19 @@ impl Kernel {
         if self.state_weight.saturating_add(route_bytes).saturating_add(direct_bytes).saturating_add(owned_bytes) > STATE_BYTES {
             return Err("job state exceeds canonical capacity".into());
         }
-        let state = Snapshot {
+        let mut state = self.snapshot_metadata();
+        state.scene.initial = initial;
+        state.routes = routes;
+        state.direct = direct;
+        state.jobs = jobs;
+        state.tasks = tasks;
+        state.party_bindings = party_bindings;
+        state.projectile_contacts = self.projectile_contacts.iter().map(|(projectile_id, targets)| ProjectileContactsSnapshot { projectile_id: projectile_id.clone(), targets: targets.iter().cloned().collect() }).collect();
+        state.work_attempts = self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect();
+        serde_json::to_string(&state).map_err(|e| e.to_string())
+    }
+    fn snapshot_metadata(&self) -> Snapshot {
+        Snapshot {
             format: "hive-kernel".into(),
             version: 19,
             revision: self.revision,
@@ -4324,26 +4342,22 @@ impl Kernel {
                 version: 3,
                 game: self.game.clone(),
                 components: self.registry.schemas.values().cloned().collect(),
-                initial,
+                initial: Vec::new(),
                 actors: self.registry.actors.values().cloned().collect(),
                 material_catalog: self.material_catalog.clone().into_definitions(),
                 stockpile_profiles: self.stockpile_profiles.values().cloned().collect(),
             },
-            routes,
-            direct,
-            projectile_contacts: self.projectile_contacts.iter().map(|(projectile_id, targets)| ProjectileContactsSnapshot {
-                projectile_id: projectile_id.clone(),
-                targets: targets.iter().cloned().collect(),
-            }).collect(),
+            routes: Vec::new(),
+            direct: Vec::new(),
+            projectile_contacts: Vec::new(),
             next_work_generation: self.next_work_generation,
             next_party_sequence: self.next_party_sequence,
-            party_bindings,
-            work_attempts: self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect(),
+            party_bindings: Vec::new(),
+            work_attempts: Vec::new(),
             planner: self.planner.clone(),
-            jobs,
-            tasks,
-        };
-        serde_json::to_string(&state).map_err(|e| e.to_string())
+            jobs: Vec::new(),
+            tasks: Vec::new(),
+        }
     }
     pub fn restore_json(&mut self, input: &str) -> Result<()> {
         self.restore_json_with_route_policy(input, false)
@@ -4396,7 +4410,7 @@ impl Kernel {
             if candidate.ecs.get::<Destination>(entity).is_some() || candidate.routes.contains_key(&entity) || direct.insert(entity, saved).is_some() { return Err("invalid direct stream ownership".into()); }
         }
         if candidate.state_weight.saturating_add(direct.values().map(Self::direct_weight).sum::<usize>()) > STATE_BYTES { return Err("direct snapshot capacity".into()); }
-        candidate.direct = direct;
+        candidate.direct = direct.into();
         let mut contacts = BTreeMap::new();
         if state.projectile_contacts.len() > 16384 {
             return Err("too many projectile contact sets".into());
@@ -4412,7 +4426,7 @@ impl Kernel {
                 return Err("invalid projectile contact snapshot".into());
             }
         }
-        candidate.projectile_contacts = contacts;
+        candidate.projectile_contacts = contacts.into();
         candidate.refresh_state_weight();
         if candidate.state_weight > STATE_BYTES {
             return Err("projectile contact state exceeds canonical capacity".into());
@@ -4956,7 +4970,7 @@ impl Kernel {
         let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
         let worker = self.ecs.get::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.worker.clone();
         let retain_worker = matches!(&phase, AttemptPhase::Outcome { result: WorkOutcome::Completed, .. });
-        self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = phase;
+        crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = phase;
         if !retain_worker { self.attempts_by_worker.remove(&worker); }
         Ok(())
     }
@@ -5874,24 +5888,24 @@ impl Kernel {
         self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
         self.install_route(worker, route);
         let operation = OperationKey { attempt: current.key, sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-        self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing {
+        crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing {
             operation,
             activity: crate::work_attempt::ActivityRef::Route { destination },
         };
         Ok(())
     }
-    fn attempt_mut(&mut self, task: &str, generation: u64, sequence: u32) -> Result<&mut WorkAttempt> {
+    fn checked_attempt(&self, task: &str, generation: u64, sequence: u32) -> Result<&WorkAttempt> {
         let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
-        let attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?;
+        let attempt = self.ecs.get::<WorkAttempt>(entity).ok_or("work attempt component is missing")?;
         if attempt.key.generation != generation { return Err("stale work attempt key".into()); }
         let operation = attempt.current_operation().ok_or("work attempt has no operation")?;
         if operation.sequence != sequence {
             return Err(format!("unexpected work attempt sequence for {task}: expected {}, received {sequence}", operation.sequence));
         }
-        Ok(attempt.into_inner())
+        Ok(attempt)
     }
     fn interrupt_work_attempt(&mut self, task: String, generation: u64, sequence: u32, cause: InterruptCause) -> Result<()> {
-        let worker = self.attempt_mut(&task, generation, sequence)?.worker.clone();
+        let worker = self.checked_attempt(&task, generation, sequence)?.worker.clone();
         let entity = self.entity(&worker)?;
         if let Some(attempt_entity) = self.work_attempts.get(&task).copied() {
             if let Some(attempt) = self.ecs.get::<WorkAttempt>(attempt_entity).cloned() {
@@ -5926,7 +5940,7 @@ impl Kernel {
                 }
             }
         }
-        let attempt = self.attempt_mut(&task, generation, sequence)?;
+        let attempt = self.checked_attempt(&task, generation, sequence)?;
         if !matches!(&attempt.phase, AttemptPhase::Executing { .. }) { return Err("work attempt operation is already settled".into()); }
         let operation = OperationKey { attempt: attempt.key.clone(), sequence };
         let activity = match &self.ecs.get::<WorkAttempt>(self.entity(&task)?).ok_or("work attempt component is missing")?.phase {
@@ -5948,13 +5962,13 @@ impl Kernel {
         let route = self.route_for(worker, position, &destination)?;
         self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
         self.install_route(worker, route);
-        let attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.into_inner();
+        let mut attempt = crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?;
         attempt.phase = AttemptPhase::Executing { operation: OperationKey { attempt: operation.attempt, sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? }, activity: crate::work_attempt::ActivityRef::Route { destination } };
         Ok(())
     }
     fn acknowledge_work_attempt(&mut self, task: String, generation: u64, sequence: u32) -> Result<()> {
         {
-            let attempt = self.attempt_mut(&task, generation, sequence)?;
+            let attempt = self.checked_attempt(&task, generation, sequence)?;
             if !matches!(&attempt.phase, AttemptPhase::Outcome { .. }) { return Err("work attempt has no terminal outcome".into()); }
         }
         let entity = self.work_attempts.remove(&task).ok_or("work attempt is not current")?;
@@ -6035,7 +6049,7 @@ impl Kernel {
             }
             let moved_lot = self.transfer_with_identity_excluding(&lot, &from, &to, quantity, !pickup, allocation.as_ref().map(|_| task.as_str()))?;
             if let Some(allocation) = allocation {
-                let mut saved = self.ecs.get_mut::<SupplyAllocation>(entity).ok_or("supply allocation disappeared")?;
+                let mut saved = crate::record_changes::edit::<SupplyAllocation>(entity, &mut self.ecs).ok_or("supply allocation disappeared")?;
                 if pickup { saved.portion = moved_lot.clone(); }
                 if deposit { saved.state = SupplyAllocationState::Delivered; }
                 debug_assert_eq!(saved.requirement_owner, allocation.requirement_owner);
@@ -6065,7 +6079,7 @@ impl Kernel {
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
             let state = self.ecs.get::<StagedProcess>(self.entity(&process)?).ok_or("process is missing staged state")?;
             if state.phase == ProcessPhase::Working {
-                self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+                crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
             } else {
                 self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
             }
@@ -6077,7 +6091,7 @@ impl Kernel {
             let rows: serde_json::Value = serde_json::from_str(&access).map_err(|error| error.to_string())?;
             let required = rows[0]["workSeconds"].as_f64().ok_or("deconstruction access duration missing")?;
             self.request_deconstruction_for_attempt(&task, site.clone(), contact.clone(), required)?;
-            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Deconstruction { site, contact } };
+            crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Deconstruction { site, contact } };
             return Ok(());
         }
         if let crate::work_attempt::ActivityRef::Excavation { cell, expected_material, replacement_material } = next_activity.clone() {
@@ -6085,7 +6099,7 @@ impl Kernel {
             let existing = self.ecs.get::<ExcavationWork>(entity).copied();
             match self.request_excavation_for_attempt(&task, existing.unwrap_or(ExcavationWork { x: cell[0], y: cell[1], z: cell[2], expected: expected_material, replacement: replacement_material, seconds: 0.0 }))? {
                 excavation_work::ExcavationAdmission::Started => {
-                    self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+                    crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
                 }
                 excavation_work::ExcavationAdmission::WaitingForClearTarget => {
                     self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
@@ -6098,7 +6112,7 @@ impl Kernel {
             | crate::work_attempt::ActivityRef::ResourceExtract { .. })
         {
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+            crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
             return Ok(());
         }
         if let crate::work_attempt::ActivityRef::FieldWater { vessel, cell, direction, portions } = next_activity.clone() {
@@ -6108,7 +6122,7 @@ impl Kernel {
             let material = self.ecs.get::<FieldWaterWork>(entity).map(|work| work.material.clone()).unwrap_or_else(|| "water".into());
             let output_lot = self.exchange_field_water_as(&current.worker, &vessel, crate::generation::Cell { x: i64::from(cell[0]), y: cell[1], z: i64::from(cell[2]) }, direction, portions, &material)?;
             if let Some(lot) = output_lot {
-                if let Some(mut work) = self.ecs.get_mut::<FieldWaterWork>(entity) {
+                if let Some(mut work) = crate::record_changes::edit::<FieldWaterWork>(entity, &mut self.ecs) {
                     work.lot = Some(lot);
                 }
             }
@@ -6118,7 +6132,7 @@ impl Kernel {
         if let crate::work_attempt::ActivityRef::JobTransform { task: transform_task, .. } = next_activity.clone() {
             if transform_task != task { return Err("job transform continuation task mismatch".into()); }
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+            crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
             return Ok(());
         }
         let crate::work_attempt::ActivityRef::Construction { site, contact, mode } = next_activity else { return Err("work attempt continuation is not construction".into()); };
@@ -6145,7 +6159,7 @@ impl Kernel {
                 if let Some(replacement) = self.ecs.get::<FloorReplacement>(site_entity).cloned() {
                     self.ecs.entity_mut(site_entity).insert(FloorReplacement { phase: FloorReplacementPhase::Working, ..replacement });
                 }
-                self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Construction { site, contact, mode } };
+                crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Construction { site, contact, mode } };
             }
         }
         Ok(())
@@ -6524,7 +6538,7 @@ impl Kernel {
         self.next_projectile = next_projectile;
         lot.quantity -= 1;
         self.ecs.entity_mut(lot_entity).insert(lot);
-        if let Some(mut local)=self.ecs.get_mut::<Position>(launcher_entity) {
+        if let Some(mut local)=crate::record_changes::edit::<Position>(launcher_entity, &mut self.ecs) {
             local.facing += radians/std::f64::consts::FRAC_PI_2-launcher_position.facing;
         }
         let projectile_entity = self.ecs.spawn((
@@ -7806,7 +7820,7 @@ mod finite_resource_tests {
     fn invalid_output_position_leaves_source_output_and_identity_unchanged() {
         let mut kernel = kernel();
         let tree = kernel.entity("tree").unwrap();
-        kernel.ecs.get_mut::<super::Position>(tree).unwrap().x = f64::NAN;
+        crate::record_changes::edit::<super::Position>(tree, &mut kernel.ecs).unwrap().x = f64::NAN;
         let before_lots = kernel.query_json("[\"hive.lot\"]").unwrap();
         let before_resource = kernel.query_json("[\"hive.finite-resource\"]").unwrap();
         assert_eq!(action(&mut kernel)["results"][0]["accepted"], false);
@@ -7814,7 +7828,7 @@ mod finite_resource_tests {
         assert_eq!(kernel.query_json("[\"hive.finite-resource\"]").unwrap(), before_resource);
         let snapshot: serde_json::Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
         assert_eq!(snapshot["next_lot"], 1);
-        kernel.ecs.get_mut::<super::Position>(tree).unwrap().x = 1.0;
+        crate::record_changes::edit::<super::Position>(tree, &mut kernel.ecs).unwrap().x = 1.0;
         assert_eq!(action(&mut kernel)["results"][0]["entityId"], "lot.1");
     }
 

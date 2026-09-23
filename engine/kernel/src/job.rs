@@ -133,6 +133,7 @@ pub enum ContinuationPolicy { AnyEligible, PreferStarter, BindOnFirstProgress, A
 impl Default for ContinuationPolicy { fn default() -> Self { Self::AnyEligible } }
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Job {
     pub version: u8,
@@ -143,6 +144,7 @@ pub struct Job {
 }
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Task {
     pub version: u8,
@@ -158,6 +160,7 @@ pub struct Task {
 /// Durable earned work for one generic task. It is owned by the Task entity,
 /// while the WorkAttempt remains only the temporary worker lease.
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct JobTaskWork {
     pub seconds: f64,

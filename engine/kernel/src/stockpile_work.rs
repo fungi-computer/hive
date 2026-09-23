@@ -317,12 +317,12 @@ mod tests {
     fn equal_priority_valid_storage_does_not_oscillate() {
         let mut kernel = kernel();
         let target = kernel.entity("target").unwrap();
-        kernel.ecs.get_mut::<StockpileCell>(target).unwrap().priority = 1;
+        crate::record_changes::edit::<StockpileCell>(target, &mut kernel.ecs).unwrap().priority = 1;
         assert!(collect(&kernel, "target", "party").unwrap().iter().all(|demand| !demand.source_lots.contains("lot-low")));
 
         // A source policy change makes its existing contents invalid. The
         // repair path is then allowed at equal priority and does not oscillate.
-        kernel.ecs.get_mut::<StockpileCell>(kernel.entity("source-policy").unwrap()).unwrap().filter_profile = "food".into();
+        crate::record_changes::edit::<StockpileCell>(kernel.entity("source-policy").unwrap(), &mut kernel.ecs).unwrap().filter_profile = "food".into();
         assert!(collect(&kernel, "target", "party").unwrap().iter().any(|demand| demand.source_lots.contains("lot-low")));
     }
 
@@ -370,7 +370,7 @@ mod tests {
         let lot_entity = kernel.entity("lot-low").unwrap();
         kernel.contents.get_mut("source").unwrap().remove(&lot_entity);
         kernel.contents.entry("worker".into()).or_default().insert(lot_entity);
-        kernel.ecs.get_mut::<Lot>(lot_entity).unwrap().container = "worker".into();
+        crate::record_changes::edit::<Lot>(lot_entity, &mut kernel.ecs).unwrap().container = "worker".into();
         let generation = policy_generation(kernel.ecs.get::<StockpileCell>(kernel.entity("target").unwrap()).unwrap());
         let allocation = kernel.reserve_supply_allocation(
             "target".into(), "wood".into(), generation, "party".into(),

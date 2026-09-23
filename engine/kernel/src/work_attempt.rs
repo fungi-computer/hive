@@ -17,6 +17,7 @@ pub struct AttemptKey { pub task: String, pub generation: u64 }
 pub struct OperationKey { pub attempt: AttemptKey, pub sequence: u32 }
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkAttempt {
     pub version: u16,

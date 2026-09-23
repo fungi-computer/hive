@@ -31,6 +31,7 @@ mod world;
 mod supply_allocation;
 mod record_bundle;
 mod stable_entity_records;
+mod record_changes;
 mod party_binding;
 mod relations;
 mod ownership;
@@ -160,9 +161,9 @@ impl WasmKernel {
         Self(Kernel::new(), Default::default())
     }
     pub fn load(&mut self, json: &str) -> Result<(), JsValue> {
-        // Capture is a last-published byte baseline, not a live-world cache.
-        // Retain it across reset so the next delta removes old-world records.
-        self.0.load(json).map_err(js_error)
+        self.0.load(json).map_err(js_error)?;
+        self.1.borrow_mut().invalidate();
+        Ok(())
     }
     pub fn query(&mut self, json: &str) -> Result<String, JsValue> {
         self.0.query_json(json).map_err(js_error)
@@ -192,10 +193,14 @@ impl WasmKernel {
         self.0.snapshot_json().map_err(js_error)
     }
     pub fn restore(&mut self, json: &str) -> Result<(), JsValue> {
-        self.0.restore_json(json).map_err(js_error)
+        self.0.restore_json(json).map_err(js_error)?;
+        self.1.borrow_mut().invalidate();
+        Ok(())
     }
     pub fn load_environment(&mut self, definition: &str) -> Result<(), JsValue> {
-        self.0.load_environment(definition).map_err(js_error)
+        self.0.load_environment(definition).map_err(js_error)?;
+        self.1.borrow_mut().invalidate();
+        Ok(())
     }
     pub fn terrain_surfaces(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.terrain_surfaces_json(input).map_err(js_error)
@@ -249,17 +254,32 @@ impl WasmKernel {
         self.0.process_requirements_json(input).map_err(js_error)
     }
     pub fn capture_records(&self, since: Option<u32>) -> Result<WasmKernelRecords, JsValue> {
-        let records = self.0.save_records().map_err(js_error)?;
-        let bundle = record_bundle::RecordBundle::from_records(records).map_err(js_error)?;
         let (revision, time) = self.0.record_frontier();
-        let (changed, manifest) = self.1.borrow_mut().capture(bundle, since, revision, time).map_err(js_error)?;
+        let mut cursor = self.1.borrow_mut();
+        let (changed, manifest) = if cursor.current(since) {
+            let (puts, removes) = self.0.changed_records().map_err(js_error)?;
+            cursor.capture_changed(puts, removes, since.unwrap(), revision, time, self.0.record_state_weight()).map_err(js_error)?
+        } else {
+            let records = self.0.save_records().map_err(js_error)?;
+            let bundle = record_bundle::RecordBundle::from_records(records).map_err(js_error)?;
+            cursor.capture(bundle, since, revision, time).map_err(js_error)?
+        };
+        if since.is_some() { cursor.remember(self.0.record_journal_token()); }
         Ok(WasmKernelRecords(changed, Some(manifest)))
     }
-    pub fn restore_records(&mut self, records: WasmKernelRecords) -> Result<u32, JsValue> {
-        self.1.borrow_mut().restore(records.0, |bundle| {
-            self.0.restore_records(&bundle.decode()?)
-        }).map_err(js_error)
+    pub fn accept_records(&mut self, sequence: u32) -> Result<(), JsValue> {
+        let token = self.1.borrow_mut().accept(sequence).map_err(js_error)?;
+        self.0.accept_record_journal(token);
+        Ok(())
     }
+    pub fn restore_records(&mut self, records: WasmKernelRecords) -> Result<u32, JsValue> {
+        let sequence = self.1.borrow_mut().restore(records.0, |bundle| {
+            self.0.restore_records(&bundle.decode()?)
+        }).map_err(js_error)?;
+        self.0.accept_record_journal(self.0.record_journal_token());
+        Ok(sequence)
+    }
+
     pub fn render_facts(&self) -> Result<String, JsValue> {
         self.0.render_json().map_err(js_error)
     }

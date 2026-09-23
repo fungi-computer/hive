@@ -206,6 +206,7 @@ class TestPort implements KernelPort {
     });
     return { revision: this.revision, results, impacts };
   }
+  acceptCapture(): void { throw new Error("unexpected capture acknowledgement in session fixture"); }
   capture(): import("./kernel-records").KernelRecordCaptureResult {
     throw new Error("unexpected resident capture in session fixture");
   }

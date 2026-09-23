@@ -264,7 +264,7 @@ impl Kernel {
                         && (self.ecs.get::<FieldWaterWork>(self.entity(&task.id)?).is_some()
                             || self.ecs.get::<ResourceOrder>(self.entity(&task.id)?).is_some())
                     {
-                        if let Some(mut work) = self.ecs.get_mut::<FieldWaterWork>(self.entity(&task.id)?) {
+                        if let Some(mut work) = crate::record_changes::edit::<FieldWaterWork>(self.entity(&task.id)?, &mut self.ecs) {
                             work.vessel = None;
                         }
                         self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
@@ -328,7 +328,7 @@ impl Kernel {
                         // field task is the single owner of the selected
                         // vessel, so clear that claim before releasing the
                         // durable attempt for retry.
-                        self.ecs.get_mut::<FieldWaterWork>(self.entity(&task.id)?).ok_or("field water task disappeared")?.vessel = None;
+                        crate::record_changes::edit::<FieldWaterWork>(self.entity(&task.id)?, &mut self.ecs).ok_or("field water task disappeared")?.vessel = None;
                         self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
                         progressed += 1;
                         continue;
@@ -358,7 +358,7 @@ impl Kernel {
                                 self.continue_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence, crate::work_attempt::ActivityRef::Route { destination: Point { x: destination_position.x, y: destination_position.y, z: destination_position.z, frame: None } })?;
                             }
                         } else {
-                            self.ecs.get_mut::<FieldWaterWork>(self.entity(&task.id)?).ok_or("field water task disappeared")?.vessel = None;
+                            crate::record_changes::edit::<FieldWaterWork>(self.entity(&task.id)?, &mut self.ecs).ok_or("field water task disappeared")?.vessel = None;
                             self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
                         }
                         progressed += 1;
@@ -1016,11 +1016,12 @@ impl Kernel {
         let field_count = field.len();
         for (slot, worker, vessel, cell, _, destination, route) in field {
             let entity = self.entity(&slot.task)?;
-            let mut work = self.ecs.get_mut::<FieldWaterWork>(entity).ok_or("field water task disappeared")?;
+            let mut work = crate::record_changes::edit::<FieldWaterWork>(entity, &mut self.ecs).ok_or("field water task disappeared")?;
             work.vessel = Some(vessel);
             work.cell_x = cell.x as i32;
             work.cell_y = cell.y;
             work.cell_z = cell.z as i32;
+            drop(work);
             self.begin_work_attempt_with_prepared_route(slot.task, worker, destination, route)?;
         }
         for (requirement, worker, contact, route) in labor {
@@ -1847,7 +1848,7 @@ mod tests {
 
         // Drafting the carrier interrupts the route while preserving carried
         // custody. The allocation remains the sole durable continuation.
-        kernel.ecs.get_mut::<WorkParticipation>(kernel.entity(&worker).unwrap()).unwrap().automatic = false;
+        crate::record_changes::edit::<WorkParticipation>(kernel.entity(&worker).unwrap(), &mut kernel.ecs).unwrap().automatic = false;
         let task = kernel.work_attempts.iter().find_map(|(task, entity)| (kernel.ecs.get::<WorkAttempt>(*entity).is_some_and(|attempt| attempt.worker == worker)).then_some(task.clone())).expect("carrier task");
         let operation = kernel.work_attempt(&task).expect("stockpile attempt").current_operation().unwrap().clone();
         kernel.interrupt_work_attempt(task.clone(), operation.attempt.generation, operation.sequence, InterruptCause::WorkerUnavailable).unwrap();
@@ -1857,11 +1858,11 @@ mod tests {
         let saved = kernel.save_records().unwrap();
         let mut restored = Kernel::new();
         restored.restore_records(&saved).unwrap();
-        restored.ecs.get_mut::<WorkParticipation>(restored.entity(&worker).unwrap()).unwrap().automatic = true;
+        crate::record_changes::edit::<WorkParticipation>(restored.entity(&worker).unwrap(), &mut restored.ecs).unwrap().automatic = true;
         restored.refresh_planner_index(&worker);
-        restored.ecs.get_mut::<Body>(restored.entity(&worker).unwrap()).unwrap().speed = 0.0;
+        crate::record_changes::edit::<Body>(restored.entity(&worker).unwrap(), &mut restored.ecs).unwrap().speed = 0.0;
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 0, "drafted carrier does not advance while stopped");
-        restored.ecs.get_mut::<Body>(restored.entity(&worker).unwrap()).unwrap().speed = 1.0;
+        crate::record_changes::edit::<Body>(restored.entity(&worker).unwrap(), &mut restored.ecs).unwrap().speed = 1.0;
         assert_eq!(restored.advance_native_work_planner(restored.revision).unwrap(), 1, "saved carried allocation resumes through the shared planner");
         settle_routes(&mut restored);
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "deposit commits exact quantity");
@@ -2236,7 +2237,7 @@ mod tests {
         let mut kernel = thirty_two_ready_construction_tasks();
         assert_eq!(kernel.advance_native_work_planner(1).unwrap(), 8);
         let source = kernel.entity("source").unwrap();
-        kernel.ecs.get_mut::<Position>(source).unwrap().x += 1.0;
+        crate::record_changes::edit::<Position>(source, &mut kernel.ecs).unwrap().x += 1.0;
         kernel.rebuild_physical_indexes(false).unwrap();
         assert_eq!(kernel.advance_native_work_planner(2).unwrap(), 8);
         assert_eq!(kernel.planner.assignment_generation, 1);
@@ -2461,9 +2462,7 @@ mod tests {
         assert_eq!(kernel.quantity_in_container("worker-1"), 3);
         assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1); // route to site
         let worker = kernel.entity("worker-1").unwrap();
-        kernel
-            .ecs
-            .get_mut::<WorkParticipation>(worker)
+        crate::record_changes::edit::<WorkParticipation>(worker, &mut kernel.ecs)
             .unwrap()
             .automatic = false;
         let operation = kernel
@@ -2493,16 +2492,14 @@ mod tests {
         let mut restored = Kernel::new();
         restored.restore_records(&saved).unwrap();
         let worker = restored.entity("worker-1").unwrap();
-        restored
-            .ecs
-            .get_mut::<WorkParticipation>(worker)
+        crate::record_changes::edit::<WorkParticipation>(worker, &mut restored.ecs)
             .unwrap()
             .automatic = true;
         restored.refresh_planner_index("worker-1");
-        restored.ecs.get_mut::<Body>(worker).unwrap().speed = 0.0;
+        crate::record_changes::edit::<Body>(worker, &mut restored.ecs).unwrap().speed = 0.0;
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 0);
         assert!(restored.work_attempt(&allocation).is_none());
-        restored.ecs.get_mut::<Body>(worker).unwrap().speed = 1.0;
+        crate::record_changes::edit::<Body>(worker, &mut restored.ecs).unwrap().speed = 1.0;
         assert_eq!(restored.advance_native_work_planner(restored.revision).unwrap(), 1);
         settle_routes(&mut restored);
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1); // deposit
@@ -2540,7 +2537,7 @@ mod tests {
         assert!(matches!(bind.operation, crate::work_planner::WorkOperation::Construction { mode: crate::work_attempt::ConstructionMode::Bind, .. }));
 
         kernel.ecs.entity_mut(site_entity).insert(Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 });
-        kernel.ecs.entity_mut(site_entity).get_mut::<ConstructionSite>().unwrap().target = ConstructionTarget::Cell {
+        crate::record_changes::edit::<ConstructionSite>(site_entity, &mut kernel.ecs).unwrap().target = ConstructionTarget::Cell {
             cell: Cell { x: surface.x, y: surface.y + 100, z: surface.z },
             orientation: Cardinal::North,
         };

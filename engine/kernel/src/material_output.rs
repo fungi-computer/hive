@@ -208,7 +208,7 @@ mod tests {
         }
         kernel.load_environment(&definition.to_string()).unwrap();
         let bin = kernel.entity("bin").unwrap();
-        kernel.ecs.get_mut::<crate::components::Container>(bin).unwrap().capacity = 2;
+        crate::record_changes::edit::<crate::components::Container>(bin, &mut kernel.ecs).unwrap().capacity = 2;
         let facts = kernel.environment.as_ref().unwrap().world.facts().unwrap();
         let wet = facts.cells.iter().find(|cell| cell.kind == crate::water::WaterCellKind::Soil && cell.mass_kg > 0.0).expect("generated wet material");
         let at = Cell { x: i64::from(wet.at[0]), y: wet.at[1], z: i64::from(wet.at[2]) };
@@ -224,7 +224,7 @@ mod tests {
         assert_eq!(a.water, b.water);
         let ExcavationResult::Prepared(prepared) = kernel.environment.as_mut().unwrap().world.prepare_excavation(at, expected, 0).unwrap() else { panic!("prepare"); };
         let credit = prepared.water_kg();
-        kernel.ecs.get_mut::<crate::components::Container>(bin).unwrap().capacity = 10;
+        crate::record_changes::edit::<crate::components::Container>(bin, &mut kernel.ecs).unwrap().capacity = 10;
         let lot = kernel.complete_excavation(prepared, "bin".into()).unwrap().unwrap();
         let entity = kernel.entity(&lot).unwrap();
         assert_eq!(kernel.ecs.get::<LotWater>(entity).unwrap().water_kg, credit);

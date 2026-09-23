@@ -10,26 +10,32 @@ pub type Result<T> = std::result::Result<T, String>;
 pub const MAX_CARRIED_WATER_KG: f64 = 1.0e12;
 
 #[derive(Component, Clone)]
+#[component(immutable)]
 pub struct ExternalId(pub String);
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Party {}
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct OwnedBy {
     pub player: String,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct PartyMember {
     pub party: String,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct OwnedByParty {
     pub party: String,
 }
 #[derive(Component, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkExecution {
     pub pool: String,
@@ -47,6 +53,7 @@ pub struct PartyBinding {
     pub digest: String,
 }
 #[derive(Component, Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Position {
     pub x: f64,
@@ -55,17 +62,20 @@ pub struct Position {
     pub facing: f64,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Body {
     pub speed: f64,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Traversal {
     pub clearance_cells: u8,
     pub max_step_cells: u8,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Container {
     pub capacity: u32,
@@ -73,6 +83,7 @@ pub struct Container {
 /// A declared capability of a physical vessel. Content definitions attach this
 /// to compatible lots; water work never infers capability from an item name.
 #[derive(Component, Clone, Debug, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct VesselCapability {
     pub accepts_water: bool,
@@ -80,19 +91,23 @@ pub struct VesselCapability {
 /// A custody boundary installed by a native completion owner. Presence is
 /// the capability and is saved as an empty record.
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct SealedContainer {}
 
 /// Finite stock resting at a physical position, not carried by an actor.
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct GroundStock {}
 /// A physical authored storage provider whose destination policy is resolved
 /// from painted stockpile cells at its position.
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct StorageProvider {}
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Lot {
     pub kind: String,
@@ -100,6 +115,7 @@ pub struct Lot {
     pub container: String,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LotWater {
     pub water_kg: f64,
@@ -122,6 +138,7 @@ pub(crate) fn lot_matches_material(lot: &Lot, water: Option<&LotWater>, material
 /// custody owners; this record accounts only for an admitted portion and its
 /// incoming destination capacity.
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SupplyAllocation {
     pub requirement_owner: String,
@@ -138,6 +155,7 @@ pub struct SupplyAllocation {
 /// Once withdrawal commits, `lot` names the exact generated water lot and this
 /// record is replaced by the ordinary SupplyAllocation on the same entity.
 #[derive(Component, Clone, Debug, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FieldWaterWork {
     pub process: String,
@@ -159,6 +177,7 @@ pub struct FieldWaterWork {
 #[serde(rename_all = "kebab-case")]
 pub enum SupplyAllocationState { Reserved, Delivered, Cancelled }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StockpileCell {
     pub zone: String,
@@ -173,6 +192,7 @@ pub struct StockpileDesignation { pub x: i32, pub y: i32, pub z: i32, pub priori
 pub struct StockpileCellCoordinate { pub x: i32, pub y: i32, pub z: i32 }
 /// Finite authored stock whose kind and remaining quantity are native-owned.
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct FiniteResource {
     pub kind: String,
@@ -180,6 +200,7 @@ pub struct FiniteResource {
 }
 /// Native lifecycle state for a sparse, data-defined tended resource site.
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ResourceSite {
     pub definition: String,
@@ -190,6 +211,7 @@ pub struct ResourceSite {
 /// finite output stay on ResourceSite/FiniteResource; this record owns only
 /// designation state and earned labor between physical transitions.
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ResourceOrder {
     pub definition: String,
@@ -202,6 +224,7 @@ pub struct ResourceOrder {
 }
 /// Native earned work; authored systems may request work, never write progress.
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExcavationWork {
     pub x: i32,
@@ -214,6 +237,7 @@ pub struct ExcavationWork {
 /// Durable player excavation intent.  The shared native planner owns worker
 /// selection and retry; this record only retains the designation projection.
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExcavationOrder {
     pub cell_x: i32,
@@ -225,6 +249,7 @@ pub struct ExcavationOrder {
 }
 /// Native saved deconstruction progress owned by the task entity.
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DeconstructionWork {
     pub site: String,
@@ -237,6 +262,7 @@ pub struct DeconstructionWork {
 /// Durable deconstruction intent. The shared planner owns attendance while
 /// `DeconstructionWork` owns any earned physical progress.
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DeconstructionOrder {
     pub site: String,
@@ -288,6 +314,7 @@ struct ConstructionSiteWire {
 }
 
 #[derive(Component, Clone)]
+#[component(immutable)]
 pub struct ConstructionSite {
     pub catalog: String,
     pub target: ConstructionTarget,
@@ -354,6 +381,7 @@ impl<'de> Deserialize<'de> for ConstructionSite {
     }
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FloorReplacement {
     pub version: u32,
@@ -376,6 +404,7 @@ pub enum ConstructionPhase {
     Finished,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Destination {
     pub x: f64,
@@ -385,11 +414,13 @@ pub struct Destination {
     pub frame: Option<String>,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Support {
     pub entity: String,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Surface {
     pub min_x: f64,
@@ -399,11 +430,13 @@ pub struct Surface {
     pub height: f64,
 }
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Obstacle {
     pub occupied: bool,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Collider {
     pub shape: ColliderShape,
@@ -423,6 +456,7 @@ pub enum ColliderShape {
     Cuboid,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ImpactMaterial {
     pub response: String,
@@ -432,6 +466,7 @@ pub struct ImpactMaterial {
     pub embed_speed: f64,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Launcher {
     pub ammo_kind: String,
@@ -448,11 +483,13 @@ pub struct Launcher {
     pub penetration: f64,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Emitter {
     pub catalog: String,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Projectile {
     pub launcher: String,
@@ -474,6 +511,7 @@ pub struct Projectile {
     pub roll_friction: f64,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
+#[component(immutable)]
 #[serde(deny_unknown_fields)]
 pub struct Visual {
     pub sprite: String,
