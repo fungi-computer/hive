@@ -1116,6 +1116,9 @@ impl Kernel {
     /// Expand finite requirements into deterministic, unclaimed source
     /// portions. This is a pure planning query: it accounts for canonical
     /// reservations plus earlier slots in this window, but publishes neither.
+    /// Callers contribute one authoritative priority tier: automatic planning
+    /// filters the task window first; direct domain planning has one owner.
+    /// Distance therefore ranks only equal-priority delivery requirements.
     fn prepare_supply_slots(
         &self,
         requirements: &[SupplyRequirement],
