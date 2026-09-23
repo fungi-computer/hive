@@ -204,6 +204,24 @@ before this source can be accepted. Navigation locality and a valid finite-water
 fixture are being resolved at their owners. Hosted capacity,
 full Shiitake model execution and a release preview remain unproved.
 
+The subsequent navigation/work owner correction (`730a1e8f`, release WASM
+`5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89`)
+restored the full native suite: 453 passed, zero failed, one ignored. With the
+**unchanged v2 fixture**, the local 1,800-step run completed 190 chains and
+1,140 delivered wood (+64% against the previous 116/696), with 179/180
+one-second samples at or above 90 useful workers (previously 137/180). Its
+third minute completed output in all 60 samples. Native advance p95 fell from
+69.7 to 50.7 ms, capture p95 from 31.7 to 26.0 ms, maximum changed bytes from
+696,301 to 611,745, and total local wall time from 116.0 to 67.4 seconds.
+This is a strong local productivity and service-cost result, but it still
+excludes DO SQL, alarm, publication, socket, and browser cost. The v2 water
+fixture remains invalid for water delivery; the separate v3 finite-water
+fixture and paired local/hosted run remain open. Do not promote these local
+figures to a hosted capacity claim.
+The local comparison ledger is
+`.botanical/framework-v2/locality-after-1800.json` (SHA-256
+`b5a3ea8042403eabc14f1ea5fe258e5d8f3cc97d690ae4f0ea0bf48720a28aae`).
+
 ## Exit and explicit nonclaims
 
 The sprint closes only with pinned source, reproducible fixture, local + workerd
