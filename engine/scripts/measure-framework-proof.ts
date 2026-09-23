@@ -44,7 +44,7 @@ try {
   session.start();
   // The DO stores a full baseline at creation; compare only later changes.
   const initialCapture = session.captureForCommit();
-  initialCaptureBytes = initialCapture.snapshot.kernel.records.reduce((sum, record) => sum + record.bytes.length, 0);
+  initialCaptureBytes = initialCapture.changes.puts.reduce((sum, record) => sum + record.bytes.length, 0);
   session.acceptCapture();
   for (let tick = 1; tick <= count; tick++) {
     session.runDisposableCandidate(() => {

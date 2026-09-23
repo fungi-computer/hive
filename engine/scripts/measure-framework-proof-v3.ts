@@ -188,7 +188,9 @@ try {
         let live: Record<string, {bytes:number; records:number}> | undefined;
         if (step % 50 === 0 || step === steps) {
           live = {};
-          for (const row of capture.snapshot.kernel.records) {
+          // Resident commits carry only a frontier. Take an explicit detached
+          // checkpoint for this occasional diagnostic inventory sample.
+          for (const row of session.save().kernel.records) {
             const family = row.key.startsWith("kernel/state/") ? row.key.split("/").slice(0,3).join("/") : row.key.split("/").slice(0,2).join("/");
             const group = live[family] ??= { bytes:0, records:0 };
             group.bytes += row.bytes.length; group.records++;

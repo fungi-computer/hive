@@ -350,10 +350,37 @@ only 0.049 seconds across the run, so extending the air cache to terrain
 would not address this workload. Diagnostic evidence is
 `.botanical/framework-v3-residual-diagnostic-full.json` (SHA-256
 `3323c46d1487e69c4bddfa37f6df591d2b9c636320616fd5577c442150a59dab`).
-The temporary probes were reverted, and the generated production WASM was
-restored to `581be772…81fa56c`. The next owner cut is the duplicated native
-and TypeScript record cursor/recovery-key inventory, with the Region's atomic
-SQL record table as the key authority; it is not accepted source yet.
+The temporary probes were reverted, and the earlier production WASM was
+restored to `581be772…81fa56c` before the next cut.
+
+The Region SQL record table now owns the recovery key inventory. A resident
+capture sends exact changed puts and tombstones, and carries only a metadata
+frontier into the stored session. It no longer sends the full key manifest or
+rebuilds a TypeScript map of every record each occurrence. Detached `save()`
+and SQL hydration still use a complete checkpoint; the occasional inventory
+sample in the v3 diagnostic now requests that checkpoint explicitly. The
+current native cut is `3f86c110`, corrected test `bdd26a9b`, release WASM
+`f454c8c5d7c86e83c8a5fa04e7bc9e7e4a8ec7bae567233ca91bc4ea75499e4f`.
+Native library laws passed 461/461 with one ignored. The actual local workerd
+two-client restart/replay/autonomous-alarm proof passed through sequence 41;
+its result is `.botanical/framework-driver-proof-cursor-bdd26a9b/RESULT.json`
+(SHA-256 `6930483ab4ebdfdd0228bfdf8a197b26a22a27dc27d7eb38bfaec8983cbcc64a`).
+
+On the same 1,800-step v3 local fixture, commands, all 180 sampled world
+states, recovery, continuation and per-step record costs matched the post-air
+run exactly. Capture fell from 23.19 to 15.76 seconds total, p50 from 12.72
+to 8.45 ms, and p95 from 16.92 to 12.16 ms; changed transport stayed at
+152,397,723 bytes including key/row overhead. Script wall time fell from
+58.65 to 55.17 seconds even though the new diagnostic takes 36 additional
+full saves (3.33 seconds beyond the old run's full-save cost). Thus capture
+timings are the clean comparison; whole-script wall times have different
+diagnostic sampling costs. The new ledger is
+`.botanical/framework-v3-ledger-cursor-bdd26a9b.json` (SHA-256
+`7b7bc514bac2c7cd4bd6d053328de8b5ed76374e773e8781832fcef99ea26a76`).
+This is local evidence, not hosted capacity. Rust capture still scans resident
+records to validate counts/capacity and route/search state. Native changed
+route and entity/work encoding remain the next measured owner costs; changing
+them should follow a new exact phase attribution, not a blanket cache.
 
 ## Exit and explicit nonclaims
 
