@@ -35,6 +35,14 @@ still too bursty for a smooth 10 Hz active world even before DO commitment,
 observation publication and drawing. The fixture does not count how many of the
 100 workers held productive claims simultaneously.
 
+A separate local run measured `WasmKernel.capture_records()` outside the first
+100 active steps: median **35.47 ms**, p95 **44.16 ms**, with no JS read of the
+returned record bytes. `advance_json` currently invokes `save_records()` as a
+rollback snapshot whenever the native planner may mutate, so full native
+serialization is a credible large share of the active step. This is a causal
+source inference, not an internal phase timer or a safe reason to remove
+rollback without prepared atomic admission.
+
 Integrated native unit suite: 430 passed, one ignored. The four-file current
 WASM/JS session and record suite: 47 passed, two pre-existing fixture failures
 (water activity assertion and an obsolete `party` field in a disconnected-party
