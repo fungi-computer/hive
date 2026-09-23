@@ -5,6 +5,8 @@
   "scripts": {
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "proof": "node proof.mjs",
+    "proof:survival": "node survival-proof.mjs",
+    "typecheck:controller-packs": "tsc --project tsconfig.pirates.json --noEmit",
     "typecheck:platform": "tsc --project tsconfig.platform.json --noEmit"
   },
   "dependencies": {
