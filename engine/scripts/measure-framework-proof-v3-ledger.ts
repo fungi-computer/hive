@@ -4,7 +4,6 @@
  * Bundle this entrypoint instead of measure-framework-proof-v3.ts.
  */
 import { GameSession } from "../src/runtime/session";
-import { resetCaptureDiagnosticTotals, takeCaptureDiagnosticTotals } from "../src/runtime/wasm-kernel";
 
 type Timing = { count: number; totalMs: number; values: number[] };
 const timing = (): Timing => ({ count: 0, totalMs: 0, values: [] });
@@ -82,7 +81,6 @@ const originalStart = proto.start;
 proto.start = function (...args: unknown[]) {
   startCalls++;
   if (startCalls === 2) measuredSession = this;
-  if (startCalls === 2) resetCaptureDiagnosticTotals();
   return originalStart.apply(this, args);
 };
 
@@ -143,7 +141,6 @@ fixtureReport.runtimeCostLedger = {
       changedBytesIncludingKeysAnd16ByteRowOverhead: changedBytes,
       includesInitialCapture: true,
     },
-    changedRecordSubphases: takeCaptureDiagnosticTotals(),
     fullSave: summary(timings.fullSave),
     recoveryRestore: summary(timings.recoveryRestore),
     queryObservation: summary(timings.queryObservation),
