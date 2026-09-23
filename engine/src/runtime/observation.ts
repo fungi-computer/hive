@@ -32,19 +32,38 @@ export interface SessionObservation {
   readonly environmentVisuals: ReturnType<typeof projectPresentation>["environmentVisuals"];
 }
 
-/** Per-session disposable projections; restart/restore can always reconstruct them. */
+/** Region-owned disposable projections; restart/restore reconstructs them. */
 export function createObservationProjector() {
-  const sessions = new WeakMap<GameSession, {
+  // This owner is constructed once per host Region, which fixes its world and
+  // host observation scope. Resident sessions are replaced after every
+  // committed revision, so keying memo state by session lifetime discards the
+  // dependency frontier on every publication. Pack identity selects the
+  // definition set; the exact reads below decide whether projections survive.
+  const packs = new WeakMap<object, {
+    session: GameSession;
+    sequence: number;
     presentation: ReturnType<typeof createObservationDependencies<ReturnType<typeof projectPresentation>>>;
     whistle: ReturnType<typeof createObservationDependencies<ReturnType<GameSession["whistleObservation"]>>>;
   }>();
   return (session: GameSession, metadata: Readonly<{ epoch: number; sequence: number }>) => {
-    let projections = sessions.get(session);
-    if (!projections) {
-      projections = { presentation: createObservationDependencies(), whistle: createObservationDependencies() };
-      sessions.set(session, projections);
+    let projections = packs.get(session.pack);
+    if (!projections || metadata.sequence < projections.sequence ||
+        (session !== projections.session && metadata.sequence === projections.sequence)) {
+      projections = {
+        session,
+        sequence: metadata.sequence,
+        presentation: createObservationDependencies(),
+        whistle: createObservationDependencies(),
+      };
+      packs.set(session.pack, projections);
+    } else {
+      projections.session = session;
+      projections.sequence = metadata.sequence;
     }
-    return buildObservation(session, metadata, projections);
+    return buildObservation(session, metadata, {
+      presentation: projections.presentation,
+      whistle: projections.whistle,
+    });
   };
 }
 

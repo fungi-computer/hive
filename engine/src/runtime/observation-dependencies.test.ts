@@ -38,3 +38,29 @@ test("failed dependency read is never accepted as an unchanged projection", () =
   fail = false;
   assert.equal(memo(context, project), first);
 });
+
+test("permission-filtered committed reads invalidate when the principal changes", () => {
+  const component: any = { id: "owner" };
+  const records = [
+    { id: "private:a", owner: "a", value: 1 },
+    { id: "private:b", owner: "b", value: 2 },
+  ];
+  let principal = "a", calls = 0;
+  const context: any = {
+    query() {
+      return records.filter(record => record.owner === principal).map(record => ({
+        id: record.id,
+        get: () => ({ owner: record.owner, value: record.value }),
+      }));
+    },
+  };
+  const memo = createObservationDependencies<any>();
+  const project = (read: any) => {
+    calls++;
+    return read.query({ components: [component] }).map((row: any) => [row.id, row.get(component).value]);
+  };
+  assert.deepEqual(memo(context, project), [["private:a", 1]]);
+  principal = "b";
+  assert.deepEqual(memo(context, project), [["private:b", 2]]);
+  assert.equal(calls, 2, "permission-filtered facts cannot reuse another principal's projection");
+});
