@@ -10,7 +10,7 @@ import type { WhistleContextualTarget } from "./whistle";
 
 const token = "a".repeat(64);
 function observation(revision: number) {
-  return { revision, replayEpoch: 0, observation: { time: revision, paused: false, epoch: 0, sequence: revision, facts: [], cues: [], presentationFacts: [], whistleAgent: [] as WhistleAgentProjection[], whistleTargets: [] as WhistleContextualTarget[], terrainMarks: [], environmentVisuals: [] } };
+  return { hostStatus: { state: "running" as const }, revision, replayEpoch: 0, observation: { time: revision, paused: false, epoch: 0, sequence: revision, facts: [], cues: [], presentationFacts: [], whistleAgent: [] as WhistleAgentProjection[], whistleTargets: [] as WhistleContextualTarget[], terrainMarks: [], environmentVisuals: [] } };
 }
 function whistleObservation(revision: number) {
   const value = observation(revision);
@@ -65,7 +65,7 @@ test("command retries preserve their issuance epoch while duplicate-revision obs
   const socket = new FakeSocket(observation(0));
   const bodies: string[] = [];
   const runtime = setup(async (url, init) => {
-    if (String(url).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(url).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     bodies.push(String(init?.body));
     if (bodies.length === 1) {
       socket.emit("message", { data: JSON.stringify({ type: "observation", ...observation(0), replayEpoch: 1 }) });
@@ -109,7 +109,7 @@ test("Colony v2 persists the participant credential before join and keeps it out
         party: "party:1",
         people: ["party:1.person.0", "party:1.person.1"],
       });
-      if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+      if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
       const body = JSON.parse(String(init?.body));
       if (String(input).endsWith("/placement")) return Response.json({ observationRevision: 2, nativeRevision: 3, placementRevision: 2, decisions: body.candidates.map(({ site }: { site: string }) => ({ site, status: "ready" })) });
       return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
@@ -166,7 +166,7 @@ test("socket admission emits only authenticated observations and command omits i
   const calls: { url: string; init?: RequestInit }[] = [];
   const runtime = setup(async (input, init) => {
     calls.push({ url: String(input), init });
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     const body = JSON.parse(String(init?.body));
     return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
   });
@@ -186,7 +186,7 @@ test("socket admission emits only authenticated observations and command omits i
 test("an applied receipt releases the next FIFO command without waiting for its observation", async () => {
   const commandBodies: string[] = [];
   const runtime = setup(async (input, init) => {
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     commandBodies.push(String(init?.body));
     const body = JSON.parse(String(init?.body));
     return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: commandBodies.length, result: { results: [] } });
@@ -204,7 +204,7 @@ test("an applied receipt releases the next FIFO command without waiting for its 
 
 test("socket observations reject older committed revisions", async () => {
   const socket = new FakeSocket(observation(2));
-  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);
+  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque", hostStatus: { state: "running" } }) : Response.json({}), socket);
   const events: WorkerEvent[] = [];
   runtime.subscribe((event) => events.push(event));
   runtime.send({ type: "start", game: "survival" });
@@ -216,7 +216,7 @@ test("socket observations reject older committed revisions", async () => {
 
 test("reconnect installs a same-revision Whistle baseline before accepting a delta", async () => {
   const socket = new FakeSocket(whistleObservation(1));
-  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);
+  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque", hostStatus: { state: "running" } }) : Response.json({}), socket);
   const events: WorkerEvent[] = [];
   runtime.subscribe(event => events.push(event));
   try {
@@ -226,7 +226,7 @@ test("reconnect installs a same-revision Whistle baseline before accepting a del
     await wait();
     const next = observation(2);
     const { whistleAgent: _agent, whistleTargets: _targets, ...withoutWhistle } = next.observation;
-    socket.emit("message", { data: JSON.stringify({ type: "observation", replayEpoch: next.replayEpoch, revision: next.revision, observation: withoutWhistle }) });
+    socket.emit("message", { data: JSON.stringify({ type: "observation", hostStatus: next.hostStatus, replayEpoch: next.replayEpoch, revision: next.revision, observation: withoutWhistle }) });
     assert.equal(events.filter(event => event.type === "error").length, 0);
     const whistle = events.filter(event => event.type === "whistle").at(-1);
     assert.equal(whistle?.type, "whistle");
@@ -236,7 +236,7 @@ test("reconnect installs a same-revision Whistle baseline before accepting a del
 
 test("remote Whistle updates require agent and target fields together", async () => {
   const socket = new FakeSocket(observation(0));
-  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);
+  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque", hostStatus: { state: "running" } }) : Response.json({}), socket);
   const events: WorkerEvent[] = [];
   runtime.subscribe(event => events.push(event));
   try {
@@ -245,14 +245,14 @@ test("remote Whistle updates require agent and target fields together", async ()
     const partial = observation(1);
     partial.observation.whistleAgent = [];
     const { whistleTargets: _targets, ...partialObservation } = partial.observation;
-    socket.emit("message", { data: JSON.stringify({ type: "observation", replayEpoch: partial.replayEpoch, revision: partial.revision, observation: partialObservation }) });
+    socket.emit("message", { data: JSON.stringify({ type: "observation", hostStatus: partial.hostStatus, replayEpoch: partial.replayEpoch, revision: partial.revision, observation: partialObservation }) });
     assert.ok(events.some(event => event.type === "error" && event.message === "invalid remote observation"));
   } finally { runtime.dispose(); }
 });
 
 test("work activity crosses the real JSON frame boundary and rejects unsupported poses", async () => {
   const socket = new FakeSocket();
-  const runtime = setup(async () => Response.json({ handle: "opaque" }), socket);
+  const runtime = setup(async () => Response.json({ handle: "opaque", hostStatus: { state: "running" } }), socket);
   const events: WorkerEvent[] = [];
   runtime.subscribe(event => events.push(event));
   try {
@@ -287,7 +287,7 @@ test("work activity crosses the real JSON frame boundary and rejects unsupported
 
 test("remote inventory rejects mismatched portable identity and over-capacity contents", async () => {
   const socket = new FakeSocket();
-  const runtime = setup(async () => Response.json({ handle: "opaque" }), socket);
+  const runtime = setup(async () => Response.json({ handle: "opaque", hostStatus: { state: "running" } }), socket);
   const events: WorkerEvent[] = [];
   runtime.subscribe(event => events.push(event));
   try {
@@ -309,7 +309,7 @@ test("remote inventory rejects mismatched portable identity and over-capacity co
 
 test("remote observations reject malformed visual placement", async () => {
   const socket = new FakeSocket();
-  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);
+  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque", hostStatus: { state: "running" } }) : Response.json({}), socket);
   const events: WorkerEvent[] = [];
   runtime.subscribe(event => events.push(event));
   try {
@@ -338,7 +338,7 @@ test("lost HTTP receipt retries the identical command body and identity", async 
   let attempts = 0;
   const bodies: string[] = [];
   const runtime = setup(async (input, init) => {
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     bodies.push(String(init?.body));
     attempts++;
     if (attempts === 1) throw new Error("lost response");
@@ -360,7 +360,7 @@ test("healthy socket recovery resumes the same pending command body", async () =
   let attempts = 0;
   const bodies: string[] = [];
   const runtime = setup(async (input, init) => {
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     bodies.push(String(init?.body));
     attempts++;
     if (attempts < 5) throw new Error("temporary command transport failure");
@@ -381,7 +381,7 @@ test("HTTP recovery does not wait for an ordinary observation", async () => {
   const socket = new FakeSocket();
   let attempts = 0;
   const runtime = setup(async (input, init) => {
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     attempts++;
     if (attempts < 5) throw new Error("temporary command transport failure");
     const body = JSON.parse(String(init?.body));
@@ -400,7 +400,7 @@ test("ordinary commands synchronously refuse admission when the queue is full", 
   let release!: () => void;
   const held = new Promise<void>((resolve) => { release = resolve; });
   const runtime = setup(async (input, init) => {
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     await held;
     const body = JSON.parse(String(init?.body));
     return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
@@ -423,7 +423,7 @@ test("socket recovery has a bounded per-command budget", async () => {
   const bodies: string[] = [];
   const events: WorkerEvent[] = [];
   const runtime = setup(async (input, init) => {
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     bodies.push(String(init?.body));
     attempts++;
     if (attempts <= 16) throw new Error("permanent command transport failure");
@@ -465,7 +465,7 @@ test("coalesces contiguous unsent direct input behind command barriers and retri
   const finalSeen = new Promise<void>((resolve) => { finalStarted = resolve; });
   let heldFirst = true;
   const runtime = setup(async (input, init) => {
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     const body = String(init?.body);
     calls.push(body);
     const command = JSON.parse(body).command;
@@ -512,7 +512,7 @@ test("transient handle admission recovers without a new world", async () => {
   let attempts = 0;
   const runtime = setup(async () => {
     if (++attempts === 1) return Response.json({ error: "world-unavailable" }, { status: 503 });
-    return Response.json({ handle: "same-world" });
+    return Response.json({ handle: "same-world", hostStatus: { state: "running" } });
   });
   const events: WorkerEvent[] = [];
   runtime.subscribe((event) => events.push(event));
@@ -546,7 +546,7 @@ test("definite command refusals release later orders without reconnecting", asyn
   const socket = new FakeSocket(observation(0), () => { reconnects++; });
   const calls: string[] = [];
   const runtime = setup(async (input, init) => {
-    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque", hostStatus: { state: "running" } });
     const body = JSON.parse(String(init?.body));
     calls.push(body.id);
     if (calls.length === 1) return Response.json({ error: "bad-request" }, { status: 400 });
@@ -574,7 +574,7 @@ test("private performance worlds stream terrain through the authenticated socket
   const socket = new FakeSocket();
   const runtime = connectRemoteRuntime({ endpoint: 'https://hive.test/v1/colony-performance-256-8', game: 'colony-performance-256-8', token,
     onTransport: sample => samples.push(sample),
-    fetch: async input => { calls.push(String(input)); assert(String(input).endsWith('/connect')); return Response.json({handle:'opaque'}); },
+    fetch: async input => { calls.push(String(input)); assert(String(input).endsWith('/connect')); return Response.json({handle:'opaque',hostStatus:{state:'running'}}); },
     createSocket: () => {queueMicrotask(() => socket.emit('open',{})); return socket;},
   });
   try {
@@ -606,5 +606,24 @@ test("transport telemetry includes rejected network attempts without changing th
     await assert.rejects(runtime.placementDecisions({ party: "party:1", candidates: [{ site: "site:1" as never, catalog: "floor" as never, target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "north" } }] }),/network unavailable/);
     assert.equal(samples.length,1);assert.equal(samples[0].kind,'http');
     if(samples[0].kind==='http'){assert.equal(samples[0].status,null);assert.equal(samples[0].operation,'placement');}
+  } finally {runtime.dispose();}
+});
+
+test("durable host fault remains visible at the same physical revision and stops command intake without reconnect", async () => {
+  const socket = new FakeSocket(); let commands = 0;
+  const runtime = setup(async url => {
+    if(String(url).endsWith("/connect")) return Response.json({handle:"opaque",hostStatus:{state:"running"}});
+    commands++; return Response.json({});
+  }, socket);
+  const events: WorkerEvent[] = []; runtime.subscribe(event=>events.push(event));
+  try {
+    runtime.send({type:"start",game:"survival"}); await wait();
+    const status = {state:"faulted",sequence:2034,attempts:1,code:"region-record-capacity"};
+    socket.emit("message",{data:JSON.stringify({type:"host-status",hostStatus:status})});
+    assert.ok(events.some(event=>event.type==="connection" && event.status==="unavailable" && event.hostStatus?.state==="faulted"));
+    assert.ok(events.some(event=>event.type==="error" && event.message.includes("Saved state is intact")));
+    runtime.send({type:"pause"}); await wait(); assert.equal(commands,0);
+    socket.emit("message",{data:JSON.stringify({type:"observation",...observation(0),hostStatus:status})});
+    assert.equal(socket.sent.filter(w=>JSON.parse(w).type==="observation-ack").length,2);
   } finally {runtime.dispose();}
 });

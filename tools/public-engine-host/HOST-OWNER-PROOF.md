@@ -130,3 +130,59 @@ the lane retains the full inventory and SQLite artifacts at
 ```sh
 /home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh node tools/public-engine-host/framework-driver-proof.mjs --output .botanical/framework-driver-proof
 ```
+
+## Durable host faults and finite retries
+
+Host format 2 persists `running`, `retrying`, or `faulted` alongside the exact due
+sequence, request and deadline. A deterministic Region/Session/kernel admission
+or invariant failure becomes terminal on its first failed attempt. Other errors
+retry after 1, 2, 4 and 8 seconds; the fifth failed attempt is terminal. Failure
+metadata commits separately after world rollback and before alarm operations,
+so failed rearming cannot erase the attempt budget. Successful acceptance resets
+that budget in the same transaction as the physical occurrence. Postcommit
+resident/evidence errors are fenced by the durable frontier and cannot fault the
+next occurrence. Terminal worlds have no physical alarm; socket authentication
+expiry can still use the one native alarm without executing the preserved step.
+
+The host keeps the committed world queryable. Observations/connect responses carry
+checked `hostStatus`; authenticated sockets receive one small status message per
+change, even when their last physical frame has not been acknowledged. The remote
+client reports the stopped step/reason through its existing visible error and
+connection path and stops new command intake. Exact retained ordinary receipts
+still replay before authorization; new mutations receive HTTP 423 and cannot
+clear the fault. No guest repair/reset endpoint exists. A later repair must retain
+and accept the original due identity; this cut deliberately does not invent one.
+
+All public native packs now explicitly admit at most 65,536 records (the shared
+kernel contract) and 32 MiB of aggregate Region storage. That storage envelope
+accommodates the kernel's 9 MiB payload ceiling, worst-case key/metadata overhead
+of about 11 MiB, and bounded state/receipt/event headroom. The per-record 256 KiB,
+per-change 1 MiB/1,024 rows, initial 8 MiB and page 1 MiB bounds remain. This fixes
+an accidental generic 4,096-row host restriction; it does not claim unbounded
+capacity. Existing different policy/program/host-format worlds are unsupported,
+retain their data, and have their alarm removed during constructor recovery or
+alarm delivery. There is no migration or old execution path.
+
+Nineteen host/Region laws and 23 remote-client laws pass. The actual-workerd
+`host-fault-proof.mjs` injects failure after native records and the clock UPDATE:
+capacity faults once, rolls back the physical candidate, retains 1,294 canonical
+records and the exact pending identity, remains queryable after process restart,
+replays prior pause/resume/clock receipts exactly, and refuses new commands.
+Unsupported-format restart deletes a pre-existing alarm without changing records.
+A transient failure recovers sequence 1 to 2 after process restart without a
+request to the Region. The proof asserts the persisted 65,536/32 MiB policy.
+The result/inventory is preserved in
+`engine/implementation/clearing-repair/evidence/20260923-host-fault-workerd.json`;
+raw SQLite/bundle artifacts remain at `.botanical/host-fault-workerd-final`.
+
+```sh
+/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh node tools/public-engine-host/host-fault-proof.mjs --output .botanical/host-fault-workerd
+```
+
+This is local workerd correctness evidence, not a hosted capacity measurement.
+If durable storage cannot persist fault/retry metadata or any alarm, the existing
+finite Cloudflare retry/platform availability gap remains. A failed rearm after
+persisted metadata may cause platform retries, but cannot re-execute a terminal
+world or forget its durable attempt count. The production-only type diagnostic
+reports the existing SDK/game errors and placement string/EntityId mismatch;
+no new host/fault-contract error was reported.

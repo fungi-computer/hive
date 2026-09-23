@@ -1,3 +1,4 @@
+import { hostStatusSchema, RUNNING_HOST, type HostStatus } from "../../engine/src/runtime/host-status";
 import { DurableObject } from "cloudflare:workers";
 import { terrainRegionRequestSchema } from "../../engine/src/runtime/terrain-regions";
 import { startTerrainRegionStream } from "../../engine/src/runtime/terrain-region-stream";
@@ -32,7 +33,7 @@ import {
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
-import { sessionClockDemand, nextWakeDeadline, withRecoveryWake } from "./wake-policy";
+import { sessionClockDemand, nextWakeDeadline, withRecoveryWake, failedHostAttempt, clockWakeAt } from "./wake-policy";
 import { canSendObservation, acknowledgeObservation, type ObservationDelivery } from "./observation-delivery";
 import { createFrameworkCostLedger, type SqlCost } from "./framework-cost-ledger";
 import { readOccurrenceDriverResult, type OccurrenceDriverResult } from "../../engine/src/runtime/occurrence-driver";
@@ -56,6 +57,7 @@ type HostRow = {
   due_sequence: number | null;
   due_request_json: string | null;
   due_deadline_ms: number | null;
+  wake_json: string;
 };
 type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: import("../../engine/src/contracts").EntityId };
 type PartyJoinResult = { player: string; party: ParticipantRow["party_id"]; people: string[] };
@@ -83,12 +85,14 @@ type SocketAttachment = ObservationDelivery & {
   readonly authenticated: boolean;
   readonly authDeadline: number | null;
   readonly retired?: boolean;
+  readonly hostStatusWire?: string;
   /** The complete terrain baseline successfully sent on this connection. */
   readonly terrainRevision?: number;
   /** The neutral Whistle capability revision successfully sent on this connection. */
   readonly whistleRevision?: number;
 };
 type PublicObservationPayload = {
+  readonly hostStatus: HostStatus;
   readonly replayEpoch: number;
   readonly revision: number;
   readonly observation: SessionObservation;
@@ -96,6 +100,7 @@ type PublicObservationPayload = {
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
 /** Region reads are paged separately from the native snapshot's total bound. */
 const RECORD_PAGE_SIZE = 40;
+export const PUBLIC_NATIVE_REGION_LIMITS = Object.freeze({ records: MAX_KERNEL_RECORDS, storageBytes: 32 * 1024 * 1024 });
 
 async function sha256Hex(value: string): Promise<string> {
   const bytes = await crypto.subtle.digest(
@@ -124,8 +129,10 @@ function commandKind(input: { command: unknown }): string | undefined {
     : undefined;
 }
 function validateHostRow(row: HostRow): void {
+  const wake = hostStatusSchema.parse(JSON.parse(row.wake_json));
+  if (wake.state !== "running" && (wake.sequence !== row.due_sequence || row.due_request_json === null)) throw new Error("public-host-retry-identity");
   if (
-    row.format_version !== 1 ||
+    row.format_version !== 2 ||
     (row.paused !== 0 && row.paused !== 1) ||
     !Number.isSafeInteger(row.next_sequence) ||
     row.next_sequence < 0 ||
@@ -266,7 +273,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
-        this.startupFailure = ["region-identity-conflict", "public-capability-conflict", "public-host-format"].includes(message) ? "unsupported-world" : "world-unavailable";
+        this.startupFailure = ["region-identity-conflict", "region-policy-conflict", "public-capability-conflict", "public-host-format"].includes(message) ? "unsupported-world" : "world-unavailable";
+        // Unsupported current formats never execute or keep an old physical wake.
+        await this.state.storage.deleteAlarm();
       }
     });
   }
@@ -325,7 +334,13 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       },
     });
     this.resident = runtime.resident;
-    const program = runtime.program;
+    const program = { ...runtime.program, authorize: (...args: Parameters<typeof runtime.program.authorize>) => {
+      // Region replay precedes authorization: acknowledged commands still return
+      // their original receipts, but new intake cannot disturb a failed occurrence.
+      const status = this.hostStatus();
+      if (status.state !== "running" && !(status.state === "retrying" && args[0] === hostPrincipal && args[1].kind === "step")) throw new Error(`public-world-${status.state}`);
+      return runtime.program.authorize(...args);
+    } };
     this.pack = pack;
     this.tokenHash = tokenHash;
     this.worldHandle = pack === "colony" ? tokenHash : undefined;
@@ -334,6 +349,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       region: `public-v1-${pack}-${tokenHash.slice(0, 32)}`,
       program,
       clock: { principal: hostPrincipal },
+      limits: PUBLIC_NATIVE_REGION_LIMITS,
     });
     const hadHostTable = this.hasHostTable();
     this.owner.transactionSync(() => {
@@ -342,7 +358,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           pack TEXT NOT NULL, token_hash TEXT NOT NULL, paused INTEGER NOT NULL,
           next_sequence INTEGER NOT NULL,
           lease_until_ms INTEGER, due_sequence INTEGER, due_request_json TEXT,
-          due_deadline_ms INTEGER);`);
+          due_deadline_ms INTEGER, wake_json TEXT NOT NULL);`);
       if (pack === "colony") this.owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_public_participants (
         credential_hash TEXT PRIMARY KEY, principal TEXT NOT NULL UNIQUE,
         player_id TEXT NOT NULL UNIQUE, party_id TEXT NOT NULL UNIQUE);`);
@@ -353,12 +369,13 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       if (!row) {
         if (hadHostTable) throw new Error("public-host-format");
         this.owner.sql.exec(
-          "INSERT INTO hive_public_host VALUES (1,1,?,?,0,0,NULL,NULL,NULL,NULL)",
+          "INSERT INTO hive_public_host VALUES (1,2,?,?,0,0,NULL,NULL,NULL,NULL,?)",
           pack,
           tokenHash,
+          JSON.stringify(RUNNING_HOST),
         );
       } else if (
-        row.format_version !== 1 ||
+        row.format_version !== 2 ||
         row.pack !== pack ||
         row.token_hash !== tokenHash ||
         !Number.isSafeInteger(row.next_sequence) ||
@@ -368,7 +385,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       }
       const stored = row ?? {
         singleton: 1,
-        format_version: 1,
+        format_version: 2,
         pack,
         token_hash: tokenHash,
         paused: 0,
@@ -377,6 +394,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         due_sequence: null,
         due_request_json: null,
         due_deadline_ms: null,
+        wake_json: JSON.stringify(RUNNING_HOST),
       };
       validateHostRow(stored);
       const clock = this.owner.sql
@@ -401,6 +419,23 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       .toArray()[0];
     if (!row) return;
     await this.initialize(row.pack as PublicPack, row.token_hash);
+  }
+
+  private hostStatus(row = this.hostRow()): HostStatus {
+    return row ? hostStatusSchema.parse(JSON.parse(row.wake_json)) : RUNNING_HOST;
+  }
+
+  private publishHostStatus(): void {
+    const hostStatus = this.hostStatus();
+    const wire = JSON.stringify(hostStatus);
+    for (const socket of this.state.getWebSockets()) {
+      const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+      if (!attachment?.authenticated || attachment.retired || attachment.pack !== this.pack || attachment.worldHandle !== (this.worldHandle ?? this.tokenHash) || attachment.hostStatusWire === wire) continue;
+      try {
+        socket.send(JSON.stringify({ type: "host-status", hostStatus }));
+        socket.serializeAttachment({ ...attachment, hostStatusWire: wire });
+      } catch { socket.serializeAttachment({ ...attachment, retired: true }); try { socket.close(1011, "status send failed"); } catch {} }
+    }
   }
 
   private hostRow(): HostRow | undefined {
@@ -434,6 +469,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private nextDue(row: HostRow, now: number) {
+    if (this.hostStatus(row).state !== "running") return row;
     const deadline = nextWakeDeadline(sessionClockDemand(this.region.readCommitted().state.session), now);
     if (deadline === null) return null;
     if (row.due_sequence !== null) return row;
@@ -455,7 +491,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private alarmAt(row: HostRow): number | null {
     const socketDeadline = this.socketAlarmAt();
-    const clockDeadline = row.due_deadline_ms;
+    const clockDeadline = clockWakeAt(this.hostStatus(row), row.due_deadline_ms);
     const values = [socketDeadline, clockDeadline].filter((value): value is number => value !== null);
     return values.length === 0 ? null : Math.min(...values);
   }
@@ -510,9 +546,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const committed = this.region.readCommitted();
     const cached = this.observationCache;
     const replayEpoch = this.region.readReplayWindow().epoch;
+    const hostStatus = this.hostStatus();
     if (cached?.revision === committed.revision) {
-      if (cached.payload.replayEpoch === replayEpoch) return cached.payload;
-      const payload = { ...cached.payload, replayEpoch };
+      if (cached.payload.replayEpoch === replayEpoch && JSON.stringify(cached.payload.hostStatus) === JSON.stringify(hostStatus)) return cached.payload;
+      const payload = { ...cached.payload, replayEpoch, hostStatus };
       this.observationCache = { revision: committed.revision, payload };
       return payload;
     }
@@ -532,7 +569,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         epoch: 0,
         sequence: committed.revision,
       });
-      return { revision: committed.revision, replayEpoch, observation };
+      return { revision: committed.revision, replayEpoch, hostStatus, observation };
     });
     this.observationCache = { revision: committed.revision, payload };
     return payload;
@@ -617,6 +654,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private publishObservation(): Promise<void> {
     return this.serial(() => {
+      this.publishHostStatus();
       const revision = this.region.readCommitted().revision;
       const replayEpoch = this.region.readReplayWindow().epoch;
       const recipients = this.state.getWebSockets().flatMap(socket => {
@@ -672,6 +710,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const current = this.hostRow();
         if (!current) throw new Error("public-host-state");
         validateHostRow(current);
+        if (this.hostStatus(current).state !== "running") return { receipt, row: current };
         let next = { ...current, lease_until_ms: now + LEASE_MS };
         const paused = this.region.readCommitted().state.session.paused;
         if (receipt.status === "applied" && paused) {
@@ -784,7 +823,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const hash = await sha256Hex(credential);
     const binding = this.participant(hash);
     if (!binding) throw new Error("public-unauthorized");
-    if (route.operation === "connect" && request.method === "GET") return jsonResponse({ handle: this.state.id.toString() }, 200, this.hostEnv.PUBLIC_ORIGIN);
+    if (route.operation === "connect" && request.method === "GET") return jsonResponse({ handle: this.state.id.toString(), hostStatus: this.hostStatus() }, 200, this.hostEnv.PUBLIC_ORIGIN);
     if (route.operation === "observe" && request.method === "GET") {
       await this.renewLease(now);
       return withCors(await this.observationResponse(), this.hostEnv.PUBLIC_ORIGIN);
@@ -811,7 +850,36 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async runDue(now: number): Promise<void> {
-    return this.serial(() => withRecoveryWake(this.state.storage, now, () => this.runDueExclusive(now)));
+    return this.serial(async () => {
+      const row = this.hostRow();
+      if (!row) throw new Error("public-host-state");
+      const wake = this.hostStatus(row);
+      const at = clockWakeAt(wake, row.due_deadline_ms);
+      if (at === null || at > now) { await this.arm(row); return; }
+      await withRecoveryWake(this.state.storage, now, async () => {
+        try { await this.runDueExclusive(now); }
+        catch (error) {
+          // The failed world transaction has rolled back. Commit only retry/fault
+          // metadata; retain the exact uncommitted request/sequence.
+          const failed = this.owner.transactionSync(() => {
+            const current = this.hostRow()!;
+            // Resident acceptance and evidence emission happen after SQL commit.
+            // Their failure must never fault the next, still-unattempted step.
+            if (current.next_sequence > row.next_sequence) return current;
+            if (current.next_sequence !== row.next_sequence || current.due_sequence !== row.due_sequence || current.due_request_json !== row.due_request_json)
+              throw new Error("public-host-retry-identity");
+            const status = failedHostAttempt(this.hostStatus(current), current.due_sequence!, error, now);
+            const wake_json = JSON.stringify(status);
+            this.owner.sql.exec("UPDATE hive_public_host SET wake_json=? WHERE singleton=1", wake_json);
+            return { ...current, wake_json };
+          });
+          // Persist the attempt before rearming: another alarm-storage failure
+          // must not erase the retry budget. The separate rescue wake remains.
+          await this.arm(failed);
+        }
+      });
+      this.publishHostStatus();
+    });
   }
 
   private async runDueExclusive(now: number): Promise<void> {
@@ -878,11 +946,12 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       dispatchWallMs = performance.now() - dispatchStarted;
       const next = advanceClockOccurrence(row.due_sequence, dueDeadline, Date.now());
       this.owner.sql.exec(
-        "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
+        "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=?,wake_json=? WHERE singleton=1",
         next.sequence,
         next.sequence,
         next.request,
         next.deadline,
+        JSON.stringify(RUNNING_HOST),
       );
       const advanced: HostRow = {
         ...row,
@@ -890,6 +959,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         due_sequence: next.sequence,
         due_request_json: next.request,
         due_deadline_ms: next.deadline,
+        wake_json: JSON.stringify(RUNNING_HOST),
       };
       row = advanced;
       await this.arm(row);
@@ -1020,6 +1090,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       socket.serializeAttachment({ pack: attachment.pack, worldHandle: this.worldHandle ?? this.tokenHash, principal, authenticated: true, authDeadline: null } satisfies SocketAttachment);
       await this.renewLease(Date.now());
       socket.send(JSON.stringify({ type: "ready", game: attachment.pack }));
+      this.publishHostStatus();
       await this.serial(() => {
         const payload = this.observationPayload();
         const authenticated = socket.deserializeAttachment() as SocketAttachment;
@@ -1075,6 +1146,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         return this.v2Fetch(request, colonyRoute);
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
+        if (message === "public-world-faulted" || message === "public-world-retrying") return jsonResponse({ error: message, hostStatus: this.hostStatus() }, 423, origin);
         const forbidden = ["public-unauthorized", "public-invite-forbidden", "public-capability-conflict"].includes(message);
         return jsonResponse({ error: forbidden ? "forbidden" : "bad-request" }, forbidden ? 403 : 400, origin);
       }
@@ -1110,7 +1182,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       await this.initialize(pack, tokenHash);
       const now = Date.now();
       if (new URL(request.url).pathname.endsWith("/connect") && request.method === "GET")
-        return withCors(Response.json({ handle: this.state.id.toString() }), origin);
+        return withCors(Response.json({ handle: this.state.id.toString(), hostStatus: this.hostStatus() }), origin);
       if (
         new URL(request.url).pathname.endsWith("/observe") &&
         request.method === "GET"
@@ -1148,6 +1220,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       return jsonResponse({ error: "not-found" }, 404, origin);
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
+      if (message === "public-world-faulted" || message === "public-world-retrying") return jsonResponse({ error: message, hostStatus: this.hostStatus() }, 423, origin);
       const status =
         message === "public-unauthorized" ||
         message === "public-capability-conflict"

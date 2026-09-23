@@ -47,8 +47,8 @@ function fixture(receipts = 4096) {
       }
     },
   };
-  db.exec(`CREATE TABLE hive_public_host (singleton INTEGER PRIMARY KEY, format_version INTEGER, pack TEXT, token_hash TEXT, paused INTEGER, next_sequence INTEGER, lease_until_ms INTEGER, due_sequence INTEGER, due_request_json TEXT, due_deadline_ms INTEGER);
-    INSERT INTO hive_public_host VALUES(1,1,'formations','test',0,0,NULL,NULL,NULL,NULL);
+  db.exec(`CREATE TABLE hive_public_host (singleton INTEGER PRIMARY KEY, format_version INTEGER, pack TEXT, token_hash TEXT, paused INTEGER, next_sequence INTEGER, lease_until_ms INTEGER, due_sequence INTEGER, due_request_json TEXT, due_deadline_ms INTEGER,wake_json TEXT NOT NULL);
+    INSERT INTO hive_public_host VALUES(1,2,'formations','test',0,0,NULL,NULL,NULL,NULL,'{"state":"running"}');
     CREATE TABLE hive_public_world(singleton INTEGER PRIMARY KEY,world_handle TEXT,pack TEXT,invite_hash TEXT);
     CREATE TABLE hive_public_participants(credential_hash TEXT PRIMARY KEY,principal TEXT,player_id TEXT,party_id TEXT);`);
   const open = () => openRegion({ owner, limits: { receipts }, region: "host-owner-test", clock: { principal: "formations-host" }, program: {
@@ -116,25 +116,48 @@ test("pause removes wake, quiet command arrival commits its occurrence and rearm
   } finally { f.close(); }
 });
 
-test("independent rescue wake survives repeated transactional rearm failures beyond automatic retry budget", async () => {
+test("transactional rearm failures persist a finite retry budget across restart", async () => {
   const f = fixture();
   try {
     let host = f.make();
     await host.renewLease(0);
     f.fail(true);
-    for (let failure = 0; failure < 9; failure++) {
+    for (let failure = 1; failure <= 5; failure++) {
       const now = f.alarm!;
       f.fire();
-      await assert.rejects(host.runDue(now), /rearm failure/);
+      await host.runDue(now); // Failure is represented durably, not rethrown forever.
       assert.equal(host.region.readCommitted().state.time, 0);
-      assert.equal(f.alarm, now + 1000);
+      const status = host.hostStatus();
+      assert.equal(status.attempts, failure);
+      if (failure < 5) {
+        assert.equal(status.state, "retrying");
+        assert.equal(f.alarm, now + 1000 * 2 ** (failure - 1));
+      } else { assert.equal(status.state, "faulted"); assert.equal(f.alarm, null); }
       host = f.make();
     }
     f.fail(false);
-    const now = f.alarm!;
-    f.fire(); await host.runDue(now);
-    assert.equal(host.region.readCommitted().state.time, 0.1);
-    assert.ok(f.alarm! > now);
+    await host.runDue(Date.now());
+    await host.renewLease(Date.now());
+    assert.equal(host.region.readCommitted().state.time, 0);
+    assert.equal(f.alarm, null);
+  } finally { f.close(); }
+});
+
+ test("transient failure recovers the same occurrence once and clears its durable retry budget", async () => {
+  const f = fixture();
+  try {
+    let host = f.make(); await host.renewLease(0);
+    const request = host.hostRow().due_request_json;
+    f.fail(true); await host.runDue(100);
+    assert.equal(host.hostStatus().state, "retrying");
+    f.fail(false); host = f.make(); await host.runDue(1099);
+    assert.equal(host.region.readCommitted().state.time, 0);
+    await host.runDue(1100);
+    assert.equal(host.region.readCommitted().state.time, .1);
+    assert.deepEqual(host.hostStatus(), { state: "running" });
+    const receipt = host.region.dispatchOccurrence("formations-host", {sequence:0, request:JSON.parse(request)});
+    assert.equal(receipt.revision, 1);
+    assert.equal(host.region.readCommitted().state.time, .1);
   } finally { f.close(); }
 });
 
@@ -143,12 +166,12 @@ test("slow recipient retains one frame while fast recipient advances; ack surviv
   try {
     let host = f.make();
     const socket = () => {
-      let attachment: any = { authenticated: true, pack: "formations", worldHandle: "test" };
+      let attachment: any = { authenticated: true, hostStatusWire: JSON.stringify({ state: "running" }), pack: "formations", worldHandle: "test" };
       return { frames: [] as string[], deserializeAttachment: () => attachment, serializeAttachment: (a: any) => { attachment = a; }, send(frame: string) { this.frames.push(frame); }, close() {} };
     };
     const slow = socket(), fast = socket(); f.sockets.push(slow, fast);
     let builds = 0;
-    const payload = (revision: number) => ({ revision, replayEpoch: 0, observation: { whistleRevision: 0, whistleAgent: [], whistleTargets: [] } });
+    const payload = (revision: number) => ({ hostStatus: { state: "running" }, revision, replayEpoch: 0, observation: { whistleRevision: 0, whistleAgent: [], whistleTargets: [] } });
     host.observationPayload = () => { builds++; return payload(host.region.readCommitted().revision); };
     await host.publishObservation();
     assert.equal(slow.frames.length, 1);
@@ -203,8 +226,8 @@ test("rejection-only replay rollover publishes a new envelope and requires its e
   try {
     const host = f.make();
     const observation = { whistleRevision: 0, whistleAgent: [], whistleTargets: [] };
-    host.observationCache = { revision: 0, payload: { revision: 0, replayEpoch: 0, observation } };
-    let attachment: any = { authenticated: true, pack: "formations", worldHandle: "test" };
+    host.observationCache = { revision: 0, payload: { hostStatus: { state: "running" }, revision: 0, replayEpoch: 0, observation } };
+    let attachment: any = { authenticated: true, hostStatusWire: JSON.stringify({ state: "running" }), pack: "formations", worldHandle: "test" };
     const frames: any[] = [];
     const socket = { deserializeAttachment: () => attachment, serializeAttachment: (a: any) => { attachment = a; }, send: (s: string) => frames.push(JSON.parse(s)), close() {} };
     f.sockets.push(socket);
@@ -252,7 +275,7 @@ test("resident replacement invalidates session-local Whistle baselines before pu
   const f = fixture();
   try {
     const host = f.make();
-    let attachment: any = { authenticated: true, pack: "formations", worldHandle: "test", whistleRevision: 1 };
+    let attachment: any = { authenticated: true, hostStatusWire: JSON.stringify({ state: "running" }), pack: "formations", worldHandle: "test", whistleRevision: 1 };
     const frames: any[] = [];
     f.sockets.push({ deserializeAttachment: () => attachment, serializeAttachment: (a: any) => { attachment = a; }, send: (s: string) => frames.push(JSON.parse(s)), close() {} });
     host.resident.observe = (_revision: number, _state: any, _records: any, use: any) => use({});
@@ -260,4 +283,43 @@ test("resident replacement invalidates session-local Whistle baselines before pu
     await host.publishObservation();
     assert.deepEqual(frames[0].observation.whistleAgent, ["new-session-capability"]);
   } finally { f.close(); }
+});
+
+test("terminal capacity fault preserves due identity, has no alarm, and publishes once despite an unacked frame", async () => {
+  const f = fixture();
+  try {
+    let host = f.make(); await host.renewLease(0);
+    const due = host.hostRow(); let attempts = 0;
+    host.region = { ...host.region, dispatchOccurrence: () => { attempts++; throw Error("region-record-capacity"); } };
+    let attachment: any = { authenticated: true, pack: "formations", worldHandle: "test", observationRevision: 0, observationAcknowledged: false };
+    const frames: any[] = [];
+    f.sockets.push({ deserializeAttachment: () => attachment, serializeAttachment: (a: any) => { attachment = a; }, send: (s: string) => frames.push(JSON.parse(s)), close() {} });
+    await host.runDue(100);
+    assert.deepEqual(host.hostStatus(), {state:"faulted",sequence:0,attempts:1,code:"region-record-capacity"});
+    assert.equal(f.alarm, null);
+    assert.equal(host.hostRow().due_request_json, due.due_request_json);
+    assert.equal(host.hostRow().due_sequence, due.due_sequence);
+    assert.equal(frames.length, 1); assert.equal(frames[0].type, "host-status");
+    host = f.make();
+    await host.runDue(999_999); await host.renewLease(999_999); await host.publishObservation();
+    assert.equal(attempts, 1); assert.equal(f.alarm, null); assert.equal(frames.length, 1);
+    assert.equal(host.region.readCommitted().state.time, 0);
+  } finally { f.close(); }
+});
+
+test("postcommit resident failure cannot fault the next unattempted occurrence", async () => {
+  const f = fixture();
+  try {
+    let host=f.make();await host.renewLease(0);
+    host.resident.accept=()=>{throw Error("session-postcommit-cache-failure");};
+    await host.runDue(100);
+    assert.equal(host.region.readCommitted().state.time,.1);
+    assert.equal(host.hostRow().next_sequence,1);
+    assert.deepEqual(host.hostStatus(),{state:"running"});
+    host=f.make(); const due=host.hostRow();
+    const actualNow=Date.now; Date.now=()=>due.due_deadline_ms;
+    try { await host.runDue(due.due_deadline_ms); } finally { Date.now=actualNow; }
+    assert.equal(host.region.readCommitted().state.time,.2);
+    assert.deepEqual(host.hostStatus(),{state:"running"});
+  }finally{f.close();}
 });
