@@ -106,6 +106,7 @@ fn unavailable_error(error: &str) -> bool {
             | "retained terrain contact is no longer traversable"
             | "terrain route exceeds local search budget"
             | "terrain route waypoint budget exceeded"
+            | "terrain route retained state limit exceeded"
             | "point is outside support surface"
     )
 }
@@ -135,7 +136,6 @@ fn deferred_error(error: &str) -> bool {
         error,
         "no route within local search budget"
             | "terrain route exceeds local search budget"
-            | "terrain route waypoint budget exceeded"
     )
 }
 
