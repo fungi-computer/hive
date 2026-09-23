@@ -17,6 +17,18 @@ export const colonyFrameworkProofGameId = "colony-framework-proof-256-100-v1" as
 export const colonyFrameworkProofV2GameId = "colony-framework-proof-256-100-v2" as const;
 /** V3 preserves v2 terrain geometry and adds finite, reachable open water. */
 export const colonyFrameworkProofV3GameId = "colony-framework-proof-256-100-v3" as const;
+/** Ten-minute workload with six finite, released cohorts; independent of v3. */
+export const colonyFrameworkProofV4GameId = "colony-framework-proof-256-100-v4" as const;
+
+export const colonyFrameworkProofV4Schedule = Object.freeze({
+  stepSeconds: 0.1,
+  steps: 6000,
+  treesPerCohort: 64,
+  cohortCount: 6,
+  cohortReleaseSteps: [1, 1, 1201, 2401, 3601, 4801] as const,
+  excavationStep: 101,
+  waterRequestStep: 201,
+});
 
 export const colonyFrameworkProofV2Schedule = Object.freeze({
   stepSeconds: 0.1,

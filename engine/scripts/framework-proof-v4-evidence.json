@@ -1,0 +1,72 @@
+{
+  "format": "hive.framework-proof-evidence.v1",
+  "fixture": "colony-framework-proof-256-100-v4",
+  "sourceBase": "4107a49621d67b6d39d60f017ba18dc41ad1a0f8",
+  "wasmSha256": "f454c8c5d7c86e83c8a5fa04e7bc9e7e4a8ec7bae567233ca91bc4ea75499e4f",
+  "wasmSource": "3f86c11089ebf29a9bf725cc74d8d6086c7a445d",
+  "fixtureHashes": {
+    "definitionSha256": "74f1319a0bfb615c25be78cbef5ce13495b1a7d52fd35298ea06d5735cde9b4e",
+    "environmentSha256": "3d7a60d81857eff0501df42ba73c957b1438c7ddc59fa7db720266e549dab0e7"
+  },
+  "localWasm": {
+    "status": "partial-pass",
+    "steps": 6000,
+    "simulatedSeconds": 600,
+    "wallMs": 566352.030323,
+    "workers": 100,
+    "activeSamples": 599,
+    "sampleCount": 600,
+    "activeGate": "pass",
+    "finishedWoodUnits": 2166,
+    "completedChains": 361,
+    "woodOutputPerMinute": [432, 246, 162, 156, 210, 150, 300, 150, 150, 210],
+    "outputEveryMinuteGate": "pass",
+    "maximumRouteRemainingMetres": 189.4149561148749,
+    "routeDistanceLimitMetres": 256,
+    "routeDistanceGate": "pass",
+    "oldestDesignatedBacklogAgeSecondsPerMinute": [59.9, 119.9, 151.9, 119.9, 179.9, 119.9, 179.9, 198.9, 169.9, 119.9],
+    "oldestBacklogLimitSeconds": 120,
+    "backlogAgeGate": "fail",
+    "waterPortionsDelivered": 4,
+    "pendingWaterDemands": 0,
+    "recoveryAndContinuation": "pass",
+    "advanceMs": { "p50": 41.057138, "p95": 216.861369, "p99": 352.82607, "max": 985.6623259999906 },
+    "captureMs": { "p50": 15.027402, "p95": 53.475598, "p99": 74.654302, "max": 128.61068300000625 },
+    "changedRecordBytes": 496567224,
+    "maximumChangedRecordBytes": 424261,
+    "hardware": "AMD EPYC-Milan x64"
+  },
+  "localWorkerd": {
+    "status": "failed-before-worker-startup",
+    "reason": "workerd reports Uncaught Error: internal error during runtime initialization; the existing v3 proof fails the same way",
+    "fixtureAdmission": "not-proven",
+    "durableHostLaws": "not-proven"
+  },
+  "hosted": {
+    "status": "unavailable",
+    "reason": "Cloudflare performance backends are parked",
+    "tenMinuteCapacity": "not-claimed"
+  },
+  "proofs": {
+    "fixtureLaw": "pass",
+    "fixtureLawCommand": "esbuild + node --test engine/src/games/colony-framework-proof-v4.test.ts",
+    "rawLocalReport": {
+      "path": ".botanical/framework-v4/local-6000.json",
+      "sha256": "827a5d1154bcbb5d2caf5624b7aaa2ecb83a3f5dd7890175223e469b8cf061e3",
+      "note": "The supplied CLI nativeSource field labels the harness checkout; the WASM pin is corrected in the attributed copy."
+    },
+    "attributedLocalReport": {
+      "path": ".botanical/framework-v4/local-6000-attributed.json",
+      "sha256": "38c232aef00d9f90df99eb5b41142acb49ffee3d877b7d6d741ee28da91ee86b",
+      "note": "Only provenance labels differ from the raw report."
+    },
+    "workerdAttempt": "run-u4633; existing v3 baseline also failed at startup in run-u4638"
+  },
+  "limitations": [
+    "Local WASM wall timings are GameSession plus wrapper timings, not native-only or host CPU.",
+    "Route expansion, deferred/no-path and replan counters are not exposed by the current local public API.",
+    "SQL, publication, alarm lateness and DO invocation CPU have no valid workerd result.",
+    "Ordinary atmospheric air pressure is not simulated by this fixture; the atmosphere mix exercises existing material-paid heat and smoke emitters."
+  ],
+  "fallow": "No current Fallow report or executable was available; no clean-audit claim."
+}
