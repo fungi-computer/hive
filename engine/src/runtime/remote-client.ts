@@ -1,3 +1,4 @@
+import { hostStatusSchema, RUNNING_HOST, type HostStatus } from "./host-status";
 import { checkedCueList, type PresentationCue } from "./presentation-cues";
 import { checkedAction } from "./actions";
 import type { PlacementDecisionQuery, PlacementDecisionResult, WorkerCommand, WorkerEvent } from "./protocol";
@@ -55,6 +56,7 @@ export interface RemoteRuntimeOptions {
 }
 
 type ObservationWire = {
+  readonly hostStatus: HostStatus;
   readonly revision: number;
   readonly replayEpoch: number;
   readonly terrainBaseline: boolean;
@@ -335,6 +337,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
     new Set(environmentVisuals.map(item => (item as { id: string }).id)).size !== environmentVisuals.length)
     throw new Error("invalid remote observation");
   return {
+    hostStatus: hostStatusSchema.parse(value.hostStatus),
     revision: value.revision,
     replayEpoch: value.replayEpoch,
     terrainBaseline: isRecord(observation.terrain) && Array.isArray(observation.terrain.surfaces),
@@ -426,6 +429,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const retryTimers = new Set<ReturnType<typeof setTimeout>>();
   let pumpRunning = false;
   let blocked = false;
+  let hostStatus: HostStatus = RUNNING_HOST;
   let reconnectRequested = false;
   let socket: SocketLike | undefined;
   const terrain = createTerrainRegionClient(command => {
@@ -475,10 +479,20 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
 
   const emit = (event: WorkerEvent) => { if (!disposed) for (const listener of listeners) listener(event); };
   const emitConnection = (status: "online" | "recovering" | "unavailable") =>
-    emit({ type: "connection", status, pending: pending.length });
+    emit({ type: "connection", status: hostStatus.state === "faulted" ? "unavailable" : hostStatus.state === "retrying" ? "recovering" : status, pending: pending.length, hostStatus });
+  const acceptHostStatus = (raw: unknown) => {
+    const next = hostStatusSchema.parse(raw);
+    if (JSON.stringify(next) === JSON.stringify(hostStatus)) return;
+    hostStatus = next;
+    emitConnection("online");
+    if (next.state === "faulted") emit({ type: "error", message: `World stopped at step ${next.sequence + 1}: ${next.code}. Saved state is intact; this world needs repair.` });
+    else if (next.state === "retrying") emit({ type: "error", message: `World step ${next.sequence + 1} is retrying (${next.attempts}/5).` });
+    else if (pending.length > 0) schedulePump();
+  };
   const acceptObservation = (candidate: ObservationWire): boolean => {
     // A reconnect can replay the same committed revision. Install its complete
     // baseline before stale-frame filtering, while still suppressing duplicate UI frames.
+    acceptHostStatus(candidate.hostStatus);
     replayEpoch = Math.max(replayEpoch ?? 0, candidate.replayEpoch);
     const currentRevision = revision;
     const currentSequence = lastSequence;
@@ -520,6 +534,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       }
       if (!isRecord(handleResponse.value) || typeof handleResponse.value.handle !== "string" || handleResponse.value.handle.length === 0 || handleResponse.value.handle.length > 256)
         throw new Error("remote socket admission failed");
+      acceptHostStatus(handleResponse.value.hostStatus);
       const url = new URL(shared ? sharedBase()("socket", handleResponse.value.handle) : endpointUrl(options.endpoint, "/socket/" + encodeURIComponent(handleResponse.value.handle)));
       url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
       if (disposed) return;
@@ -548,6 +563,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (receivedBytes > MAX_OBSERVATION_BYTES) { emit({ type: "error", message: "remote socket message too large" }); return; }
       try { value = JSON.parse(raw); } catch { emit({ type: "error", message: "invalid remote socket message" }); return; }
       if (!isRecord(value)) return;
+      if (value.type === "host-status") { try { acceptHostStatus(value.hostStatus); } catch { emit({ type: "error", message: "invalid remote host status" }); } return; }
       if (value.type === "terrain-regions") { terrain.accept(value.event); return; }
       if (value.type === "ready") {
         terrain.setConnected(true);
@@ -624,7 +640,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     item.retries = 0;
   };
   const pump = async () => {
-    if (disposed || blocked || pumpRunning || pending.length === 0) return;
+    if (disposed || blocked || hostStatus.state !== "running" || pumpRunning || pending.length === 0) return;
     if (revision === undefined || replayEpoch === undefined) return;
     pumpRunning = true;
     const item = pending[0];
@@ -633,12 +649,17 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
         item.id = safeId(options.createCommandId);
         item.body = JSON.stringify({ id: item.id, replayEpoch, command: item.command });
       }
-      while (!disposed && !blocked) {
+      while (!disposed && !blocked && hostStatus.state === "running") {
         try {
           const responseData = await measuredRequest(options.fetch, shared ? sharedBase()("command") : endpointUrl(options.endpoint, "/command"), {
             method: "POST", headers: shared ? { "Content-Type": "application/json", Authorization: `Bearer ${sharedCredential}` } : { "Content-Type": "application/json" }, body: item.body,
           }, abort.signal, MAX_RECEIPT_BYTES, requestTimeoutMs);
           const response = responseData.response;
+          if (response.status === 423) {
+            if (!isRecord(responseData.value)) throw new Error("invalid host refusal");
+            acceptHostStatus(responseData.value.hostStatus);
+            return; // Retain the original uncertain envelope; status recovery may retry it.
+          }
           if (response.status >= 500 || response.status === 408) {
             if (item.retries++ < MAX_RETRIES) { await retryDelay(item.retries); continue; }
             blockForRecovery(item, `remote command recovery pending for ${item.id}`);
@@ -692,7 +713,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     }
   };
   function schedulePump() {
-    if (disposed || blocked || pumpRunning || pending.length === 0) return;
+    if (disposed || blocked || hostStatus.state !== "running" || pumpRunning || pending.length === 0) return;
     queueMicrotask(() => void pump());
   }
   const retryRecovery = () => {
@@ -719,6 +740,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     const commandValue = command.type === "action" ? { kind: "action", action: command.action } :
       command.type === "command" ? { kind: "command", name: command.name, ...(command.input === undefined ? {} : { input: command.input }) } :
       { kind: command.type };
+    if (hostStatus.state !== "running") { emitConnection("unavailable"); emit({ type: "error", message: "World is stopped or recovering; order was not sent." }); return; }
     if (blocked) throw new Error("remote runtime unavailable; command recovery is exhausted");
     const next: PendingIntent = { command: structuredClone(commandValue), retries: 0, recoveries: 0 };
     const previous = pending.at(-1);

@@ -1,3 +1,4 @@
+import type { HostStatus } from "./host-status";
 import type { PresentationCue } from "./presentation-cues";
 import type { ActionRequest, PlacementCandidate, PlacementDecision, RenderFact } from "../contracts";
 import type { SessionSnapshot } from "./session";
@@ -34,7 +35,7 @@ export type WorkerTerrainRegionsCommand = (TerrainRegionRequest & { readonly typ
 type WorkerEventBase =
   | { readonly type: "ready"; readonly game: string }
   | { readonly type: "party"; readonly player: string; readonly party: string; readonly people: readonly [string, string] }
-  | { readonly type: "connection"; readonly status: "online" | "recovering" | "unavailable"; readonly pending: number }
+  | { readonly type: "connection"; readonly status: "online" | "recovering" | "unavailable"; readonly pending: number; readonly hostStatus?: HostStatus }
   | { readonly type: "restored" }
   | { readonly type: "state"; readonly paused: boolean }
   | {
