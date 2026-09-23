@@ -33,6 +33,8 @@ const nativeSource =
   process.argv
     .find((arg: string) => arg.startsWith("--native-source="))
     ?.slice(16) ?? "unrecorded";
+const measureRecordBytes = process.argv.includes("--record-bytes");
+const recordBytes: unknown[] = [];
 const hash = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
 const wasm = readFileSync("engine/generated/hive_kernel_bg.wasm");
@@ -174,6 +176,7 @@ try {
         const capture = session.captureForCommit();
         maxChangedBytes = Math.max(
           maxChangedBytes,
+        ...(measureRecordBytes ? { recordBytes } : {}),
           capture.changes.puts.reduce(
             (sum, row) =>
               sum +
@@ -183,6 +186,22 @@ try {
             0,
           ),
         );
+        if (measureRecordBytes) {
+          const isAir = (row: { key: string }) => row.key.startsWith("kernel/atmosphere/");
+          const changed = capture.changes.puts.filter(isAir);
+          const live = capture.snapshot.kernel.records.filter(isAir);
+          recordBytes.push({
+            step,
+            airPuts: changed.length,
+            airPayloadBytes: changed.reduce((sum, row) => sum + row.bytes.length, 0),
+            airPutBytes: changed.reduce((sum, row) => sum + row.bytes.length + new TextEncoder().encode(row.key).length + 16, 0),
+            airLiveRecords: live.length,
+            airLiveBytes: live.reduce((sum, row) => sum + row.bytes.length, 0),
+            totalLiveRecords: capture.snapshot.kernel.records.length,
+            totalPuts: capture.changes.puts.length,
+            totalPutBytes: capture.changes.puts.reduce((sum, row) => sum + row.bytes.length + new TextEncoder().encode(row.key).length + 16, 0),
+          });
+        }
         if (issued.length)
           commands.push({ step, issued, outcomes: capture.snapshot.outcomes });
       });
@@ -340,6 +359,7 @@ try {
         completedSteps,
         firstWaterStep,
         maxChangedBytes,
+        ...(measureRecordBytes ? { recordBytes } : {}),
         wallMs: performance.now() - started,
         error,
         initialWater,
