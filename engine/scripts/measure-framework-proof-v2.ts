@@ -136,6 +136,7 @@ try {
     runtime: { node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model, logicalCpus: cpus().length, clients: 0, host: "local WASM; no Region, SQL or sockets" },
     schedule, requestedSteps: steps, completedSteps, wallMs: performance.now() - started, error,
     advanceMs: summary(advanceMs), activeAdvanceMs: summary(activeAdvanceMs), captureMs: summary(captureMs), changedBytes: summary(changedBytes), changedRows: summary(changedRows),
+    stepLedger: advanceMs.map((advance, index) => ({ step: index + 1, advanceMs: advance, captureMs: captureMs[index], changedBytes: changedBytes[index], changedRows: changedRows[index] })),
     overHostChangeLimit, qualifyingSamples, sampleCount: samples.length, memory: process.memoryUsage(), initialEnvironment: environmentSummary(initialEnvironment), recovery, commands, samples,
     gaps: ["180 simulated seconds, not the frozen 10-minute hosted qualification", "No DO/workerd, SQL, sockets, alarms or invocation CPU", "Observed worker displacement is a lower bound, not route length or search expansions", "Working means native non-route execution, not separately verified progress per worker", "Route deferrals/replans and field backlog age are not exposed by this driver", "Ordinary-air pressure is unsupported; four finite hearths exercise smoke and heat", "Water orders and excavation are requests; inspect outcomes, water lots and terrain revision for actual effects"],
   }, null, 2) + "\n");
