@@ -10,7 +10,7 @@ import { wasmKernelPort } from "../src/runtime/wasm-kernel";
 import { createColonyFrameworkProofV2Pack } from "../src/games/colony-performance";
 import { colonyFrameworkProofV2Schedule as schedule } from "../src/games/colony-performance-config";
 import { driveColonyFrameworkProofV2 } from "../src/games/colony-framework-proof-v2-driver";
-import { FiniteResource, MaterialLot, Position } from "../src/sdk/common";
+import { FiniteResource, MaterialLot, Position, SupplyAllocation } from "../src/sdk/common";
 import { FieldWaterWork } from "../src/sdk/process-supply";
 import { query } from "../src/sdk/authoring";
 import { Worker } from "../src/games/colony-components";
@@ -74,6 +74,9 @@ try {
       const positions = new Map(session.query(query(Worker, Position)).map(row => [row.id, row.get(Position)]));
       let assigned = 0, moving = 0, stalledRoute = 0, working = 0, blocked = 0, unassigned = 0;
       let sampledDisplacement = 0;
+      const allocations = new Map(session.query(query(SupplyAllocation)).map(row => [row.id, row.get(SupplyAllocation)]));
+      const travel = { labor: { routes: 0, fartherThan80m: 0, remainingMetres: 0 }, supply: { routes: 0, fartherThan80m: 0, remainingMetres: 0 } };
+      const journeys: unknown[] = [];
       const activities: Record<string, number> = {}, blockedReasons: Record<string, number> = {};
       for (const worker of workers) {
         const attempt = port.workAttemptForWorker(worker);
@@ -86,6 +89,14 @@ try {
             const before = previousPositions.get(worker)!, after = positions.get(worker)!;
             const distance = Math.hypot(after.x - before.x, after.y - before.y, after.z - before.z);
             sampledDisplacement += distance;
+            const allocation = allocations.get(attempt.key.task);
+            if (attempt.phase.activity.kind !== "route") throw new Error("route activity changed during query");
+            const destination = attempt.phase.activity.destination;
+            const remaining = Math.hypot(after.x - destination.x, after.y - destination.y, after.z - destination.z);
+            const leg = allocation ? travel.supply : travel.labor;
+            leg.routes++; leg.remainingMetres += remaining;
+            if (remaining > 80) leg.fartherThan80m++;
+            if (step % 200 === 0) journeys.push({ worker, task: attempt.key.task, position: after, destination, remainingMetres: remaining, allocation });
             if (distance > .000001) moving++;
             else stalledRoute++;
           } else working++;
@@ -109,7 +120,7 @@ try {
       if (moving + working > 0) activeAdvanceMs.push(...advanceMs.slice(-Math.min(10, step)));
       samples.push({ step, seconds: step * schedule.stepSeconds, assigned, moving, working, stalledRoute, blocked, unassigned,
         otherAttemptPhases: workers.length - assigned - blocked - unassigned, activities, blockedReasons,
-        sampledDisplacement, finiteWood, felledWood, wood, completedChains: wood / 6, storedWood, carriedWood,
+        sampledDisplacement, travel, journeys, finiteWood, felledWood, wood, completedChains: wood / 6, storedWood, carriedWood,
         waterLots: lots.filter(lot => lot.kind === "water").reduce((sum, lot) => sum + lot.quantity, 0),
         waterDemands: session.query(query(FieldWaterWork)).length,
         environment: environmentSummary(session.environmentFacts()), air: port.atmosphereSamples(emissionCells), sampleMs: performance.now() - sampledAt,
