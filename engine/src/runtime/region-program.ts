@@ -175,8 +175,11 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
       try {
         const scope = options.scopeForPrincipal(context.principal);
         if (!scope) throw new Error("region-principal-unbound");
-        const results = applyCommand(attempt.session, command, context, scope);
-        const after = attempt.session.captureForCommit();
+        const session = attempt.session;
+        const { results, after } = session.runDisposableCandidate(() => ({
+          results: applyCommand(session, command, context, scope),
+          after: session.captureForCommit(),
+        }));
         candidate.session = storeSession(after.snapshot).session;
         attempt.provisionalRevision++;
         return {

@@ -1,5 +1,52 @@
 # Clearing performance audit — September 13, 2026
 
+## September 23 disposable Region advancement
+
+The Region resident now invokes a synchronous `GameSession.runDisposableCandidate`
+scope for command execution and record capture. Its native advancement skips the
+redundant rollback `save_records()` because Region already owns the exclusive
+candidate and discards it on execution, capture or SQL failure. Native failure
+poisons that kernel; any scope failure poisons the session. Scope exit restores
+ordinary advancement, and reentry or a returned Promise rejects. Accepted resident
+sessions transfer into the next exclusive attempt; observers cannot borrow an
+active attempt. `advance_json` and ordinary browser/standalone steps retain their
+rollback path. Initial load/bootstrap and reset also retain ordinary advancement.
+SQL commitment, command receipts, ordered clock frontiers and save formats are
+unchanged.
+
+A fresh **optimized release WASM** build was used for the comparison below. The
+older integrated checkpoint used unoptimized WASM; those absolute times are not
+comparable. Both same-build runs used 100 workers, 100 trees, 900 steps of 100 ms,
+with a resident record capture after every step. Both completed all 100 trees.
+This is local computation, without DO SQL, socket publication or rendering.
+
+| First 100 active steps | Ordinary + capture | Disposable candidate + capture |
+| --- | ---: | ---: |
+| Step median | 12.10 ms | 8.63 ms |
+| Capture median | 4.21 ms | 5.86 ms |
+| Combined median | 16.62 ms | 16.29 ms |
+| Combined p95 | 43.33 ms | 47.20 ms |
+| Cold first step + capture | 615.08 ms | 567.97 ms |
+| Whole 900-step elapsed work | 6.79 s | 8.25 s |
+
+The redundant full snapshot is removed structurally and the sampled active step
+median decreased, but this shared-host pair **does not prove an end-to-end
+speedup**: capture and total-run timings varied enough to erase the benefit.
+Cold work and remaining full native record serialization still matter. Reproduce
+with `scripts/measure-active-colony.ts --capture` versus `--candidate` after
+bundling the script against the same generated release kernel. Its default
+standalone behavior remains available.
+
+Proof: native standalone whole-step rollback (2 laws), disposable failure/restore
+(1), and 45 current WASM/session/SQLite laws passed. The latter include candidate
+advance and capture failures, unchanged committed world and clock frontier,
+restart/retry, receipt replay, failed SQL, and multi-command rollback. The
+pre-existing disconnected-party fixture's obsolete `scope.party` was removed so
+it exercises the current native scope contract. Production typechecking has the
+same 13 pre-existing diagnostics as the base, in actions/SDK files, and none in
+changed production files; the whole engine typecheck remains red. No hosted DO,
+new Fallow-green report, or population capacity claim follows from these laws.
+
 ## September 23 integrated local checkpoint
 
 Source `7c9c77b0` has the retained 8-at-a-time native assignment episode,

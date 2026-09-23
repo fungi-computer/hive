@@ -3,9 +3,6 @@ import { terrainSurfaceSchema } from "./terrain-surface";
 import { physicalContactQuery } from "./physical-contact-query";
 import type {
   ActionRequest,
-  ScopedAction,
-  ScopedCreate,
-  ScopedRemove,
   AdvanceResult,
   AtmosphereSamples,
   ConstructionReadiness,
@@ -28,7 +25,6 @@ import type {
   WorkMaterialFacts,
   WorkAttempt,
   ProcessRequirements,
-  WriteIntent,
   EntityRecord,
   MoveDestination,
   PartyJoinIdentity,
@@ -67,6 +63,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   process_requirements(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
+  advance_candidate(json: string): string;
   render_facts(): string;
   world_pose(json: string): string;
   route_costs(json: string): string;
@@ -266,6 +263,20 @@ function parseConstructionReadiness(value: unknown, sites: readonly EntityId[]):
     return { site: requestedSite, status: statusValue, reason };
   });
 }
+/** Both entrypoints share exactly the same wire format and result checks. */
+function advanceWith(invoke: (json: string) => string): KernelPort["advance"] {
+  return (delta, writes, actions, options) => {
+    const result = JSON.parse(invoke(JSON.stringify({
+      delta, writes, actions,
+      creates: options?.creates ?? [], removes: options?.removes ?? [],
+    }))) as AdvanceResult;
+    if (!Number.isSafeInteger(result.revision) || result.revision < 0 ||
+        !Array.isArray(result.results) || !Array.isArray(result.impacts))
+      throw new Error("invalid kernel advance result");
+    return result;
+  };
+}
+
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
   const capture = new KernelRecordCapture(binding);
@@ -755,35 +766,8 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         throw new Error("invalid entity membership result");
       return result;
     },
-    advance(
-      delta: number,
-      writes: readonly WriteIntent[],
-      actions: readonly ScopedAction[],
-      options?: {
-        readonly creates?: readonly ScopedCreate[];
-        readonly removes?: readonly ScopedRemove[];
-      },
-    ): AdvanceResult {
-      const result = JSON.parse(
-        binding.advance(
-          JSON.stringify({
-            delta,
-            writes,
-            actions,
-            creates: options?.creates ?? [],
-            removes: options?.removes ?? [],
-          }),
-        ),
-      ) as AdvanceResult;
-      if (
-        !Number.isSafeInteger(result.revision) ||
-        result.revision < 0 ||
-        !Array.isArray(result.results) ||
-        !Array.isArray(result.impacts)
-      )
-        throw new Error("invalid kernel advance result");
-      return result;
-    },
+    advance: advanceWith(json => binding.advance(json)),
+    advanceCandidate: advanceWith(json => binding.advance_candidate(json)),
     snapshot() {
       return captureKernelRecords(binding);
     },

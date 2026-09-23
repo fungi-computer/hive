@@ -2,6 +2,8 @@
  * Real 100-worker/100-tree local Colony workload at 100 ms simulation steps.
  * Bundle against a freshly built current WASM kernel; this does not measure DO
  * SQL, socket publication, browser frames, or 100 concurrent claims.
+ * Add --capture to include resident commit capture. Add --candidate to use
+ * Region's disposable execution scope (implies --capture). Neither runs SQL.
  *
  * Run from the repository root:
  *   node_modules/.bin/esbuild engine/scripts/measure-active-colony.ts --bundle --platform=node --format=esm --outfile=/tmp/hive-active-colony.mjs
@@ -50,16 +52,29 @@ const pack = { ...base, id: game, definition: new TextEncoder().encode(JSON.stri
 const port = wasmKernelPort(new WasmKernel());
 const session = new GameSession({ port, pack });
 const steps: number[] = [];
+const candidate = process.argv.includes("--candidate");
+const capture = candidate || process.argv.includes("--capture");
+const stepTimes: number[] = [];
+const captureTimes: number[] = [];
+const advance = () => {
+  const start = performance.now();
+  session.step(0.1);
+  const afterStep = performance.now();
+  if (capture) session.captureForCommit();
+  stepTimes.push(afterStep - start);
+  captureTimes.push(performance.now() - afterStep);
+};
 try {
   session.start();
   for (let tick = 0; tick < 900; tick++) {
     const start = performance.now();
-    session.step(0.1);
+    if (candidate) session.runDisposableCandidate(advance);
+    else advance();
     steps.push(performance.now() - start);
   }
   const completed = session.query(query(ColonyTree, FiniteResource)).filter(row => row.get(FiniteResource).quantity === 0).length;
   if (completed !== 100) throw new Error(`active Colony fixture completed ${completed} of 100 trees`);
   const sorted = [...steps].sort((a,b) => a-b);
   const pct = (p: number) => sorted[Math.ceil(sorted.length*p)-1];
-  process.stdout.write(JSON.stringify({ workers:100, trees:100, completed, steps:steps.length, first10:steps.slice(0,10), first100Median:[...steps.slice(0,100)].sort((a,b)=>a-b)[49], first100P95:[...steps.slice(0,100)].sort((a,b)=>a-b)[94], stepMedian:pct(.5), stepP95:pct(.95), stepMax:sorted.at(-1), stepTotal:steps.reduce((a,b)=>a+b,0) }) + "\n");
+  process.stdout.write(JSON.stringify({ mode:candidate ? "candidate+capture" : capture ? "ordinary+capture" : "ordinary", first100StepMedian:[...stepTimes.slice(0,100)].sort((a,b)=>a-b)[49], first100CaptureMedian:capture ? [...captureTimes.slice(0,100)].sort((a,b)=>a-b)[49] : null, workers:100, trees:100, completed, steps:steps.length, first10:steps.slice(0,10), first100Median:[...steps.slice(0,100)].sort((a,b)=>a-b)[49], first100P95:[...steps.slice(0,100)].sort((a,b)=>a-b)[94], stepMedian:pct(.5), stepP95:pct(.95), stepMax:sorted.at(-1), stepTotal:steps.reduce((a,b)=>a+b,0) }) + "\n");
 } finally { port.dispose(); }

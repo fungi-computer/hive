@@ -198,6 +198,7 @@ export class GameSession {
   private cues: CueSnapshot = { sequence: 0, recent: [] };
   private impactFrontiers = new Map<string, number | null>();
   private poisoned = true;
+  private candidateAdvance: KernelPort["advance"] | undefined;
   private terrainPresentation: TerrainPresentationOwner | undefined;
   private readonly whistleProjection: WhistleObservationProjector;
   constructor(options: SessionOptions) {
@@ -289,6 +290,7 @@ export class GameSession {
     return this.paused;
   }
   partyJoinIdentity(bindingId: string) {
+    this.ensureLive();
     return this.port.partyJoinIdentity(bindingId);
   }
   get simulationTime(): number {
@@ -802,6 +804,31 @@ export class GameSession {
       (impact) => impact.sequence > removeThrough,
     );
   }
+  /**
+   * Region's exclusive, synchronous candidate scope. The caller commits the
+   * captured result or disposes this session; no observer may borrow it here.
+   * All queued actions and clock steps share that ownership until capture.
+   */
+  runDisposableCandidate<T>(execute: () => T): T {
+    this.ensureLive();
+    if (this.candidateAdvance) {
+      this.poisoned = true;
+      throw new Error("session-candidate-reentry");
+    }
+    this.candidateAdvance = this.port.advanceCandidate;
+    try {
+      const result = execute();
+      if (result != null && typeof (result as { then?: unknown }).then === "function")
+        throw new Error("session-candidate-must-be-synchronous");
+      this.ensureLive();
+      return result;
+    } catch (error) {
+      this.poisoned = true;
+      throw error;
+    } finally {
+      this.candidateAdvance = undefined;
+    }
+  }
   step(delta: number): readonly ActionResult[] {
     if (delta < 0 || delta > 1 || !Number.isFinite(delta))
       throw new Error("delta must be finite and between zero and one second");
@@ -958,7 +985,8 @@ export class GameSession {
           ),
         );
       }
-      const advanced: AdvanceResult = this.port.advance(
+      const advanced: AdvanceResult = (this.candidateAdvance ?? this.port.advance).call(
+        this.port,
         delta,
         writes,
         actions,

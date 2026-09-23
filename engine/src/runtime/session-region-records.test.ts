@@ -78,9 +78,9 @@ test("disconnected party residents remain eligible for automatic work while anot
     scopeForPrincipal: principal => principal === "clock"
       ? { kind: "host" }
       : principal === "player:1"
-        ? { kind: "player", player: principal, party: entity("party:1") }
+        ? { kind: "player", player: principal }
         : principal === "player:2"
-          ? { kind: "player", player: principal, party: entity("party:2") }
+          ? { kind: "player", player: principal }
           : null,
   });
   const resident = runtime.resident;
@@ -519,3 +519,87 @@ test("explicit clock controllers can pause/resume without gaining physical host 
     }
   } finally { configured.resident.dispose(); ordinary.resident.dispose(); }
 });
+
+
+for (const failure of ["advance", "capture"] as const) {
+  test(`disposable Region ${failure} failure preserves world, command receipts and clock frontier`, () => {
+    const db = new DatabaseSync(":memory:");
+    const owner = sqliteTestOwner(db);
+    let fail = false;
+    let candidates = 0;
+    let ordinary = 0;
+    let disposed = 0;
+    let runtime!: ReturnType<typeof createSessionRegionRuntime>;
+    const open = () => {
+      runtime?.resident.dispose();
+      runtime = createSessionRegionRuntime({
+        pack: colonyPack,
+        createKernel: () => {
+          const port = wasmKernelPort(new WasmKernel());
+          return { ...port,
+            advance: (...args) => { ordinary++; return port.advance(...args); },
+            advanceCandidate: (...args) => {
+              candidates++;
+              const result = port.advanceCandidate(...args);
+              if (fail && failure === "advance") throw new Error("injected candidate failure");
+              return result;
+            },
+            capture: () => {
+              const captured = port.capture();
+              if (fail && failure === "capture") throw new Error("injected candidate failure");
+              return captured;
+            },
+            dispose: () => { disposed++; port.dispose(); },
+          };
+        },
+        implementationHash: "e".repeat(64), ownerPrincipal: "player", hostPrincipal: "clock", seed: 17,
+        scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : { kind: "player", player: principal },
+      });
+      return openRegion({ owner, region: "disposable", program: runtime.program, clock: { principal: "clock" } });
+    };
+    let region = open();
+    const records = () => region.readRecords(region.readCommitted().revision, "", 40).records;
+    const begin = () => {
+      const committed = region.readCommitted();
+      const bytes = new Map(records().map(record => [record.key, record.bytes]));
+      runtime.resident.begin(committed.revision, committed.state, { read: key => bytes.get(key) });
+    };
+    const command = { id: "step-command", command: { kind: "step", delta: 0.1 } };
+    const occurrence = { sequence: 0, request: { id: "clock-1", command: { kind: "step", delta: 0.1 } } };
+    try {
+      const before = region.readCommitted();
+      const beforeRecords = records();
+      const beforeClock = db.prepare("SELECT * FROM hive_region_clock").all();
+      const ordinaryBefore = ordinary;
+      for (const dispatch of [() => region.dispatch("clock", command), () => region.dispatchOccurrence("clock", occurrence)]) {
+        begin();
+        assert.throws(() => runtime.resident.observe(before.revision, before.state, { read: () => undefined }, () => {}), /resident-attempt-active/);
+        const disposedBefore = disposed;
+        fail = true;
+        assert.throws(dispatch, /injected candidate failure/);
+        assert.equal(disposed, disposedBefore + 1);
+        assert.deepEqual(region.readCommitted(), before);
+        assert.deepEqual(records(), beforeRecords);
+        assert.deepEqual(db.prepare("SELECT * FROM hive_region_clock").all(), beforeClock);
+      }
+      assert.equal(ordinary, ordinaryBefore, "only initialization uses ordinary rollback");
+      assert.equal(candidates, 2);
+      fail = false;
+      region = open(); // reconstruct from committed storage after both partial failures
+      begin();
+      const receipt = region.dispatch("clock", command);
+      runtime.resident.accept(receipt.revision);
+      begin();
+      const clockReceipt = region.dispatchOccurrence("clock", occurrence);
+      runtime.resident.accept(clockReceipt.revision);
+      const saved = records();
+      region = open();
+      begin();
+      assert.deepEqual(region.dispatch("clock", command), receipt);
+      assert.deepEqual(region.dispatchOccurrence("clock", occurrence), clockReceipt);
+      runtime.resident.accept(region.readCommitted().revision);
+      assert.deepEqual(records(), saved);
+      assert.equal(region.readCommitted().revision, 2);
+    } finally { runtime!.resident.dispose(); db.close(); }
+  });
+}

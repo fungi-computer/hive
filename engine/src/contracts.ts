@@ -789,6 +789,8 @@ export interface KernelPort {
   readonly workAttemptForWorker: (worker: EntityId) => WorkAttempt | null;
   readonly processRequirements: (definition: string, station: EntityId) => ProcessRequirements;
   readonly entityMembership: (ids: readonly EntityId[]) => readonly boolean[];
+  /** Region-owned disposable attempt only: an error requires discarding the candidate. */
+  readonly advanceCandidate: KernelPort["advance"];
   readonly advance: (
     delta: number,
     writes: readonly WriteIntent[],

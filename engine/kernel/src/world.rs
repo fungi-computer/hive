@@ -4497,6 +4497,22 @@ impl Kernel {
         result
     }
 
+    /// Region exclusively owns this disposable candidate until durable commit.
+    /// Failure poisons the whole candidate; the owner must discard or restore it.
+    /// Standalone callers use advance_json for its local rollback guarantee.
+    pub fn advance_candidate_json(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        let result = (|| {
+            if input.len() > 1024 * 1024 {
+                return Err("batch too large".into());
+            }
+            let batch: Batch = serde_json::from_str(input).map_err(|error| error.to_string())?;
+            self.advance_batch(batch)
+        })();
+        if result.is_err() { self.discard_required = true; }
+        result
+    }
+
     fn advance_batch(&mut self, batch: Batch) -> Result<String> {
         if !batch.delta.is_finite()
             || !(0.0..=1.0).contains(&batch.delta)
@@ -7287,6 +7303,23 @@ mod combat_tests {
         );
         assert!(result.is_err());
         assert_eq!(kernel.snapshot_json().expect("rollback snapshot"), before);
+    }
+
+    #[test]
+    fn disposable_candidate_failure_poisoned_until_durable_restore() {
+        let mut kernel = Kernel::new();
+        kernel.load(&rotating_cuboid_scene(3.0)).unwrap();
+        let before = kernel.snapshot_json().unwrap();
+        assert!(kernel.advance_candidate_json(
+            r#"{"delta":0.5,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"launch","launcher":"cannon","ammunition":"ammo","velocity":{"x":10.0,"y":0.0,"z":0.0}}}]}"#,
+        ).is_err());
+        assert!(kernel.snapshot_json().is_err());
+        assert!(kernel.save_records().is_err());
+        assert!(kernel.query_json(r#"{"components":["hive.position"]}"#).is_err());
+        assert!(kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[]}"#).is_err());
+        assert!(kernel.advance_candidate_json(r#"{"delta":0,"writes":[],"actions":[]}"#).is_err());
+        kernel.restore_json(&before).unwrap();
+        assert_eq!(kernel.snapshot_json().unwrap(), before);
     }
 
     #[test]

@@ -184,6 +184,9 @@ impl WasmKernel {
     pub fn advance(&mut self, json: &str) -> Result<String, JsValue> {
         self.0.advance_json(json).map_err(js_error)
     }
+    pub fn advance_candidate(&mut self, json: &str) -> Result<String, JsValue> {
+        self.0.advance_candidate_json(json).map_err(js_error)
+    }
     pub fn snapshot(&self) -> Result<String, JsValue> {
         self.0.snapshot_json().map_err(js_error)
     }

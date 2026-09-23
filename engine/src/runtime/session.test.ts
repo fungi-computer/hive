@@ -172,6 +172,7 @@ class TestPort implements KernelPort {
         ]
       : [];
   }
+  advanceCandidate: KernelPort["advance"] = (...args) => this.advance(...args);
   advance(
     delta: number,
     writes: readonly WriteIntent[],
@@ -1187,3 +1188,35 @@ test("authored lifecycle permission does not grant progress writes", () => {
   assert.throws(() => value.command("illicit", {}), /undeclared/);
   assert.deepEqual(value.save(), before);
 });
+
+
+test("disposable scope selects candidate advancement and restores ordinary ownership", () => {
+  const { value, port } = session();
+  let candidates = 0;
+  port.advanceCandidate = (...args) => { candidates++; return port.advance(...args); };
+  value.step(0.1);
+  assert.equal(candidates, 0);
+  value.runDisposableCandidate(() => { value.step(0.1); value.step(0.1); });
+  assert.equal(candidates, 2);
+  value.step(0.1);
+  assert.equal(candidates, 2);
+  assert.equal(value.simulationTime, 0.4);
+});
+
+for (const failure of ["step", "capture", "reentry", "async"] as const) {
+  test(`disposable ${failure} failure poisons all session reads and capture`, () => {
+    const { value, port } = session();
+    if (failure === "step") port.failAdvance = true;
+    assert.throws(() => value.runDisposableCandidate(() => {
+      if (failure === "step") value.step(0.1);
+      if (failure === "capture") { value.step(0.1); value.captureForCommit(); }
+      if (failure === "reentry") value.runDisposableCandidate(() => {});
+      if (failure === "async") return Promise.resolve();
+    }));
+    assert.throws(() => value.save(), /session-poisoned/);
+    assert.throws(() => value.captureForCommit(), /session-poisoned/);
+    assert.throws(() => value.simulationTime, /session-poisoned/);
+    assert.throws(() => value.partyJoinIdentity("binding"), /session-poisoned/);
+    assert.throws(() => value.step(0), /session-poisoned/);
+  });
+}
