@@ -104,27 +104,33 @@ parity from this source.
 
 The active integration branch and its isolated owner branches are the source
 of truth; do not merge to `main` during this pause. There are 87 registered
-Hive worktrees. The old `/home/levi/src/hive` checkout remains heavily dirty
-and has an unresolved `engine/kernel/src/lib.rs` conflict; several other
-worktrees have unique dirty source. They are preserved in place pending
-explicit extraction/review, not safe to reset or remove merely because a
-newer branch exists. A Git preservation anchor can retain all committed branch
-tips without promoting them into the active integration history; dirty bytes
-require a separate exact snapshot.
+Hive worktrees. The formerly conflicted `/home/levi/src/hive` checkout is now
+clean and detached at the active integration commit. Its entire former working
+tree, including ignored `.botanical` proof files and `node_modules`, is
+quarantined intact at `/home/levi/src/hive-legacy-20260923`; the root `.git`
+directory stayed in place so linked worktrees continue to work. All 145 dirty
+legacy source files were hash-checked against the archive after the move. The
+old cherry-pick was aborted only after its exact working bytes and conflict
+index stages had been archived. Other dirty worktrees remain in place; do not
+reset or remove them merely because a newer branch exists.
 
 The active integration branch is pushed to `origin`. The preservation branch
 `archive/hive-preservation-20260923` is also pushed: its Git ancestry retains
-all 87 worktree commit tips, and its tree contains exact snapshots of 154
-non-ignored dirty source files, the two stages of the old unresolved index
-entry, and 16 raw framework proof ledgers. A second archive audit preserved
+all 537 local branch tips (including all 87 worktree commit tips), and its tree
+contains exact snapshots of 154 non-ignored dirty source files, the two stages
+of the old unresolved index entry, and 16 raw framework proof ledgers. A second
+archive audit preserved
 591 unique authored notes/current pause/browser/motion artifacts, 923 unique
 environmental experiment results and scripts, 522 compact historical proof
 metadata files, and 16 large terrain/camera reports compressed losslessly
 from 539 MB to 17 MB. Every tier has original paths and SHA-256 hashes in a
 manifest; archived bytes and the decompressed large reports were verified.
 This is a recovery anchor, not an accepted merge of those lanes or a claim
-that every historical experiment is valid. The old dirty worktrees remain in
-place. Remaining ignored `.botanical` files are predominantly rebuildable
+that every historical experiment is valid. The separately pushed
+`archive/legacy-root-working-20260923` branch places the old root's 145 dirty
+source files at their original paths for direct inspection; it is WIP, not a
+buildable release. The remaining dirty worktrees stay in place. Remaining
+ignored `.botanical` files are predominantly rebuildable
 toolchains, distributions, runtime stores, external dependencies and
 intermediate duplicate captures; they remain local and should not be swept
 without separate custody.
