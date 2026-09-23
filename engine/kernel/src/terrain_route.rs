@@ -256,7 +256,7 @@ impl SearchBank {
             return Err("retained route search bank exceeds bounds");
         }
         for (id, request) in &self.entries {
-            if id.len() != 64 || !id.bytes().all(|byte| byte.is_ascii_hexdigit())
+            if id.len() != 64 || !id.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
                 || !crate::components::valid_id(&request.actor)
                 || request.spacing.iter().any(|value| !value.is_finite() || *value <= 0.0)
                 || self.occurrence.is_none_or(|occurrence| request.last_used > occurrence) {
