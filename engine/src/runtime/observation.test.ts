@@ -6,6 +6,7 @@ import { survivalPack } from "../games/survival";
 import { GameSession } from "./session";
 import { buildObservation } from "./observation";
 import { wasmKernelPort } from "./wasm-kernel";
+import { MAX_RENDER_FACTS } from "./visual-projection";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -24,7 +25,7 @@ test("observation matches the session and does not mutate committed state", () =
     assert.equal(observation.paused, session.isPaused);
     assert.equal(observation.epoch, 4);
     assert.equal(observation.sequence, 9);
-    assert.deepEqual(observation.facts.map(({inventory,...fact})=>fact), session.renderFacts(512));
+    assert.deepEqual(observation.facts.map(({inventory,...fact})=>fact), session.renderFacts(MAX_RENDER_FACTS));
     assert.ok(observation.whistleAgent.length > 0);
     assert.deepEqual(observation.whistleTargets, []);
     assert.deepEqual(session.save(), before);

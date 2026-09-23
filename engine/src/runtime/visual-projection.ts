@@ -1,5 +1,8 @@
 import type { CardinalOrientation, EntityId, Pose, RenderFact, VisualPlacement } from "../contracts";
 
+/** Complete session observations have a fixed fact budget across both sources. */
+export const MAX_RENDER_FACTS = 1024;
+
 /** Read-only art projection for a real entity whose display origin differs from its work contact. */
 export interface EntityVisualProjection {
   readonly id: EntityId;
@@ -46,7 +49,8 @@ export function appendVisualProjections(
   exists: (ids: readonly EntityId[]) => readonly boolean[],
   limit: number,
 ): readonly RenderFact[] {
-  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 512 || !Array.isArray(projections) || projections.length > limit)
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_RENDER_FACTS ||
+    physical.length > limit || !Array.isArray(projections) || projections.length > limit)
     throw new Error("visual projection exceeds bound");
   const existing = new Map(physical.map(fact => [fact.id, fact]));
   const ids = new Set<EntityId>();

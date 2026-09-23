@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import { entity } from "../sdk/authoring";
-import { appendVisualProjections } from "./visual-projection";
+import { appendVisualProjections, MAX_RENDER_FACTS } from "./visual-projection";
 import { colonyConstructionVisuals } from "../games/colony-construction-visuals";
 import { ConstructionSite } from "../sdk/construction";
 const id = entity("site.floor");
@@ -62,4 +62,22 @@ test("projection rejects malformed placement values at the boundary", () => {
   assert.throws(() => appendVisualProjections([], [{ ...art, placement: { kind: "footprint", footprint: [[0, 0]], orientation: "north", extra: true } as never }], () => [true], 512), /visual placement/);
   assert.throws(() => appendVisualProjections([], [{ ...art, placement: { kind: "stair", entrance: [0, 0, 0], landing: [0, Infinity, 2], orientation: "north" } as never }], () => [true], 512), /visual placement/);
   assert.throws(() => appendVisualProjections([], [{ ...art, placement: { kind: "edge", edge: { cell: [0, 0, 0], axis: "y" } } as never }], () => [true], 512), /visual placement/);
+});
+
+test("large physical projection preserves every identity while authored cutaway facts overlay in place", () => {
+  const physical = Array.from({ length: 899 }, (_, index) => ({
+    id: entity(`v3.entity.${index}`), pose: contact, local: contact, visual: null,
+  }));
+  const projections = Array.from({ length: 608 }, (_, index) => ({
+    ...art, id: physical[index].id, cutawayTop: index % 2 ? 17 : 21,
+  }));
+  const result = appendVisualProjections(physical, projections, ids => ids.map(() => true), MAX_RENDER_FACTS);
+
+  assert.equal(result.length, 899);
+  assert.deepEqual(result.map(fact => fact.id), physical.map(fact => fact.id));
+  assert.deepEqual(result[0].local, contact);
+  assert.equal(result[0].view?.pickable, false);
+  assert.equal(result[0].view?.cutawayTop, 21);
+  assert.equal(result[1].view?.cutawayTop, 17);
+  assert.equal(result[608].view, undefined);
 });

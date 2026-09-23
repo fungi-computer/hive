@@ -9,6 +9,7 @@ import type { GameSession } from "./session";
 import { decorateInventoryFacts } from "./inventory-presentation";
 import { decorateWorkActivity } from "./work-activity";
 import { createObservationDependencies } from "./observation-dependencies";
+import { MAX_RENDER_FACTS } from "./visual-projection";
 
 /**
  * The bounded, committed view shared by browser and host readers.
@@ -84,7 +85,7 @@ export function buildObservation(
   };
   const projected = projections ? projections.presentation(context, tracked => projectPresentation(session.pack, tracked)) : projectPresentation(session.pack, context);
   const whistle = projections ? projections.whistle(context, tracked => session.whistleObservation(tracked)) : session.whistleObservation(context);
-  const facts = decorateWorkActivity(decorateInventoryFacts(structuredClone(session.renderFacts(512)), context), context, session.pack.presentation?.activities?.(context));
+  const facts = decorateWorkActivity(decorateInventoryFacts(structuredClone(session.renderFacts(MAX_RENDER_FACTS)), context), context, session.pack.presentation?.activities?.(context));
   return Object.freeze({
     time: session.simulationTime,
     paused: session.isPaused,
