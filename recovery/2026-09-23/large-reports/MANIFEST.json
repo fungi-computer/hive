@@ -1,0 +1,199 @@
+{
+  "purpose": "lossless compressed historical terrain/camera reports; provenance, not acceptance",
+  "createdUtc": "2026-09-23T15:24:24.762928+00:00",
+  "selection": "REPORT.json >1MB outside build/storage directories; exact original-content dedup",
+  "files": [
+    {
+      "originalSha256": "d41375e853a72e84f9a91605780566866d49fc2fe1995ddb4d520c7800c1c30b",
+      "originalBytes": 1004158,
+      "compressedSha256": "1e7e9c951e411995f3ba868d290c3f28ec122c2777e9739715530c9c960457df",
+      "compressedBytes": 103275,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/camera-browser-before/REPORT.json.gz",
+      "gitBlob": "285445e9240024751a76d8388c5e73b8669d5929",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/camera-browser-before/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "3f68c2395fef76afb3c48d49afda5b12a1d34db430315c81a944b8dbef8c014b",
+      "originalBytes": 1122585,
+      "compressedSha256": "507193e2d24312abeef840fa081ee282a1db35063ce0ee58b021122dfe16da7a",
+      "compressedBytes": 117640,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/camera-browser-before-final/REPORT.json.gz",
+      "gitBlob": "2e99a86008b3fbedc256bf28ff5103f2625441e9",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/camera-browser-before-final/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "7211985e22c56119bf3996df8f492c0a06dbff61f4c254d1a0f43eab101e2c4a",
+      "originalBytes": 3405103,
+      "compressedSha256": "7a20c9754367f8e2a6145833cebef0d662a319015adee5b9e79ff2840040a77b",
+      "compressedBytes": 99922,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-credit-delay12-v5/REPORT.json.gz",
+      "gitBlob": "06c34fccf696c8854fc763398741b6e53cbfe64e",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-credit-delay12-v5/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "b33aba9ef805f4ebbbaeb82dc4584637b6d6eb3239bbe04664bb9c117ee9fa87",
+      "originalBytes": 1382761,
+      "compressedSha256": "cb927278b91810a1ba7bbabd1252da1cc0c907db472a570917203d38d264be55",
+      "compressedBytes": 90839,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-after-v4/REPORT.json.gz",
+      "gitBlob": "e96bfd888e14d94bbcdd1cf768eeab161a036e38",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-after-v4/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "80a526b3da8c7b869dc0dd07ac962d73503d8121c53280bfce31361839188d67",
+      "originalBytes": 2476167,
+      "compressedSha256": "64f848bac3147f43c9347b36e5560c15b6ccc1bc08865ffa677a82e755793e87",
+      "compressedBytes": 160525,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-after-v5/REPORT.json.gz",
+      "gitBlob": "a8cdf24eaf50d1148d0f83219ab9cb2fdb3aa457",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-after-v5/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "af184f475db0a4705790a675d572f1d0e69911c3afe65e9dfacbc02c6f16fc4e",
+      "originalBytes": 6703634,
+      "compressedSha256": "5c17ddbc7a0f431497a938f4f6d7ef819665076faffb2779123a10a987a5a9d6",
+      "compressedBytes": 389728,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-before/REPORT.json.gz",
+      "gitBlob": "0c8955ce12e963989dd2557efdef272c1abb08c4",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-before/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "3bf812c4069a063446c06f33caf07b94bdf527760f1b6209cf22bd02cd48d302",
+      "originalBytes": 1265582,
+      "compressedSha256": "923799821860583cd20fcddc7e267a225eb8e55240916b6d097be21d99308b8b",
+      "compressedBytes": 70436,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-before-pan/REPORT.json.gz",
+      "gitBlob": "c4e7949e139cec1da1931f0794b304d15abdbf94",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-before-pan/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "9685b02fc3e8e2546606f4e62d4c939c2a0bd247319b678d16b97c1dbc966e43",
+      "originalBytes": 1022184,
+      "compressedSha256": "128b5078e9aaf58bedb93b04e713b487ef9f06058bc09d387434083379af33d6",
+      "compressedBytes": 73028,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-v5-composited/REPORT.json.gz",
+      "gitBlob": "cc54c8342939cc422e97e5dd73fa5eac8191d76d",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-loading-v5-composited/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "bf42bc71f0edfa1f62730483151b0470399ea26715d90e26cb20ade8b4478980",
+      "originalBytes": 13127442,
+      "compressedSha256": "a20322fecdbac8a9a7a2585c7b005889c952caa4f1868a32ed3b2c8c0d217ab0",
+      "compressedBytes": 370386,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-cancel-paused-v4/REPORT.json.gz",
+      "gitBlob": "3f1ce1b78a591fd99a9a9c032837391244da8911",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-cancel-paused-v4/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "5ce70a01f99ab0ab0fb7fc95bedfabeca1d89dd7322c7382b8b0505886a2e658",
+      "originalBytes": 13021330,
+      "compressedSha256": "d1cef5303183b8d72302017c631fe0572037598115c3f2886789c6a672e95ffc",
+      "compressedBytes": 367530,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-cancel-running-v4/REPORT.json.gz",
+      "gitBlob": "9a8a076df8c4955342aaf45ac6b5dfb6e381f206",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-cancel-running-v4/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "c1784e6a1d221cc88cdf01e5283373df5774a32567042b843f21d50586188657",
+      "originalBytes": 430281211,
+      "compressedSha256": "b16da2e8345891bd66e03895a2286d236005a860b12d25619779979ad2278371",
+      "compressedBytes": 12361826,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-heartbeat-hosted-v5/REPORT.json.gz",
+      "gitBlob": "d04c65eec7dfd1bab182bfc98d47ff6686f8da5e",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-heartbeat-hosted-v5/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "faaa365782d147ce85f483de75bc812fdb3b6460b630960066ed2f1eb264a642",
+      "originalBytes": 13020205,
+      "compressedSha256": "733f5c54c75c8f7dc3baf27fe4d6fa95cff21595188bcd393586e4743a092fb6",
+      "compressedBytes": 367407,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-hosted-proof/REPORT.json.gz",
+      "gitBlob": "becc0b30efd928ed2c7fa4442a3fdeda8c0a793d",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-hosted-proof/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "24133d426f65058f4648c5b1c3ef20a30739954eb0ce8121d83728140f6eacc9",
+      "originalBytes": 13020161,
+      "compressedSha256": "a2c47334e58db2d572ac4a648f52802ee4bc59d2cb7637644cc67ff39a0892a4",
+      "compressedBytes": 367249,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-local-proof-v2/REPORT.json.gz",
+      "gitBlob": "4f0beea24887cc52f844be38402d0f3d2f92fea7",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-local-proof-v2/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "1922b7add6f52f4afc09c86a0dadffec04909aa636b3582ff2968d156203618a",
+      "originalBytes": 12982069,
+      "compressedSha256": "50c92da098060fcd666770b850c19ef3c02b9d1cfe85e294c6e5ad7bbb5329f3",
+      "compressedBytes": 369431,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-window-local-v5/REPORT.json.gz",
+      "gitBlob": "04413793c14919d167f5824f51799617576f5d5a",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/terrain-stream-window-local-v5/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "a90b9202dbf09a0382d3c639ac6829e1c59d069de6a98456519a9f53e923ae1f",
+      "originalBytes": 11884554,
+      "compressedSha256": "1a3f68c6f20d859a9975305bda4108c8ee6746c08a80c2c1f8471a41d88f22c7",
+      "compressedBytes": 759365,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/world-view-repair-20260922/.botanical/world-view-joined-proof-1/REPORT.json.gz",
+      "gitBlob": "4720de60c8570db5ccc5c570832d500cb8b4f46f",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/world-view-repair-20260922/.botanical/world-view-joined-proof-1/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    },
+    {
+      "originalSha256": "aeaed2f104b4a79fba6d6f887157fc80817677eb6f597d47b5286030af25e38d",
+      "originalBytes": 13234481,
+      "compressedSha256": "6c50eb35d3ecd14ace5843d7890eb62d249dd1be9ad8ce9f1c1886e27d1df128",
+      "compressedBytes": 816089,
+      "archivePath": "recovery/2026-09-23/large-reports/hive-worktrees/world-view-repair-20260922/.botanical/world-view-structural-64-proof-2/REPORT.json.gz",
+      "gitBlob": "0b7ff9c0d06ee66fee248a2c929f7a2b6c1e74b0",
+      "sourcePaths": [
+        "/home/levi/src/hive-worktrees/world-view-repair-20260922/.botanical/world-view-structural-64-proof-2/REPORT.json"
+      ],
+      "compression": "gzip -n -1"
+    }
+  ]
+}
