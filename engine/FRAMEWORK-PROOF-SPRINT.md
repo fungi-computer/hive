@@ -382,6 +382,41 @@ records to validate counts/capacity and route/search state. Native changed
 route and entity/work encoding remain the next measured owner costs; changing
 them should follow a new exact phase attribution, not a blanket cache.
 
+### Current native cost attribution
+
+Two temporary, optimized WASM builds instrumented the unchanged 1,800-step
+fixture after the delta cursor cut. Both completed all steps with exactly the
+same commands, 180 sampled worlds, recovery, continuation and per-step record
+costs as the clean cursor run. Probes are absent from the restored production
+source. The first build was source `f9f29cf4`, WASM
+`c6a2584f711d8e8a7f67f627b07b6de187fb975480e2ec8cb583b3a05944b32a`;
+the ledger is `.botanical/framework-v3-native-phases-f9f29cf4.json` (SHA-256
+`0417c1847e5868a1eb6435e702c4919fe9d02728a71726c06b98b10e31735b0c`).
+Its native advance batches used 33.11 seconds: planner 23.19, environment
+3.43, authored/actions 3.03, work lifecycle 3.13, movement/arrivals 0.26.
+Within planner, requirement collection used 11.38 seconds and assignment
+8.80, of which matching plus route verification used 7.12. Changed-record
+construction used 10.18 seconds, including route rows 4.67 and changed
+entity/work rows 4.48; incremental cursor work used 4.97. These are nested
+phase totals, not additive to the outer GameSession timings.
+
+The second diagnostic split requirement collection at source `f633a292`, WASM
+`131fdd097edcc3fd7513feca43ded5d081ab7df09fd8429be6037b3432cfae6d`;
+its ledger is `.botanical/framework-v3-stockpile-phases-f633a292.json`
+(SHA-256 `f169abe206b6deca87a6f4c214e08885fe11775004fef93a45f8bf87baa3708f`).
+That run was slower overall (84.25 versus 55.80 seconds), so its absolute
+times are not paired speed comparisons. Within its 17.63-second requirement
+bucket, `ensure_field_water_tasks` used 16.85 seconds, while the entire
+stockpile demand call used only 0.23 and the surrounding task scan 0.75.
+Source inspection shows `ensure_field_water_tasks` unconditionally calls
+`refresh_state_weight`, which re-enumerates all entities and registered
+components, even when no field-water task is created. The timing proves the
+field-water method dominates that bucket; attributing its cost specifically
+to the recount is a source-based inference pending a direct subphase probe.
+The next owner cut should make state-weight accounting mutation-local at this
+path, preserving the canonical capacity law. Matching/routes and native
+route/entity record encoding are the next measured costs after that.
+
 ## Exit and explicit nonclaims
 
 The sprint closes only with pinned source, reproducible fixture, local + workerd
