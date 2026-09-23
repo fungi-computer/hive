@@ -773,7 +773,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         return cleared;
       }
       // One durable occurrence per alarm keeps player requests serviceable.
-      // The next occurrence retains its scheduled deadline and identity.
+      // The next deadline is based on completion when this step overruns;
+      // physical time still advances by exactly one fixed step.
       const dueDeadline = row.due_deadline_ms;
       if (dueDeadline === null || row.due_request_json === null || row.due_sequence === null) throw new Error("public-host-format");
       if (dueDeadline > now) {
@@ -786,7 +787,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         sequence: row.due_sequence,
         request,
       });
-      const next = advanceClockOccurrence(row.due_sequence, dueDeadline);
+      const next = advanceClockOccurrence(row.due_sequence, dueDeadline, Date.now());
       this.owner.sql.exec(
         "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
         next.sequence,
