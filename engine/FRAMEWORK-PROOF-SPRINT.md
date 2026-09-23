@@ -222,6 +222,30 @@ The local comparison ledger is
 `.botanical/framework-v2/locality-after-1800.json` (SHA-256
 `b5a3ea8042403eabc14f1ea5fe258e5d8f3cc97d690ae4f0ea0bf48720a28aae`).
 
+The separate hosted performance preview now serves the v3 fixture at
+<https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony-performance.html?workload=framework-v3>.
+It is paired with only `hive-performance-engine-preview`, implementation hash
+`2e8b21ae2c61861cce15498d07cdf26bc40e0e366e71983cad9a058f656cf9f9`,
+Cloudflare version `a367fac7-ca99-46b4-8ed9-56e009676a69`, and release WASM
+`5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89`.
+Both static origins matched all 232 built files, the paired live join passed,
+and a real browser showed 100 workers with complete terrain streaming. A
+longer browser run is **not stable**: its WebSocket repeatedly reconnected and
+the view eventually reset. The preview is an inspectable interim, not a
+hosted capacity pass.
+
+The hosted cost tail exposed about 150 changed-record puts and 325 SQL
+statements per active occurrence, with about 373 KB of changed records.
+Phase durations measured inside the DO with `performance.now()` were zero and
+are invalid as CPU evidence. Platform alarm CPU was substantial but the tail
+interleaved several test worlds, so it is not a single-world capacity result.
+Most seriously, older v3 worlds reached the Region's default 4,096 live-record
+cap near occurrence 2,034 and retried the deterministic failure every second:
+99 `region-record-capacity` exceptions appeared in one 80-second tail. The
+record-growth owner and a durable nonretryable-fault/wake owner must resolve
+that failure before claiming hosted stability. The paired browser and tail
+evidence is under `.botanical/framework-preview-0c4ba551/`.
+
 ## Exit and explicit nonclaims
 
 The sprint closes only with pinned source, reproducible fixture, local + workerd
