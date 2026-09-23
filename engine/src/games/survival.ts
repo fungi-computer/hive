@@ -2,6 +2,7 @@ import { command, component, entity, query } from "../sdk/authoring";
 import { action, actor, behavior } from "../sdk/behavior";
 import {
   Body,
+  Container,
   MaterialLot,
   Position,
   consume,
@@ -127,6 +128,7 @@ const survivalInitial = [
 const survivalComponents = [
   Position,
   Body,
+  Container,
   MaterialLot,
   Survivor,
   Condition,
