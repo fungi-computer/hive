@@ -121,7 +121,6 @@ pub(crate) fn collect(kernel: &Kernel, cell_id: &str, party: &str) -> Result<Vec
     let position = kernel.ecs.get::<Position>(cell_entity).ok_or("stockpile policy has no position")?;
 
     let mut lots_by_material = BTreeMap::<String, (u32, BTreeSet<String>)>::new();
-    let gather_started = crate::capture_diagnostics::now_ms();
     // `contents` is the canonical container-to-lot index maintained by the
     // physical custody owner. Iterate only visible physical sources and sort
     // their stable IDs before applying policy, rather than scanning every ECS
@@ -141,8 +140,6 @@ pub(crate) fn collect(kernel: &Kernel, cell_id: &str, party: &str) -> Result<Vec
         }
     }
     visible_lots.sort_by(|left, right| left.0.cmp(&right.0));
-    crate::capture_diagnostics::record("stockpile_gather_and_sort_visible_lots", gather_started);
-    let evaluate_started = crate::capture_diagnostics::now_ms();
     for (lot_id, lot_entity, source_container, source_cell) in visible_lots {
         let Some(lot) = kernel.ecs.get::<Lot>(lot_entity) else { continue; };
         if lot.quantity == 0 || !accepts(profile, &lot.kind) { continue; }
@@ -165,9 +162,7 @@ pub(crate) fn collect(kernel: &Kernel, cell_id: &str, party: &str) -> Result<Vec
         entry.0 = entry.0.saturating_add(available);
         entry.1.insert(lot_id);
     }
-    crate::capture_diagnostics::record("stockpile_evaluate_visible_lots", evaluate_started);
 
-    let destination_started = crate::capture_diagnostics::now_ms();
     let mut free_by_destination = BTreeMap::<String, u32>::new();
     let physical_provider = kernel.storage_provider_candidates_at(position).any(|(_id, entity)| {
         kernel.ecs.get::<Container>(entity).is_some()
@@ -194,7 +189,6 @@ pub(crate) fn collect(kernel: &Kernel, cell_id: &str, party: &str) -> Result<Vec
         free_by_destination.insert(destination.clone(), free - quantity);
         demands.push(StockpileDemand { material, quantity, source_lots, destination: destination.clone() });
     }
-    crate::capture_diagnostics::record("stockpile_choose_destination", destination_started);
     Ok(demands)
 }
 
