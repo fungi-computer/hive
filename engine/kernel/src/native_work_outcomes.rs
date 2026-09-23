@@ -128,13 +128,15 @@ impl Kernel {
                         if matches!(result, crate::work_attempt::WorkOutcome::Completed) {
                             let lot = work.lot.clone().ok_or("field water withdrawal produced no lot")?;
                             if work.retain_in_vessel {
+                                let entity = *self.ids.get(&task.id).ok_or("completed field water task disappeared")?;
+                                let accounting = self.prepare_entity_removal(&task.id, entity)?;
                                 self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
-                                let entity = self.ids.remove(&task.id).ok_or("completed field water task disappeared")?;
+                                self.ids.remove(&task.id).ok_or("completed field water task disappeared")?;
                                 self.known.remove(&task.id);
                                 self.contents.remove(&task.id);
                                 self.ecs.despawn(entity);
                                 self.refresh_planner_index(&task.id);
-                                self.refresh_state_weight();
+                                self.apply_entity_weight_change(accounting);
                                 progressed += 1;
                                 continue;
                             }
