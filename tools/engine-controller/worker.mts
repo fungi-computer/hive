@@ -1,11 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
-import {
-  DynamicWorkerExecutor,
-  type DynamicWorkerExecutorOptions,
-} from "@cloudflare/codemode";
-import { Mycelium, type Sandbox } from "@fungi.computer/mycelium";
-import * as Effect from "effect/Effect";
-import * as Stream from "effect/Stream";
+import { type DynamicWorkerExecutorOptions } from "@cloudflare/codemode";
+import { codeModeSandbox, executeCapability } from "./runtime.mts";
 import { z } from "zod";
 import {
   openRegion,
@@ -21,30 +16,6 @@ type Env = {
   UNAUTHORIZED_KEY: string;
 };
 const executeInput = z.strictObject({ code: z.string().min(1).max(16_384) });
-
-/** The existing native Codemode executor owns JavaScript isolation and lifetime.
- * We never claim cooperative abort has stopped it before execute settles.
- * No outbound network is granted to guest programs.
- */
-function sandbox(loader: Env["LOADER"]): Sandbox {
-  return {
-    async execute(request, signal) {
-      signal.throwIfAborted();
-      const executor = new DynamicWorkerExecutor({
-        loader,
-        timeout: request.timeoutMs,
-        globalOutbound: null,
-      });
-      const output = await executor.execute(
-        request.code,
-        Object.entries(request.bindings).map(([name, fns]) => ({ name, fns })),
-      );
-      signal.throwIfAborted();
-      if (output.error !== undefined) throw new Error("guest-execution-failed");
-      return { executionId: request.executionId, value: output.result };
-    },
-  };
-}
 
 export class QuarryController extends DurableObject<Env> {
   private readonly region;
@@ -87,55 +58,14 @@ export class QuarryController extends DurableObject<Env> {
     const parsed = executeInput.safeParse(await request.json());
     if (!parsed.success)
       return Response.json({ error: "invalid-execute" }, { status: 400 });
-    const runtime = await Mycelium.make({
-      modules: [quarryController(this.region, principal)],
-      sandbox: sandbox(this.env.LOADER),
-      execution: { timeoutMs: 10_000, abortGraceMs: 2_000 },
-    });
     try {
-      const lease = await runtime.acquire({ signal: request.signal });
-      try {
-        const signal = request.signal;
-        const prepared = await Effect.runPromise(
-          lease.executeTool.prepare({
-            type: "toolCall",
-            id: crypto.randomUUID(),
-            name: "execute",
-            arguments: parsed.data,
-          }),
-          { signal },
-        );
-        const parts = await Effect.runPromise(
-          Stream.runCollect(prepared.execute()),
-          { signal },
-        );
-        for (const part of parts) {
-          if (part.type !== "result") continue;
-          if (part.result.isError)
-            return Response.json(
-              { error: "execution-failed" },
-              { status: 400 },
-            );
-          const content = part.result.content.find(
-            (entry) => entry.type === "text",
-          );
-          if (content?.type === "text")
-            return new Response(content.text, {
-              headers: { "content-type": "application/json" },
-            });
-        }
-        return Response.json({ error: "missing-result" }, { status: 500 });
-      } finally {
-        await lease.release();
-      }
-    } catch {
-      // A failure here is not evidence that an already committed command failed.
-      return Response.json(
-        { error: "execution-failed; retry identical command input" },
-        { status: 400 },
+      const value = await executeCapability(
+        [quarryController(this.region, principal)],
+        codeModeSandbox(this.env.LOADER), parsed.data.code, request.signal,
       );
-    } finally {
-      await runtime.close();
+      return Response.json(value);
+    } catch {
+      return Response.json({ error: "execution-failed; retry identical command input" }, { status: 400 });
     }
   }
 }

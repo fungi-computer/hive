@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "skipLibCheck": true },
+  "include": ["pirates.mts", "pirates-worker.mts", "runtime.mts", "runtime.d.ts", "../../src/engine/controllers/mycelium.mts"]
+}
