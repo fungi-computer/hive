@@ -455,11 +455,17 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async inTransaction<T>(operation: () => T | Promise<T>): Promise<T> {
-    return this.state.storage.transaction(async (transaction) => {
-      this.transactionAlarm = transaction;
-      try { return await operation(); }
-      finally { this.transactionAlarm = undefined; }
-    });
+    const sample = this.activeSqlCost;
+    const started = sample ? performance.now() : 0;
+    try {
+      return await this.state.storage.transaction(async (transaction) => {
+        this.transactionAlarm = transaction;
+        try { return await operation(); }
+        finally { this.transactionAlarm = undefined; }
+      });
+    } finally {
+      if (sample) sample.durableTransactionWallMs += performance.now() - started;
+    }
   }
 
   private serial<T>(operation: () => T | Promise<T>): Promise<T> {
@@ -524,8 +530,17 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private async arm(row: HostRow): Promise<void> {
     const at = this.alarmAt(row);
     const storage = this.transactionAlarm ?? this.state.storage;
-    if (at === null) await storage.deleteAlarm();
-    else await storage.setAlarm(at);
+    const sample = this.activeSqlCost;
+    const started = sample ? performance.now() : 0;
+    if (at === null) {
+      if (sample) sample.alarmDeleteCalls++;
+      try { await storage.deleteAlarm(); }
+      finally { if (sample) sample.alarmDeleteWallMs += performance.now() - started; }
+    } else {
+      if (sample) sample.alarmSetCalls++;
+      try { await storage.setAlarm(at); }
+      finally { if (sample) sample.alarmSetWallMs += performance.now() - started; }
+    }
   }
 
   private async renewLease(now: number): Promise<void> {
@@ -665,15 +680,17 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       this.publishHostStatus();
       const revision = this.region.readCommitted().revision;
       const replayEpoch = this.region.readReplayWindow().epoch;
-      const recipients = this.state.getWebSockets().flatMap(socket => {
+      const eligibilityStarted = performance.now();
+      const sockets = this.state.getWebSockets();
+      const recipients = sockets.flatMap(socket => {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
         return attachment?.authenticated && !attachment.retired && canSendObservation(attachment, { revision, replayEpoch }) && attachment.pack === this.pack &&
           attachment.worldHandle === (this.worldHandle ?? this.tokenHash)
           ? [{ socket, attachment }] : [];
       });
+      const eligibilityWallMs = performance.now() - eligibilityStarted;
       if (recipients.length === 0) {
-        this.proofLedger?.publication({ revision: this.region.readCommitted().revision,
-          recipients: 0, buildWallMs: 0, sendWallMs: 0, encodedBytes: 0 });
+        this.proofLedger?.publicationSkipped({ revision, candidates: sockets.length, eligibilityWallMs });
         return;
       }
       const buildStarted = performance.now();
@@ -686,7 +703,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         this.sendObservation(socket, payload, attachment, false, bytes => { encodedBytes += bytes; });
       }
       this.proofLedger?.publication({ revision: payload.revision, recipients: recipients.length,
-        buildWallMs, sendWallMs: performance.now() - sendStarted, encodedBytes });
+        eligibilityWallMs, buildWallMs, sendWallMs: performance.now() - sendStarted, encodedBytes });
     });
   }
 
@@ -891,7 +908,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async runDueExclusive(now: number): Promise<void> {
-    const sqlCost: SqlCost = { sqlWallMs: 0, rowsRead: 0, rowsWritten: 0, statements: 0 };
+    const sqlCost: SqlCost = { sqlWallMs: 0, durableTransactionWallMs: 0, alarmSetWallMs: 0, alarmDeleteWallMs: 0,
+      alarmSetCalls: 0, alarmDeleteCalls: 0, rowsRead: 0, rowsWritten: 0, statements: 0 };
     this.activeSqlCost = this.proofLedger ? sqlCost : undefined;
     let dueSequence: number | null = null;
     let driven: OccurrenceDriverResult | undefined;

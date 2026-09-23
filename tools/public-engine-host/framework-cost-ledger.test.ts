@@ -8,7 +8,8 @@ test("the proof ledger retains only bounded committed windows and separates fail
   for (let sequence = 0; sequence < 21; sequence++) ledger.step({
     sequence, revision: sequence + 1, advanceWallMs: 2, captureWallMs: 3,
     recordPuts: 4, recordRemoves: 0, changedRecordBytes: 100,
-    sqlWallMs: 1, rowsRead: 5, rowsWritten: 6, statements: 7,
+    sqlWallMs: 1, durableTransactionWallMs: 9, alarmSetWallMs: 2, alarmDeleteWallMs: 0,
+    alarmSetCalls: 1, alarmDeleteCalls: 0, rowsRead: 5, rowsWritten: 6, statements: 7,
     alarmLatenessMs: 0, dispatchWallMs: 7, transactionWallMs: 8,
   });
   assert.equal(lines.length, 1);
@@ -25,4 +26,18 @@ test("the proof ledger retains only bounded committed windows and separates fail
   for (let repeat = 0; repeat < 19; repeat++) ledger.failure(21, new Error("region-record-change-bytes"));
   assert.equal(lines.length, 4);
   assert.equal(lines[3].repeatedAttempts, 20);
+});
+
+test("publication skips are counted separately from measured recipient deliveries", () => {
+  const lines: Array<Record<string, unknown>> = [];
+  const ledger = createFrameworkCostLedger("b".repeat(64), "colony-framework-proof-256-100-v2", line => lines.push(JSON.parse(line)));
+  ledger.publicationSkipped({ revision: 4, candidates: 0, eligibilityWallMs: 1 });
+  ledger.publication({ revision: 4, recipients: 2, eligibilityWallMs: 2, buildWallMs: 17, sendWallMs: 3, encodedBytes: 360_000 });
+  ledger.flush();
+  assert.deepEqual(lines.map(line => line.kind), ["publications", "publication-skips"]);
+  assert.equal(lines[0].count, 1);
+  assert.deepEqual((lines[0].costs as Record<string, { p50: number }>).buildWallMs.p50, 17);
+  assert.equal(lines[1].count, 1);
+  assert.equal(lines[1].candidates, 0);
+  assert.equal((lines[1].eligibilityWallMs as { p50: number }).p50, 1);
 });

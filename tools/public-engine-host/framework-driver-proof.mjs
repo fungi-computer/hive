@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { Miniflare, Log, LogLevel, convertV4MiniflareOptions } from "miniflare";
+import WebSocket from "ws";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile, copyFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
@@ -9,9 +10,16 @@ import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { execFileSync } from "node:child_process";
 
-assert(process.argv[2] === "--output" && (process.argv.length === 4 || process.argv.length === 6 && process.argv[4] === "--minimum-sequence"), "Usage: node framework-driver-proof.mjs --output <directory> [--minimum-sequence <3..100>]");
-const minimumSequence = Number(process.argv[5] ?? 3);
+assert(process.argv[2] === "--output", "Usage: node framework-driver-proof.mjs --output <directory> [--minimum-sequence <3..100>] [--clients <0..4>]");
+const cliOptions = new Map();
+for (let index = 4; index < process.argv.length; index += 2) {
+  assert(["--minimum-sequence", "--clients"].includes(process.argv[index]) && process.argv[index + 1] !== undefined, "invalid proof option");
+  cliOptions.set(process.argv[index], process.argv[index + 1]);
+}
+const minimumSequence = Number(cliOptions.get("--minimum-sequence") ?? 3);
+const clientCount = Number(cliOptions.get("--clients") ?? 2);
 assert(Number.isInteger(minimumSequence) && minimumSequence >= 3 && minimumSequence <= 100);
+assert(Number.isInteger(clientCount) && clientCount >= 0 && clientCount <= 4);
 const output = resolve(process.argv[3]);
 await mkdir(output, {recursive:true});
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -65,10 +73,38 @@ const rows = async()=>{
 };
 const until = async(check,label)=>{const deadline=Date.now()+30_000;while(Date.now()<deadline){const value=await check();if(value)return value;await delay(50);}throw new Error(`timed out: ${label}`);};
 const checkpoints=[];
+const clients=[];
+async function connectClient(number) {
+  const { handle } = await request("connect");
+  const local = await mf.ready;
+  const url = new URL(`/v1/${game}/socket/${encodeURIComponent(handle)}`, local);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  const socket = new WebSocket(url, { origin: "https://framework-proof.invalid", headers: { host: "framework.test" } });
+  const events = [];
+  const client = { number, socket, events, observations: 0 };
+  clients.push(client);
+  socket.on("message", raw => {
+    const event = JSON.parse(raw.toString());
+    events.push(event);
+    if (event.type === "observation") {
+      client.observations++;
+      socket.send(JSON.stringify({ type: "observation-ack", revision: event.revision, replayEpoch: event.replayEpoch }));
+    }
+  });
+  await new Promise((resolve, reject) => {
+    socket.once("open", resolve);
+    socket.once("error", reject);
+  });
+  socket.send(JSON.stringify({ type: "authenticate", token }));
+  await until(() => events.find(event => event.type === "ready"), `socket ${number} authentication`);
+  await until(() => events.find(event => event.type === "observation"), `socket ${number} initial observation`);
+  return client;
+}
 try {
   await start();
   const started = performance.now();
   const initial=await request("observe");
+  for (let index = 0; index < clientCount; index++) await connectClient(index + 1);
   await until(async()=>{const value=await rows();return value?.host.next_sequence>=minimumSequence?value:null;},"scheduled second occurrence");
   const pauseBody={id:"proof-pause",replayEpoch:initial.replayEpoch,command:{kind:"pause"}};
   const paused=await request("command",pauseBody);
@@ -99,8 +135,10 @@ try {
   checkpoints.push({stage:"autonomous-restart",beforeSequence:before.host.next_sequence,sequence:progressed.host.next_sequence,revision:progressed.region.revision});
   const stop=await request("command",{id:"proof-stop",replayEpoch:resume.replayEpoch,command:{kind:"pause"}});
   assert.equal(stop.status,"applied");
+  await delay(50);
+  for (const client of clients) client.socket.close();
   const final=await rows();
-  await writeFile(resolve(output,"RESULT.json"),JSON.stringify({source:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),dirtySource:execFileSync("git",["status","--porcelain"],{encoding:"utf8"}).trim(),implementationHash,inventory,game,checkpoints,ledger,elapsedWallMs:performance.now()-started,minimumSequence,finalSequence:final.host.next_sequence,
+  await writeFile(resolve(output,"RESULT.json"),JSON.stringify({source:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),dirtySource:execFileSync("git",["status","--porcelain"],{encoding:"utf8"}).trim(),implementationHash,inventory,game,checkpoints,ledger,clients:clients.map(({number,observations})=>({number,observations})),elapsedWallMs:performance.now()-started,minimumSequence,clientCount,finalSequence:final.host.next_sequence,
     limits:["Short actual-workerd host law, not capacity or 10-minute qualification","Proof-only RPC replays the last actual Region occurrence; production routes are unchanged","Exhaustive schedule parity and real native command rollback are covered by occurrence-driver.test.ts"]},null,2));
-  console.log(JSON.stringify({proof:"framework-driver-workerd",status:"passed",output,checkpoints}));
-}finally{await mf?.dispose();}
+  console.log(JSON.stringify({proof:"framework-driver-workerd",status:"passed",output,checkpoints,clients:clients.map(({number,observations})=>({number,observations}))}));
+}finally{for (const client of clients) client.socket.close();await mf?.dispose();}
