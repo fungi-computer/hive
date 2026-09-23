@@ -422,10 +422,15 @@ mod work_attempt_laws {
         kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
 
         let transfer = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"other-player"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]});
+        let mut weight_oracle = Kernel::new();
+        weight_oracle.restore_records(&kernel.save_records().unwrap()).unwrap();
+        assert_eq!(kernel.state_weight, weight_oracle.state_weight, "live weight equals checkpoint-derived weight");
         let before_attempts = kernel.work_attempts_json("[\"task\"]").unwrap();
+        let before_snapshot = kernel.snapshot_entities_json().unwrap();
         let before_weight = kernel.state_weight;
         assert_eq!(kernel.advance_json(&transfer.to_string()).unwrap_err(), "player lacks WorkTask access to task");
         assert_eq!(kernel.state_weight, before_weight);
+        assert_eq!(kernel.snapshot_entities_json().unwrap(), before_snapshot);
         assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().quantity, 8);
         assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, "worker");
         assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap(), before_attempts);
@@ -3579,6 +3584,17 @@ impl Kernel {
             None => { self.terrain_routes.remove(&entity); }
         }
     }
+    fn install_destination(&mut self, entity: Entity, destination: Destination) -> Result<()> {
+        let previous = self.ecs.get::<Destination>(entity)
+            .map(|value| self.registry.weight("hive.destination", &record(value)))
+            .unwrap_or(0);
+        let next = self.registry.weight("hive.destination", &record(&destination));
+        let weight = self.state_weight.saturating_sub(previous).saturating_add(next);
+        if weight > STATE_BYTES { return Err("region canonical state capacity".into()); }
+        self.ecs.entity_mut(entity).insert(destination);
+        self.state_weight = weight;
+        Ok(())
+    }
     fn route_snapshot_for(
         &self,
         entity: Entity,
@@ -5955,9 +5971,9 @@ impl Kernel {
         self.publish_prepared_route_attempt(task, worker, execution, destination, route, key, operation, task_entity, worker_entity, crate::work_attempt::ContinuationOwner::External)
     }
     fn publish_prepared_route_attempt(&mut self, task: String, worker: String, execution: WorkExecution, destination: Point, route: PreparedRoute, key: AttemptKey, operation: OperationKey, task_entity: Entity, worker_entity: Entity, continuation_owner: crate::work_attempt::ContinuationOwner) -> Result<AttemptKey> {
-        self.direct.remove(&worker_entity);
         let position = *self.ecs.get::<Position>(worker_entity).ok_or("route attempt worker has no position")?;
-        self.ecs.entity_mut(worker_entity).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+        self.install_destination(worker_entity, Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() })?;
+        self.direct.remove(&worker_entity);
         self.install_route(worker_entity, route);
         self.ecs.entity_mut(task_entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), execution, continuation_owner, phase: AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Route { destination } } });
         self.work_attempts.insert(task, task_entity);
@@ -5989,7 +6005,7 @@ impl Kernel {
         let worker = self.entity(&current.worker)?;
         let position = *self.ecs.get::<Position>(worker).ok_or("route attempt worker has no position")?;
         self.ecs.get::<Body>(worker).ok_or("route attempt worker is not movable")?;
-        self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+        self.install_destination(worker, Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() })?;
         self.install_route(worker, route);
         let operation = OperationKey { attempt: current.key, sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
         crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing {
@@ -6064,7 +6080,7 @@ impl Kernel {
         let position = *self.ecs.get::<Position>(worker).ok_or("route attempt worker has no position")?;
         self.ecs.get::<Body>(worker).ok_or("route attempt worker is not movable")?;
         let route = self.route_for(worker, position, &destination)?;
-        self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+        self.install_destination(worker, Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() })?;
         self.install_route(worker, route);
         let mut attempt = crate::record_changes::edit::<WorkAttempt>(entity, &mut self.ecs).ok_or("work attempt component is missing")?;
         attempt.phase = AttemptPhase::Executing { operation: OperationKey { attempt: operation.attempt, sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? }, activity: crate::work_attempt::ActivityRef::Route { destination } };
@@ -6351,13 +6367,13 @@ impl Kernel {
                     && self.routes.contains_key(&e)
                     && !self.terrain_routes.get(&e).is_some_and(|state| state.waiting)
                 {
-                    self.ecs.entity_mut(e).insert(Destination {
+                    self.install_destination(e, Destination {
                         x: existing.x,
                         y: existing.y,
                         z: existing.z,
                         facing,
                         frame: existing.frame,
-                    });
+                    })?;
                     return Ok(ActionEffect::None);
                 }
                 if p.x == destination.x && p.y == destination.y && p.z == destination.z
@@ -6373,22 +6389,13 @@ impl Kernel {
                     facing,
                     frame: destination.frame.clone(),
                 };
-                let extra = if self.ecs.get::<Destination>(e).is_some() {
-                    0
-                } else {
-                    self.registry.weight("hive.destination", &record(&target))
-                };
-                if self.state_weight + extra > STATE_BYTES {
-                    return Err("region canonical state capacity".into());
-                }
                 let path = match route_query::classify_route(self.route_for(e, p, &destination))? {
                     route_query::SearchOutcome::Reachable(path) => path,
                     route_query::SearchOutcome::Deferred(_) => self.pending_terrain_route(e, p)?,
                     route_query::SearchOutcome::NoPath(error) => return Err(error),
                 };
+                self.install_destination(e, target)?;
                 self.direct.remove(&e);
-                self.ecs.entity_mut(e).insert(target);
-                self.state_weight += extra;
                 self.install_route(e, path);
                 Ok(ActionEffect::None)
             }
