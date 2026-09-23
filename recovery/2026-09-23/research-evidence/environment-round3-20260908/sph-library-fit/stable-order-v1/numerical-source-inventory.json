@@ -1,0 +1,17 @@
+[
+  {
+    "path": "upstream/SPlisHSPlasH/Simulation.cpp",
+    "beforeSHA256": "2e633f278c437938a55e57475c61a89e701d7dc77ee21e496db59c2ddaa1739a",
+    "candidateSHA256": "49e7b4edbea4fe018cb03351c5a29d388cceadb12e904a0a83ee1bdb2629be36"
+  },
+  {
+    "path": "upstream/SPlisHSPlasH/NeighborhoodSearch.h",
+    "beforeSHA256": "098aa375585acbbfacc848598b93a82572aa6300317b471db8920113352785b3",
+    "candidateSHA256": "d25e22bc03c751c2e621f318a7cf7e818d690d5dbe8c5f938425b3957ff73619"
+  },
+  {
+    "path": "dependencies/CompactNSearch/include/CompactNSearch.h",
+    "beforeSHA256": "b4ed92dbab53b3c64fa19d659cf2b2140419d0555799991fc60e767f83adec34",
+    "candidateSHA256": "04457d36cb929518768447b13444903c5948ab2794b6ad7a47ba2f03fb3333bf"
+  }
+]

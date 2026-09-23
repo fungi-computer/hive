@@ -1,0 +1,72 @@
+{
+  "scope": "Unchanged physical accuracy, explicit period/128 numerical cost candidate before compile",
+  "baselineRun": "u3477.scope",
+  "combinedNativeCeilingSeconds": 60,
+  "files": [
+    {
+      "path": "wave.c",
+      "bytes": 7126,
+      "sha256": "cac357ba07088850f53bc1242e2102015a9a1c8d0aaeb75afb78238d20a5cb71"
+    },
+    {
+      "path": "wave-observation.h",
+      "bytes": 9461,
+      "sha256": "c874670a3b587048fb587a5e0534ea30a38f02d9763aecac9ab1cbd9257da513"
+    },
+    {
+      "path": "wave-reduced-observation.h",
+      "bytes": 7230,
+      "sha256": "b8006c656359e8d44700cc8a60065dc4c6522c71fc96041022a215505bbcf16c"
+    },
+    {
+      "path": "wave-transport-observation.h",
+      "bytes": 14696,
+      "sha256": "c6f1579028dd5404af024c39c41696130d86042f074abe1fd9c34d1bc5df79d7"
+    },
+    {
+      "path": "compile-wave.py",
+      "bytes": 2750,
+      "sha256": "264f6dc1078d85ad47f024f83a45aecda3f00cb06c71b2dcb76854987bc7ee40"
+    },
+    {
+      "path": "run-wave.py",
+      "bytes": 6927,
+      "sha256": "935766a3612fd48b0f094de78b6260454e15737ed417a1f02c5f030fbacded3a"
+    },
+    {
+      "path": "compare-wave.mjs",
+      "bytes": 14197,
+      "sha256": "802de1253e1ce9a2e713945810e5b144ceb8356ea3933428c17117d0b85527c9"
+    },
+    {
+      "path": "force_accounting.py",
+      "bytes": 6119,
+      "sha256": "06b672128c88075c7304d7508013469e3ea20bd6959e17d23cf76fc49a1a8bcf"
+    },
+    {
+      "path": "transport_accounting.py",
+      "bytes": 8394,
+      "sha256": "7fc7e1414728d81aa466f383ae76c1c4a9037396fe32b97c9d187960787ff2a6"
+    },
+    {
+      "path": "SOURCE-INVENTORY.json",
+      "bytes": 7575,
+      "sha256": "326826caf136bfdefbc9bf00ce5cd63e633b29dab4314e81af8871634e9a3f75"
+    },
+    {
+      "path": "oracle/oracle.mjs",
+      "bytes": 3302,
+      "sha256": "1b9ae075cc53816831945a0f9f8f023f6bf395da53352ac4dfe8ceeb02076c84"
+    },
+    {
+      "path": "CONTRACT.md",
+      "bytes": 1769,
+      "sha256": "ecca34ce70c5f3fd8afbdb4db538c4639f7903b49584ca32be96a5a058b095cc"
+    },
+    {
+      "path": "candidate.patch",
+      "bytes": 3955,
+      "sha256": "c8e293de09759ab47856852c83c23ea5579fdc9d1a0a0fb3545c017ceece4868"
+    }
+  ]
+}

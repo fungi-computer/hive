@@ -1,0 +1,288 @@
+{
+  "candidate_status": "needs_correction",
+  "production_solver_selected": false,
+  "ventilation_behavior_demonstrated": true,
+  "temporal": [
+    {
+      "mode": "high",
+      "dt": 0.5,
+      "errors_vs_dt1": {
+        "upper_exposure": 0.0030713560351478776,
+        "exported_fraction": 0.0003940436426151559
+      },
+      "pass_5_percent": true
+    },
+    {
+      "mode": "high",
+      "dt": 0.25,
+      "errors_vs_dt1": {
+        "upper_exposure": 0.004569368863141526,
+        "exported_fraction": 0.0005899315018172534
+      },
+      "pass_5_percent": true
+    },
+    {
+      "mode": "local",
+      "dt": 0.5,
+      "errors_vs_dt1": {
+        "upper_exposure": 0.0007110094863041676,
+        "exported_fraction": 0.000279704613949462
+      },
+      "pass_5_percent": true
+    },
+    {
+      "mode": "local",
+      "dt": 0.25,
+      "errors_vs_dt1": {
+        "upper_exposure": 0.0010543960242851548,
+        "exported_fraction": 0.0004168562496269903
+      },
+      "pass_5_percent": true
+    }
+  ],
+  "spatial": [
+    {
+      "mode": "high",
+      "from_dx": 1.0,
+      "to_dx": 0.5,
+      "errors_relative_to_finer": {
+        "upper_exposure": 0.04497149688530356,
+        "exported_fraction": 0.006621667488042692
+      },
+      "pass_15_percent": true
+    },
+    {
+      "mode": "local",
+      "from_dx": 1.0,
+      "to_dx": 0.5,
+      "errors_relative_to_finer": {
+        "upper_exposure": 0.3401858166675986,
+        "exported_fraction": 0.03117238724102331
+      },
+      "pass_15_percent": false
+    },
+    {
+      "mode": "sealed",
+      "from_dx": 1.0,
+      "to_dx": 0.5,
+      "errors_relative_to_finer": {
+        "upper_exposure": 0.269766387351114,
+        "exported_fraction": 0.0
+      },
+      "pass_15_percent": false
+    },
+    {
+      "mode": "tall",
+      "from_dx": 1.0,
+      "to_dx": 0.5,
+      "errors_relative_to_finer": {
+        "upper_exposure": 0.2898909623844865,
+        "exported_fraction": 0.015383582616850695
+      },
+      "pass_15_percent": false
+    },
+    {
+      "mode": "local",
+      "from_dx": 0.5,
+      "to_dx": 0.25,
+      "errors_relative_to_finer": {
+        "upper_exposure": 0.11166604742815618,
+        "exported_fraction": 0.012250538958240579
+      },
+      "pass_15_percent": true
+    },
+    {
+      "mode": "sealed",
+      "from_dx": 0.5,
+      "to_dx": 0.25,
+      "errors_relative_to_finer": {
+        "upper_exposure": 0.07673233945226854,
+        "exported_fraction": 0.0
+      },
+      "pass_15_percent": true
+    }
+  ],
+  "layout": [
+    {
+      "mode": "single",
+      "dx": 1.0,
+      "exported_fraction": 2.1777757514458294e-15,
+      "clear80_time": null,
+      "upper_exposure_improvement": 9.880984919163893e-15,
+      "passes_gameplay_targets": false
+    },
+    {
+      "mode": "high",
+      "dx": 1.0,
+      "exported_fraction": 0.9100030283947861,
+      "clear80_time": 474.0,
+      "upper_exposure_improvement": -0.454787427059149,
+      "passes_gameplay_targets": false
+    },
+    {
+      "mode": "low",
+      "dx": 1.0,
+      "exported_fraction": 0.0792580914123131,
+      "clear80_time": null,
+      "upper_exposure_improvement": 0.07497335019742168,
+      "passes_gameplay_targets": false
+    },
+    {
+      "mode": "local",
+      "dx": 1.0,
+      "exported_fraction": 0.9042034500825727,
+      "clear80_time": 352.0,
+      "upper_exposure_improvement": 0.5808429715203249,
+      "passes_gameplay_targets": true
+    },
+    {
+      "mode": "lower_high",
+      "dx": 1.0,
+      "exported_fraction": 0.8797990679138894,
+      "clear80_time": 467.0,
+      "upper_exposure_improvement": 0.47458827740712917,
+      "passes_gameplay_targets": true
+    },
+    {
+      "mode": "tall",
+      "dx": 1.0,
+      "exported_fraction": 0.7973567744047129,
+      "clear80_time": null,
+      "upper_exposure_improvement": 0.41960568208215654,
+      "passes_gameplay_targets": false
+    },
+    {
+      "mode": "floor_closed",
+      "dx": 1.0,
+      "exported_fraction": 7.174206529188367e-15,
+      "clear80_time": null,
+      "upper_exposure_improvement": 1.0,
+      "passes_gameplay_targets": false
+    },
+    {
+      "mode": "cycle",
+      "dx": 1.0,
+      "exported_fraction": 0.8907889945485576,
+      "clear80_time": 601.0,
+      "upper_exposure_improvement": -0.6580717509601439,
+      "passes_gameplay_targets": false
+    },
+    {
+      "mode": "high",
+      "dx": 0.5,
+      "exported_fraction": 0.9160689322603404,
+      "clear80_time": 443.0,
+      "upper_exposure_improvement": -0.016615938007907616,
+      "passes_gameplay_targets": false
+    },
+    {
+      "mode": "local",
+      "dx": 0.5,
+      "exported_fraction": 0.8768693394727479,
+      "clear80_time": 404.0,
+      "upper_exposure_improvement": 0.5361079544728629,
+      "passes_gameplay_targets": true
+    },
+    {
+      "mode": "tall",
+      "dx": 0.5,
+      "exported_fraction": 0.7852764098763166,
+      "clear80_time": null,
+      "upper_exposure_improvement": 0.40315723771493406,
+      "passes_gameplay_targets": false
+    },
+    {
+      "mode": "local",
+      "dx": 0.25,
+      "exported_fraction": 0.8662572216312965,
+      "clear80_time": 431.5066264513067,
+      "upper_exposure_improvement": 0.517865412685661,
+      "passes_gameplay_targets": true
+    }
+  ],
+  "sensitivity": [
+    {
+      "mode": "high",
+      "mixing": 0.01,
+      "drag": 0.1,
+      "exported_fraction": 0.9662812353549584,
+      "upper_exposure": 0.004606851963075663,
+      "sealed_upper_exposure": 0.006947602540573903,
+      "exposure_improvement": 0.3369148657869083
+    },
+    {
+      "mode": "high",
+      "mixing": 0.01,
+      "drag": 10.0,
+      "exported_fraction": 0.4729784867331788,
+      "upper_exposure": 0.00798588090618197,
+      "sealed_upper_exposure": 0.0018389212909198699,
+      "exposure_improvement": -3.3426985948850767
+    },
+    {
+      "mode": "high",
+      "mixing": 0.0,
+      "drag": 1.0,
+      "exported_fraction": 0.9247483682811124,
+      "upper_exposure": 0.004168570661662377,
+      "sealed_upper_exposure": 1.5006184977759494e-65,
+      "exposure_improvement": null
+    },
+    {
+      "mode": "high",
+      "mixing": 0.05,
+      "drag": 1.0,
+      "exported_fraction": 0.8922125528186446,
+      "upper_exposure": 0.007221334715073794,
+      "sealed_upper_exposure": 0.012523116588747234,
+      "exposure_improvement": 0.42335961947662504
+    },
+    {
+      "mode": "local",
+      "mixing": 0.01,
+      "drag": 0.1,
+      "exported_fraction": 0.9112013083249267,
+      "upper_exposure": 0.002663045053800828,
+      "sealed_upper_exposure": 0.006947602540573903,
+      "exposure_improvement": 0.6166958258984043
+    },
+    {
+      "mode": "local",
+      "mixing": 0.01,
+      "drag": 10.0,
+      "exported_fraction": 0.7850093461747476,
+      "upper_exposure": 0.0009866272818843925,
+      "sealed_upper_exposure": 0.0018389212909198699,
+      "exposure_improvement": 0.4634749802745177
+    },
+    {
+      "mode": "local",
+      "mixing": 0.0,
+      "drag": 1.0,
+      "exported_fraction": 0.9772971251090651,
+      "upper_exposure": 2.983687779708699e-46,
+      "sealed_upper_exposure": 1.5006184977759494e-65,
+      "exposure_improvement": null
+    },
+    {
+      "mode": "local",
+      "mixing": 0.05,
+      "drag": 1.0,
+      "exported_fraction": 0.8229146222586351,
+      "upper_exposure": 0.00558429177649709,
+      "sealed_upper_exposure": 0.012523116588747234,
+      "exposure_improvement": 0.5540813074027509
+    }
+  ],
+  "largest_measured_errors": {
+    "smoke_kg": 1.1709383462843448e-17,
+    "signed_thermal_J": 2.3283064365386963e-09,
+    "divergence_m3_s": 1.9984371102399479e-10
+  },
+  "time_passes": true,
+  "spatial_passes": false,
+  "closure_qualification": "Darcy interior drag/mixing not calibrated for unobstructed rooms; sensitivity is model uncertainty, not a physical confidence interval.",
+  "quarter_high_not_completed": "Full three-case quarter group was deliberately stopped after completed sealed baseline; local received its own bounded run. No finest high-vent result claimed.",
+  "quarter_local_complete": true,
+  "candidate_accepted": false
+}

@@ -1,0 +1,408 @@
+{
+  "version": "soil-column-fixed-qualification-v1",
+  "groups": 6,
+  "checks": 5287,
+  "results": [
+    {
+      "name": "constitutive SI envelope, analytic derivatives and pivoted linear solve",
+      "checks": 49,
+      "definition": {
+        "id": "synthetic-rigid-loam-si-v1",
+        "thetaR": 0.05,
+        "porosity": 0.45,
+        "alphaPerM": 2,
+        "n": 2,
+        "ksMPerS": 0.0001,
+        "ell": 0.5,
+        "minHeadM": -4,
+        "maxHeadM": 8,
+        "densityKgM3": 1000
+      },
+      "minimumTheta": 0.09961389383568339
+    },
+    {
+      "name": "hydrostatic water table and ponded rest",
+      "checks": 132,
+      "cases": [
+        {
+          "totalHeadM": -0.35,
+          "work": {
+            "evaluations": 60,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 540,
+            "iterations": 0,
+            "lineTrials": 0,
+            "rejected": 0
+          }
+        },
+        {
+          "totalHeadM": 0.1,
+          "work": {
+            "evaluations": 60,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 540,
+            "iterations": 0,
+            "lineTrials": 0,
+            "rejected": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "finite saturated reservoirs: exact discrete law and continuous-time refinement in both directions",
+      "checks": 318,
+      "resistanceSPerM2": 10000,
+      "decayRatePerS": 0.0002,
+      "cases": [
+        {
+          "topDepthM": 0.2,
+          "bottomDepthM": 1.1,
+          "dtS": 60,
+          "deltaM": 0.0887554182623472,
+          "discreteExpectedM": 0.08875541826234769,
+          "continuousExpectedM": 0.08869204367171568,
+          "errorM": 0.00006337459063152084,
+          "work": {
+            "evaluations": 30,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 270,
+            "iterations": 10,
+            "lineTrials": 10,
+            "rejected": 0
+          }
+        },
+        {
+          "topDepthM": 0.2,
+          "bottomDepthM": 1.1,
+          "dtS": 30,
+          "deltaM": 0.08872385136511857,
+          "discreteExpectedM": 0.08872385136511914,
+          "continuousExpectedM": 0.08869204367171568,
+          "errorM": 0.00003180769340288547,
+          "work": {
+            "evaluations": 60,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 540,
+            "iterations": 20,
+            "lineTrials": 20,
+            "rejected": 0
+          }
+        },
+        {
+          "topDepthM": 0.2,
+          "bottomDepthM": 1.1,
+          "dtS": 15,
+          "deltaM": 0.08870797781327697,
+          "discreteExpectedM": 0.08870797781327801,
+          "continuousExpectedM": 0.08869204367171568,
+          "errorM": 0.000015934141561285697,
+          "work": {
+            "evaluations": 120,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 1080,
+            "iterations": 40,
+            "lineTrials": 40,
+            "rejected": 0
+          }
+        },
+        {
+          "topDepthM": 0.1,
+          "bottomDepthM": 1.2,
+          "dtS": 60,
+          "deltaM": -0.08875541826234715,
+          "discreteExpectedM": -0.0887554182623477,
+          "continuousExpectedM": -0.08869204367171571,
+          "errorM": 0.00006337459063143758,
+          "work": {
+            "evaluations": 30,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 270,
+            "iterations": 10,
+            "lineTrials": 10,
+            "rejected": 0
+          }
+        },
+        {
+          "topDepthM": 0.1,
+          "bottomDepthM": 1.2,
+          "dtS": 30,
+          "deltaM": -0.08872385136511857,
+          "discreteExpectedM": -0.08872385136511915,
+          "continuousExpectedM": -0.08869204367171571,
+          "errorM": 0.00003180769340285772,
+          "work": {
+            "evaluations": 60,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 540,
+            "iterations": 20,
+            "lineTrials": 20,
+            "rejected": 0
+          }
+        },
+        {
+          "topDepthM": 0.1,
+          "bottomDepthM": 1.2,
+          "dtS": 15,
+          "deltaM": -0.08870797781327618,
+          "discreteExpectedM": -0.08870797781327804,
+          "continuousExpectedM": -0.08869204367171571,
+          "errorM": 0.000015934141560466908,
+          "work": {
+            "evaluations": 120,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 1080,
+            "iterations": 40,
+            "lineTrials": 40,
+            "rejected": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "finite lower wetting and depletion create real mobile branches",
+      "checks": 250,
+      "cells": 8,
+      "intervalS": 60,
+      "dtMaxS": 1,
+      "cases": [
+        {
+          "name": "newly wet lower standpipe",
+          "soilHead": 1,
+          "top": 0.001,
+          "bottom": 0,
+          "finalTopKg": 0,
+          "finalLowerKg": 5.475187044054752,
+          "totalLowerTransferKg": 5.475187044054763,
+          "lastLowerTransferKg": 0.08221741477835565,
+          "lastLowerHeadM": 0.0054751870440547514,
+          "work": {
+            "evaluations": 294,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 2646,
+            "iterations": 169,
+            "lineTrials": 174,
+            "rejected": 0
+          }
+        },
+        {
+          "name": "finite lower donor exhausts",
+          "soilHead": -0.5,
+          "top": 0,
+          "bottom": 0.001,
+          "finalTopKg": 0,
+          "finalLowerKg": 0,
+          "totalLowerTransferKg": -1.0000000000000213,
+          "lastLowerTransferKg": 7.105427357601002e-15,
+          "lastLowerHeadM": -0.399799289666868,
+          "work": {
+            "evaluations": 253,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 2277,
+            "iterations": 133,
+            "lineTrials": 133,
+            "rejected": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "finite pond exhaustion, mesh/time refinement and independent finer explicit mass reference",
+      "checks": 4521,
+      "endS": 300,
+      "cases": [
+        {
+          "cells": 8,
+          "dtS": 2,
+          "theta": [
+            0.3243269365986976,
+            0.33190112084176954,
+            0.33291958964164425,
+            0.3328970186692609,
+            0.3328699578179625,
+            0.3330479144887209,
+            0.3349793569322457,
+            0.34779980480665096
+          ],
+          "pondMassKg": 0,
+          "work": {
+            "evaluations": 605,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 4840,
+            "iterations": 305,
+            "lineTrials": 305,
+            "rejected": 0
+          },
+          "maximumClosureKg": 3.765876499528531e-13
+        },
+        {
+          "cells": 16,
+          "dtS": 1,
+          "theta": [
+            0.31952206335881483,
+            0.32800648229535045,
+            0.3317483512726297,
+            0.3329452243658696,
+            0.33310295515884825,
+            0.3330029683974531,
+            0.33291164552312347,
+            0.3328668959416725,
+            0.3328515389100605,
+            0.3328542758745522,
+            0.3328919692556446,
+            0.3330631350093375,
+            0.3337253057898585,
+            0.3359182341272398,
+            0.34185795555280596,
+            0.3542143987606438
+          ],
+          "pondMassKg": 0,
+          "work": {
+            "evaluations": 1204,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 19264,
+            "iterations": 604,
+            "lineTrials": 604,
+            "rejected": 0
+          },
+          "maximumClosureKg": 5.435651928564766e-13
+        },
+        {
+          "cells": 32,
+          "dtS": 0.5,
+          "theta": [
+            0.3161248765846507,
+            0.3221542241331302,
+            0.3264863322834051,
+            0.3294536247775126,
+            0.3313548690605728,
+            0.3324611778459081,
+            0.3330138343036176,
+            0.3332164394612305,
+            0.33322674332867325,
+            0.33315366068267627,
+            0.3330618913206786,
+            0.33298241340241275,
+            0.3329247920364219,
+            0.3328876862882034,
+            0.33286589700986935,
+            0.33285410320912845,
+            0.3328483158882271,
+            0.3328461634508157,
+            0.3328468588456769,
+            0.3328514440883111,
+            0.3328638360948163,
+            0.33289334946610294,
+            0.33295970441240486,
+            0.33310189258796813,
+            0.33339229534891696,
+            0.33395632150438004,
+            0.33499419467582847,
+            0.33679412984212675,
+            0.3397168301236967,
+            0.34413005893361853,
+            0.3502952488981064,
+            0.35825358929872103
+          ],
+          "pondMassKg": 0,
+          "work": {
+            "evaluations": 2405,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 76960,
+            "iterations": 1205,
+            "lineTrials": 1205,
+            "rejected": 0
+          },
+          "maximumClosureKg": 1.1242562436564185e-11
+        },
+        {
+          "cells": 32,
+          "dtS": 0.25,
+          "theta": [
+            0.3161209931039462,
+            0.3221511558409776,
+            0.3264846572476262,
+            0.3294534896134748,
+            0.33135603304973776,
+            0.33246313725409254,
+            0.33301600261550196,
+            0.33321832910942967,
+            0.33322808228709055,
+            0.33315440691198883,
+            0.3330621629277307,
+            0.3329823893495442,
+            0.33292463409479767,
+            0.3328875028427847,
+            0.3328657417308601,
+            0.3328539907110935,
+            0.33284823928843144,
+            0.3328461062600286,
+            0.3328467997346521,
+            0.33285135618178285,
+            0.3328636836176705,
+            0.33289308537286166,
+            0.3329592738573083,
+            0.3331012481107021,
+            0.3333914281636033,
+            0.33395530576138277,
+            0.3349932256481026,
+            0.33679351780933486,
+            0.33971691085800715,
+            0.34413103066964956,
+            0.3502970340526807,
+            0.3582558451109339
+          ],
+          "pondMassKg": 0,
+          "work": {
+            "evaluations": 4809,
+            "evaluationLimit": 250000,
+            "faceEvaluations": 153888,
+            "iterations": 2409,
+            "lineTrials": 2409,
+            "rejected": 0
+          },
+          "maximumClosureKg": 7.052136652418994e-13
+        }
+      ],
+      "explicitReference": {
+        "steps": 12001,
+        "exhaustedAtS": 1.9398883160382532,
+        "minimumMarginKg": 2.703039885803534
+      },
+      "coarseL1Theta": 0.000001868670673017478,
+      "fineL1Theta": 9.541963390379687e-7,
+      "explicitRefinementL1Theta": 4.5256169563592796e-8,
+      "mesh8L1Theta": 0.0002038528660151112,
+      "mesh16L1Theta": 0.00007110357374292761,
+      "scope": "independent forward-time mass stepping; same constitutive and face discretization, not a published benchmark reproduction"
+    },
+    {
+      "name": "canonical restart, strict rejection and immutable input/definition lifetime",
+      "checks": 17,
+      "rejectionCases": 7,
+      "exactFreshOwnerFileRestart": true
+    }
+  ],
+  "elapsedMs": 1057.5741799999998,
+  "cpu": {
+    "user": 901134,
+    "system": 49711
+  },
+  "memory": {
+    "rss": 87732224,
+    "heapTotal": 28868608,
+    "heapUsed": 11706376,
+    "external": 2485797,
+    "arrayBuffers": 143663
+  },
+  "inventory": {
+    "CONTRACT.md": "b166f2c190c8c5504ece23884c9d2fb8285a9c7fdb875b7bca519aeb66a789d7",
+    "CORRECTION.md": "981998f72f51405583e9e0ba93bcae3ba735c12d8014f3f1ab7ce912c2443dd2",
+    "soil.mjs": "8664df3a99269437a88d8f33ef26ad2b61d961ca802f31f28d7473b885aff6d1",
+    "geometry.mjs": "6d2f7d1aeca5bfce0b98a6b27a6a6c4f88d5882512c1e278ec679eb41e498ceb",
+    "linear.mjs": "7d1a2895db6e689c6ce5beff05116b3554fefed4f033bce0218e030f03572f10",
+    "solve.mjs": "35e0b7cfcc657fec9ad491fafa2835d67a003d1ddcde35858565c0d30927694c",
+    "column.mjs": "6471b9066a9a22a8358d74606ac8616d82274777801519a95f8de8be1513fb47",
+    "explicit-reference.mjs": "e4d7427391b944b0c8b30d23edac7b824951b63a0bafe4602b0b346c7335c362",
+    "qualify.mjs": "843a88a973b22496db44aa6f73a0716e2a4e0f10ff5b718a5d5ea6f5b1ce7bd2"
+  }
+}

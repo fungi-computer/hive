@@ -1,0 +1,25 @@
+{
+  "startedUtc": "2026-09-08T22:34:26.061503+00:00",
+  "invocationId": "4328c73137c14a599cb1405ba15a4409",
+  "scope": "Compile ast/libast.a and qcc only; no numerical simulation.",
+  "maxMakeJobs": 2,
+  "innerGuardSeconds": 120,
+  "commands": [
+    {
+      "argv": [
+        "make",
+        "-C",
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/ast",
+        "-j2",
+        "CC=gcc",
+        "libast.a"
+      ],
+      "exitCode": 2,
+      "wallSeconds": 9.71393609198276,
+      "log": "command-1.log"
+    }
+  ],
+  "wallSeconds": 9.71435789798852,
+  "exitCode": 2,
+  "artifacts": []
+}

@@ -1,0 +1,185 @@
+{
+  "suite": "timing",
+  "stamp": "first-timing",
+  "hashes": {
+    "candidate.mjs": "ee49c25ead481a569b8acfef312411502077d3a293e4d10f7774e5402272d8f6",
+    "fixtures.mjs": "d7f53ed6e01fd3c27fabe0f4d5695fc0658a6efb691649f740c9636a7b72c416",
+    "compare.mjs": "bb1fade2cae5d07aed6c613bdc666facbc7f65cb36cb824bee44d9f7870f727c",
+    "PREDECLARED.md": "cd934d3a1e2f7af730a0ea71b5150240e09e9617e617e06339c845bba7dc6753",
+    "reference": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e"
+  },
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "x64",
+  "timestamp": "2026-09-08T17:59:26.101Z",
+  "outcomes": [
+    {
+      "name": "dynamic-sparse-channel",
+      "status": "passed",
+      "elapsedMs": 2712.522269,
+      "n": 64,
+      "cells": 4096,
+      "faces": 8320,
+      "steps": 160,
+      "simulatedSeconds": 4,
+      "finalExact": true,
+      "initialWetFraction": 0.109375,
+      "timings": {
+        "reference": {
+          "samplesMs": [
+            285.91295800000006,
+            407.944489,
+            273.9627130000001,
+            293.64377899999977,
+            290.5168529999996
+          ],
+          "p50Ms": 290.5168529999996,
+          "p95Ms": 407.944489
+        },
+        "workspace": {
+          "samplesMs": [
+            72.58081000000004,
+            77.82049400000005,
+            57.05455000000006,
+            52.86967800000002,
+            52.53422199999977
+          ],
+          "p50Ms": 57.05455000000006,
+          "p95Ms": 77.82049400000005
+        },
+        "active": {
+          "samplesMs": [
+            48.09831100000008,
+            49.00892399999998,
+            33.84385999999995,
+            33.29525199999989,
+            34.610625999999684
+          ],
+          "p50Ms": 34.610625999999684,
+          "p95Ms": 49.00892399999998
+        }
+      },
+      "faceRatio": 0.11622596153846154,
+      "elapsedRatio": 0.11913465825681283,
+      "targetPass": true,
+      "referenceTypedArrayAllocationPerStep": {
+        "arrays": 15,
+        "bytes": 728064
+      },
+      "active": {
+        "steps": 160,
+        "faceEvaluations": 154720,
+        "faceScans": 1331200,
+        "activeCells": 71680,
+        "peakActiveFaces": 967,
+        "allocatedArrays": 21,
+        "allocatedBytes": 942592,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "workspace": {
+        "steps": 160,
+        "faceEvaluations": 1331200,
+        "faceScans": 1331200,
+        "activeCells": 71680,
+        "peakActiveFaces": 8320,
+        "allocatedArrays": 21,
+        "allocatedBytes": 942592,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "processMemory": {
+        "rss": 295587840,
+        "heapTotal": 170024960,
+        "heapUsed": 80685560,
+        "external": 9350953,
+        "arrayBuffers": 7039227
+      },
+      "processPeakRssKiB": 394100
+    },
+    {
+      "name": "fully-wet",
+      "status": "passed",
+      "elapsedMs": 6240.294944000001,
+      "n": 64,
+      "cells": 4096,
+      "faces": 8320,
+      "steps": 160,
+      "simulatedSeconds": 4,
+      "finalExact": true,
+      "initialWetFraction": 1,
+      "timings": {
+        "reference": {
+          "samplesMs": [
+            351.20497399999977,
+            399.8008359999999,
+            365.27430599999934,
+            350.5130799999997,
+            1307.5456080000004
+          ],
+          "p50Ms": 365.27430599999934,
+          "p95Ms": 1307.5456080000004
+        },
+        "workspace": {
+          "samplesMs": [
+            141.8222840000003,
+            145.9109510000003,
+            131.17927000000054,
+            144.79643899999974,
+            588.0266040000006
+          ],
+          "p50Ms": 144.79643899999974,
+          "p95Ms": 588.0266040000006
+        },
+        "active": {
+          "samplesMs": [
+            144.89681199999995,
+            136.7677090000002,
+            174.77360599999975,
+            304.19884999999977,
+            883.1527380000007
+          ],
+          "p50Ms": 174.77360599999975,
+          "p95Ms": 883.1527380000007
+        }
+      },
+      "faceRatio": 1,
+      "elapsedRatio": 0.4784722142487626,
+      "targetPass": true,
+      "referenceTypedArrayAllocationPerStep": {
+        "arrays": 15,
+        "bytes": 728064
+      },
+      "active": {
+        "steps": 160,
+        "faceEvaluations": 1331200,
+        "faceScans": 1331200,
+        "activeCells": 655360,
+        "peakActiveFaces": 8320,
+        "allocatedArrays": 21,
+        "allocatedBytes": 942592,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "workspace": {
+        "steps": 160,
+        "faceEvaluations": 1331200,
+        "faceScans": 1331200,
+        "activeCells": 655360,
+        "peakActiveFaces": 8320,
+        "allocatedArrays": 21,
+        "allocatedBytes": 942592,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "processMemory": {
+        "rss": 331530240,
+        "heapTotal": 227266560,
+        "heapUsed": 92594704,
+        "external": 31021393,
+        "arrayBuffers": 14579451
+      },
+      "processPeakRssKiB": 394100
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "scope": "Compiled fixed moving-wave source and actual generated-caller review; no numerical packet.",
+  "build": {
+    "unit": "run-u3292.scope",
+    "invocationId": "a007c1869b394f47bdcbf12ee29091df",
+    "exitCode": 0,
+    "wallSeconds": 14.258421042992268
+  },
+  "comparatorSyntax": {
+    "unit": "run-u3293.scope",
+    "invocationId": "60801c47c9484c058c7e78ecacd92d35",
+    "exitCode": 0
+  },
+  "numericalRun": false,
+  "sourceAndBuildPinsReverified": true,
+  "files": [
+    {
+      "path": "COMPILE-CHECKPOINT.md",
+      "bytes": 4411,
+      "sha256": "b47476459b26dc613169987f05f8704dd6f1f5d44368b16d90696625c0507372"
+    },
+    {
+      "path": "SOURCE-CHECKPOINT.json",
+      "bytes": 1372,
+      "sha256": "f3e7ed811f2bc1d6f3608ac54271d081b9680713c367c6a05da4c676c510b18e"
+    },
+    {
+      "path": "source-pins.json",
+      "bytes": 2155,
+      "sha256": "7e5ddf9b809ff75dd79bbca859fe40e3446873f203ff61e1ebe54041f42646f3"
+    },
+    {
+      "path": "build-v1/receipt.json",
+      "bytes": 2179,
+      "sha256": "4e660e20039a5e7697c7dc8ba56ce01f68ad7bd05a64e56a6ba1f0fac0bef922"
+    },
+    {
+      "path": "build-v1/wave",
+      "bytes": 385592,
+      "sha256": "b51fc305dcf1047c2fb49120d9ee8e373b956ae64f129a059027f3f1f9a4885b"
+    },
+    {
+      "path": "build-v1/_wave.c",
+      "bytes": 1816726,
+      "sha256": "654c190f8ace5d281c48a461b2171e027a0b8238e3fb6bf57fe42a30953e0544"
+    },
+    {
+      "path": "build-v1/command-1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build-v1/command-2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

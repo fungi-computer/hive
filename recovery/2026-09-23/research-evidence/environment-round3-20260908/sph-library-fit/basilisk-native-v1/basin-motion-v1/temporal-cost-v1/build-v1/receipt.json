@@ -1,0 +1,88 @@
+{
+  "scope": "Compile only of isolated transport-accounted reduced-gravity caller; no fixed wave case executed.",
+  "invocationId": "2e3c2c425318446b972bbc81c582ba0f",
+  "reviewedSourcePinsSha256": "4d96a42dc8ddc11fe78944884d789e83c8da457de10e811b49ee78d1e816fc39",
+  "commands": [
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-events",
+        "-source",
+        "wave.c"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 4.69887506699888,
+      "log": "command-1.log"
+    },
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "wave.c",
+        "-o",
+        "wave",
+        "-lm"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 17.482541347970255,
+      "log": "command-2.log"
+    }
+  ],
+  "exitCode": 0,
+  "wallSeconds": 22.181579752010293,
+  "files": [
+    {
+      "path": "_wave.c",
+      "sha256": "8efabc5968e5c4150bb85de7c02974bc03d073ca1b3d308d0b4cea971a809a8f",
+      "bytes": 2051188
+    },
+    {
+      "path": "command-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "command-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "compile-wave.py",
+      "sha256": "264f6dc1078d85ad47f024f83a45aecda3f00cb06c71b2dcb76854987bc7ee40",
+      "bytes": 2750
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "4d96a42dc8ddc11fe78944884d789e83c8da457de10e811b49ee78d1e816fc39",
+      "bytes": 2176
+    },
+    {
+      "path": "wave",
+      "sha256": "d0a5568a4d1ffc39aa078b4f16d761478e9a75812d363000a2728dd967c5f184",
+      "bytes": 461944
+    },
+    {
+      "path": "wave-observation.h",
+      "sha256": "c874670a3b587048fb587a5e0534ea30a38f02d9763aecac9ab1cbd9257da513",
+      "bytes": 9461
+    },
+    {
+      "path": "wave-reduced-observation.h",
+      "sha256": "b8006c656359e8d44700cc8a60065dc4c6522c71fc96041022a215505bbcf16c",
+      "bytes": 7230
+    },
+    {
+      "path": "wave-transport-observation.h",
+      "sha256": "c6f1579028dd5404af024c39c41696130d86042f074abe1fd9c34d1bc5df79d7",
+      "bytes": 14696
+    },
+    {
+      "path": "wave.c",
+      "sha256": "cac357ba07088850f53bc1242e2102015a9a1c8d0aaeb75afb78238d20a5cb71",
+      "bytes": 7126
+    }
+  ]
+}

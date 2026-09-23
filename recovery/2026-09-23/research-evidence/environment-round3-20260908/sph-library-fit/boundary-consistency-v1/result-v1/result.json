@@ -1,0 +1,2269 @@
+{
+  "scope": "cold unchanged 600-fluid/2722-boundary initialization; independent cubic half-space/solid-union/air support integrals, 17 fixed probes; no time steps or method switch",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "orders": [
+    24,
+    48
+  ],
+  "oracleThresholds": {
+    "endpoint": 1e-12,
+    "density": 0.0001,
+    "gradientTimesR": 0.0005,
+    "correctedVolumeNormalization": 1e-10
+  },
+  "sources": {
+    "PROPOSAL.md": "82654a41cb10099fb123bd892a4f46172c91306e231b2b41fc4a9586265069c9",
+    "geometry.h": "7e5e8181d94e54e7fed574c53fa582a89feae7a9ab485eb01b33ce48ada18396",
+    "continuum.h": "012d85f997c78d48a148b6f54d5a86bd727f2b5936725842984018de9821181e",
+    "reference.cpp": "5d07558eb71af4564b7455c5c32e5910a68ada9d06c94fc50f63aada7307f57e",
+    "reference": "11c9d11ee00434dee1fabb8dca58b10ac5295c23af7765b55c1e1c71f1d26c1c",
+    "compile-reference.py": "d468096f115bf3a14cf6ecd41a6b537885c9df7192a6a1a272fb30ddcd358f6f",
+    "compile-command.json": "1a66396f63b3fa1f24c23be4337f92dfe3b92c3be46ceda48ee1f50c579b10f7",
+    "run-proof.py": "5861ddc7262b22e18bcf26bd641d20894ce2ca9021f441c83347ad948e9779bf"
+  },
+  "failedTankResultSha256": "00f47dfe93ad78ebe80378d99ca0766565e476741b9177cb419aa55f318cfd96",
+  "frozenLibraries": {
+    "build/lib/libSPlisHSPlasH.a": "68cb48d6331e3a86c695ee69edd8ccc6e8023fad30b4faa2bf017897e11d4d87",
+    "build/extern/install/NeighborhoodSearch/lib/libCompactNSearch.a": "1bb78be2e724e6d8da0f1a9ea04409c8bbe4e577faea8267139ce0c93623c8ad"
+  },
+  "pass": true,
+  "exit": 0,
+  "probes": [
+    {
+      "kind": "probe",
+      "name": "bulk",
+      "positionM": [
+        0.45,
+        0.225,
+        0.45
+      ],
+      "initialParticleId": 264,
+      "nativeFluid": {
+        "density": 1.0031451389156825,
+        "gradientPerM": [
+          0,
+          1.332484469984685e-16,
+          -5.898059818321144e-17
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 1.0033331255517783,
+        "gradientPerM": [
+          1.3945908244804658e-17,
+          -2.7226077878442556e-16,
+          -2.517354311877865e-16
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 1.0000060398670716,
+          "gradientPerM": [
+            -3.7343006053416003e-16,
+            -1.4932253829895415e-16,
+            4.0487380785367505e-17
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.9999999485967409,
+          "gradientPerM": [
+            -5.922700835100607e-16,
+            5.314581657539653e-16,
+            -1.9895913222919918e-16
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.0031451903189415598,
+        "gradientPerM": [
+          5.922700835100607e-16,
+          -3.9820971875549685e-16,
+          1.3997853404598774e-16
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -0.00018798663609587152,
+        "gradientPerM": [
+          -1.3945908244804658e-17,
+          4.0550922578289406e-16,
+          1.9275483300457505e-16
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "expectedCombinedDensity": 0.9999999485967409,
+      "actualCombinedDensity": 1.0031451389156825
+    },
+    {
+      "kind": "probe",
+      "name": "floor",
+      "positionM": [
+        0.45,
+        0.045000000000000005,
+        0.45
+      ],
+      "initialParticleId": 244,
+      "nativeFluid": {
+        "density": 0.8048921865512679,
+        "gradientPerM": [
+          0,
+          5.41232540283454,
+          -5.898059818321144e-17
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.7638342217589568,
+        "gradientPerM": [
+          2.5326962749261384e-16,
+          -9.252532242904955,
+          -7.999243628598052e-16
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.8050368595553825,
+        "gradientPerM": [
+          1.3945908244804658e-17,
+          5.41337122020909,
+          -2.4479653728387926e-16
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.7639093376718809,
+        "gradientPerM": [
+          1.482287407505531e-15,
+          -9.253348895506488,
+          1.8941955964681844e-15
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.7778224242081976,
+          "gradientPerM": [
+            1.2076117031443487e-14,
+            5.139331140221783,
+            1.1886333939480792e-16
+          ]
+        },
+        "solid": {
+          "density": 0.22218081821626476,
+          "gradientPerM": [
+            9.738594022049235e-16,
+            -5.139399968149728,
+            -1.3632651178923142e-17
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.7778189376061522,
+          "gradientPerM": [
+            1.1268038452954767e-14,
+            5.139480171557462,
+            -1.3205225553118643e-18
+          ]
+        },
+        "solid": {
+          "density": 0.22218108014828764,
+          "gradientPerM": [
+            -3.0101208517200007e-15,
+            -5.139486317658902,
+            -1.2118828718602844e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.027073248945115758,
+        "gradientPerM": [
+          -1.1268038452954767e-14,
+          0.2728452312770777,
+          -5.766007562789958e-17
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.5416531416106691,
+        "gradientPerM": [
+          3.2633904792126145e-15,
+          -4.113045925246054,
+          -7.987124799879449e-16
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -0.00014467300411458162,
+        "gradientPerM": [
+          -1.3945908244804658e-17,
+          -0.0010458173745497845,
+          1.8581593910066782e-16
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -7.511591292408415e-05,
+        "gradientPerM": [
+          -1.2290177800129172e-15,
+          0.0008166526015322972,
+          -2.6941199593279896e-15
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000177544397,
+      "actualCombinedDensity": 1.5687264083102246
+    },
+    {
+      "kind": "probe",
+      "name": "side",
+      "positionM": [
+        0.05,
+        0.225,
+        0.45
+      ],
+      "initialParticleId": 260,
+      "nativeFluid": {
+        "density": 0.8386792304896252,
+        "gradientPerM": [
+          5.066958477368336,
+          -8.879615792656281e-17,
+          1.6306400674181987e-16
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.714003903318603,
+        "gradientPerM": [
+          -9.678989334990705,
+          0.08168272499174722,
+          1.9618638311125203e-16
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.8388134165923135,
+        "gradientPerM": [
+          5.068458529972188,
+          -4.0073873622395784e-16,
+          4.473581296308668e-16
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.7140551505577445,
+        "gradientPerM": [
+          -9.679572036189784,
+          0.08168668251681312,
+          5.173057500876349e-16
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.8027252849653708,
+          "gradientPerM": [
+            4.819185020271204,
+            -4.889645918791218e-17,
+            9.197930774234447e-18
+          ]
+        },
+        "solid": {
+          "density": 0.19727752158121437,
+          "gradientPerM": [
+            -4.819341553721563,
+            5.592164457332094e-17,
+            8.114899889496318e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.8027225995799242,
+          "gradientPerM": [
+            4.819409647672508,
+            -7.601341290675167e-17,
+            5.199516709804198e-19
+          ]
+        },
+        "solid": {
+          "density": 0.19727740885518433,
+          "gradientPerM": [
+            -4.8194059637288635,
+            3.638104363923685e-17,
+            -8.48391612089934e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.035956630909701026,
+        "gradientPerM": [
+          0.2475488296958277,
+          -1.2782745019811139e-17,
+          1.6254405507083945e-16
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.5167264944634187,
+        "gradientPerM": [
+          -4.8595833712618415,
+          0.08168272499174718,
+          2.0467029923215137e-16
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -0.0001341861026882274,
+        "gradientPerM": [
+          -0.001500052603851998,
+          3.1194257829739503e-16,
+          -2.8429412288904695e-16
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -5.124723914151641e-05,
+        "gradientPerM": [
+          0.0005827011990788833,
+          -3.95752506589242e-06,
+          -3.211193669763829e-16
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000084351086,
+      "actualCombinedDensity": 1.552683133808228
+    },
+    {
+      "kind": "probe",
+      "name": "vertical-edge",
+      "positionM": [
+        0.05,
+        0.225,
+        0.05
+      ],
+      "initialParticleId": 20,
+      "nativeFluid": {
+        "density": 0.6983598778892423,
+        "gradientPerM": [
+          4.2048081295307975,
+          -8.879615792656281e-17,
+          4.204808129530797
+        ]
+      },
+      "nativeBoundary": {
+        "density": 1.0433736374312623,
+        "gradientPerM": [
+          -3.8067819322487977,
+          0.07197291377605444,
+          -3.8067819322487964
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.6984511524122802,
+        "gradientPerM": [
+          4.205985298305016,
+          -2.8025525192346466e-16,
+          4.205985298305017
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 1.0434450951344794,
+        "gradientPerM": [
+          -3.8069587630235047,
+          0.07197558651440568,
+          -3.8069587630235064
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.6428280421377386,
+          "gradientPerM": [
+            3.8591019150632673,
+            -1.1981933517969518e-16,
+            3.8591019150632695
+          ]
+        },
+        "solid": {
+          "density": 0.35717273899729807,
+          "gradientPerM": [
+            -3.8591224675586986,
+            -6.813162409440138e-17,
+            -3.8591513050754847
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.6428274530723931,
+          "gradientPerM": [
+            3.8591982250629493,
+            2.934157670913372e-17,
+            3.859198225062956
+          ]
+        },
+        "solid": {
+          "density": 0.35717256377712936,
+          "gradientPerM": [
+            -3.859194909489405,
+            -4.677213209245925e-17,
+            -3.8591941045117295
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.05553242481684917,
+        "gradientPerM": [
+          0.34560990446784823,
+          -1.1813773463569654e-16,
+          0.3456099044678407
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.686201073654133,
+        "gradientPerM": [
+          0.05241297724060745,
+          0.07197291377605448,
+          0.052412172262933154
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -9.127452303792083e-05,
+        "gradientPerM": [
+          -0.0011771687742188064,
+          1.9145909399690185e-16,
+          -0.0011771687742205827
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -7.145770321703715e-05,
+        "gradientPerM": [
+          0.00017683077470698194,
+          -2.672738351236492e-06,
+          0.00017683077471009057
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000168495224,
+      "actualCombinedDensity": 1.7417335153205045
+    },
+    {
+      "kind": "probe",
+      "name": "floor-edge",
+      "positionM": [
+        0.05,
+        0.045000000000000005,
+        0.45
+      ],
+      "initialParticleId": 240,
+      "nativeFluid": {
+        "density": 0.6703095964230017,
+        "gradientPerM": [
+          4.055538191253842,
+          4.501722813676843,
+          -2.8102520310824275e-16
+        ]
+      },
+      "nativeBoundary": {
+        "density": 1.0623183464705857,
+        "gradientPerM": [
+          -3.5180821947526204,
+          -3.133596761132826,
+          -2.025858864343477e-15
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.6704119582747222,
+        "gradientPerM": [
+          4.056700871459538,
+          4.502463416106854,
+          4.54297023534774e-16
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 1.0624092410148709,
+        "gradientPerM": [
+          -3.5181354191692513,
+          -3.1340523853051923,
+          1.4675143850209285e-15
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.6228976963972048,
+          "gradientPerM": [
+            3.7393219433408835,
+            4.110919832887621,
+            -8.714063203115428e-18
+          ]
+        },
+        "solid": {
+          "density": 0.3771031777448518,
+          "gradientPerM": [
+            -3.7393969544230408,
+            -4.110953416775427,
+            7.458105248239413e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.6228968236642809,
+          "gradientPerM": [
+            3.7394656651483524,
+            4.11098470342373,
+            -1.2438763306249457e-17
+          ]
+        },
+        "solid": {
+          "density": 0.3771031892311959,
+          "gradientPerM": [
+            -3.7394594674855672,
+            -4.110987493879156,
+            -9.605809085765172e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.0474127727587208,
+        "gradientPerM": [
+          0.31607252610548997,
+          0.3907381102531131,
+          -2.685864398019933e-16
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.6852151572393897,
+        "gradientPerM": [
+          0.22137727273294683,
+          0.97739073274633,
+          -2.016253055257712e-15
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -0.0001023618517205227,
+        "gradientPerM": [
+          -0.0011626802056952101,
+          -0.0007406024300111724,
+          -7.353222266430168e-16
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -9.089454428523602e-05,
+        "gradientPerM": [
+          5.322441663091482e-05,
+          0.00045562417236633124,
+          -3.4933732493644057e-15
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000128954767,
+      "actualCombinedDensity": 1.7326279428935873
+    },
+    {
+      "kind": "probe",
+      "name": "floor-corner",
+      "positionM": [
+        0.05,
+        0.045000000000000005,
+        0.05
+      ],
+      "initialParticleId": 0,
+      "nativeFluid": {
+        "density": 0.5561510044678327,
+        "gradientPerM": [
+          3.3584115173582827,
+          3.7396415310669284,
+          3.358411517358283
+        ]
+      },
+      "nativeBoundary": {
+        "density": 1.224726279767191,
+        "gradientPerM": [
+          -0.8361327031373107,
+          -0.19404232598536236,
+          -0.8361327031373098
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.5562192406082115,
+        "gradientPerM": [
+          3.359340833677918,
+          3.740157486501616,
+          3.3593408336779182
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 1.2248240087964322,
+        "gradientPerM": [
+          -0.8360542182189705,
+          -0.1943190338254957,
+          -0.8360542182189682
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.49763970191570556,
+          "gradientPerM": [
+            2.987110852830879,
+            3.2802378435734636,
+            2.9871108528308827
+          ]
+        },
+        "solid": {
+          "density": 0.5023602043138484,
+          "gradientPerM": [
+            -2.9871693371878107,
+            -3.2803026378450553,
+            -2.987207866437208
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.4976397498423072,
+          "gradientPerM": [
+            2.9872330532501925,
+            3.280332214570979,
+            2.9872330532501747
+          ]
+        },
+        "solid": {
+          "density": 0.502360243748365,
+          "gradientPerM": [
+            -2.987229032228725,
+            -3.280329278812718,
+            -2.9872263765099243
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.05851125462552553,
+        "gradientPerM": [
+          0.3711784641080902,
+          0.45930931649594964,
+          0.3711784641081084
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.722366036018826,
+        "gradientPerM": [
+          2.1510963290914145,
+          3.0862869528273555,
+          2.1510936733726145
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -6.823614037876347e-05,
+        "gradientPerM": [
+          -0.0009293163196351095,
+          -0.0005159554346874096,
+          -0.0009293163196351095
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -9.772902924121141e-05,
+        "gradientPerM": [
+          -7.848491834017146e-05,
+          0.00027670784013333893,
+          -7.848491834161475e-05
+        ]
+      },
+      "expectedCombinedDensity": 0.9999999935906722,
+      "actualCombinedDensity": 1.7808772842350238
+    },
+    {
+      "kind": "probe",
+      "name": "free-surface",
+      "positionM": [
+        0.45,
+        0.49500000000000005,
+        0.45
+      ],
+      "initialParticleId": 294,
+      "nativeFluid": {
+        "density": 0.8048921865512677,
+        "gradientPerM": [
+          0,
+          -5.412325402834541,
+          3.5388358909926865e-16
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.8050368595553821,
+        "gradientPerM": [
+          1.2645839295414257e-16,
+          -5.413371220209087,
+          2.0623156647009058e-16
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.7778224242081982,
+          "gradientPerM": [
+            -1.202697698410879e-14,
+            -5.139331140221784,
+            4.498744184100299e-17
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0.22218081821626492,
+          "gradientPerM": [
+            -1.290916539856417e-15,
+            5.139399968149734,
+            -3.4103644186491566e-17
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.7778189376061523,
+          "gradientPerM": [
+            -1.0953813754575554e-14,
+            -5.1394801715574685,
+            -1.8726625070938343e-17
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0.222181080148288,
+          "gradientPerM": [
+            2.75371410727765e-15,
+            5.1394863176589,
+            1.640074389040708e-17
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.027073248945115425,
+        "gradientPerM": [
+          1.0953813754575554e-14,
+          -0.2728452312770724,
+          3.72610214170207e-16
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -0.00014467300411435957,
+        "gradientPerM": [
+          -1.2645839295414257e-16,
+          0.0010458173745462318,
+          1.4765202262917807e-16
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "expectedCombinedDensity": 0.7778189376061523,
+      "actualCombinedDensity": 0.8048921865512677
+    },
+    {
+      "kind": "probe",
+      "name": "surface-wall",
+      "positionM": [
+        0.05,
+        0.49500000000000005,
+        0.45
+      ],
+      "initialParticleId": 290,
+      "nativeFluid": {
+        "density": 0.6703095964230017,
+        "gradientPerM": [
+          4.055538191253843,
+          -4.501722813676845,
+          -5.342948306008566e-16
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.7161789665841829,
+        "gradientPerM": [
+          -9.714740904917361,
+          -2.6497428874677634e-15,
+          5.291448702815504e-16
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.6704119582747221,
+        "gradientPerM": [
+          4.056700871459537,
+          -4.502463416106853,
+          2.7388578203318606e-16
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.7162302349218808,
+        "gradientPerM": [
+          -9.715324733333869,
+          -2.1905271459528227e-16,
+          1.6800374873199425e-15
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.6228976963972042,
+          "gradientPerM": [
+            3.739321943340884,
+            -4.110919832887625,
+            -3.1531516145590576e-17
+          ]
+        },
+        "solid": {
+          "density": 0.19727752158121437,
+          "gradientPerM": [
+            -4.819341553721563,
+            5.592164457332094e-17,
+            8.114899889496318e-18
+          ]
+        },
+        "air": {
+          "density": 0.17982565616363796,
+          "gradientPerM": [
+            1.0799445992985222,
+            4.110953416775429,
+            -8.727165744018268e-18
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.6228968236642789,
+          "gradientPerM": [
+            3.73946566514835,
+            -4.110984703423742,
+            -3.1713479491836356e-17
+          ]
+        },
+        "solid": {
+          "density": 0.19727740885518433,
+          "gradientPerM": [
+            -4.8194059637288635,
+            3.638104363923685e-17,
+            -8.48391612089934e-18
+          ]
+        },
+        "air": {
+          "density": 0.179825780376012,
+          "gradientPerM": [
+            1.0799464962432916,
+            4.110987493879164,
+            -7.42625853616218e-18
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.0474127727587228,
+        "gradientPerM": [
+          0.3160725261054931,
+          -0.39073811025310334,
+          -5.025813511090202e-16
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.5189015577289986,
+        "gradientPerM": [
+          -4.895334941188498,
+          -2.6861239311070003e-15,
+          5.376287864024498e-16
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -0.00010236185172041168,
+        "gradientPerM": [
+          -0.0011626802056934338,
+          0.0007406024300076197,
+          -8.081806126340426e-16
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -5.1268337697862876e-05,
+        "gradientPerM": [
+          0.0005838284165076146,
+          -2.4306901728724812e-15,
+          -1.150892617038392e-15
+        ]
+      },
+      "expectedCombinedDensity": 0.8201742325194632,
+      "actualCombinedDensity": 1.3864885630071846
+    },
+    {
+      "kind": "probe",
+      "name": "surface-corner",
+      "positionM": [
+        0.05,
+        0.49500000000000005,
+        0.05
+      ],
+      "initialParticleId": 50,
+      "nativeFluid": {
+        "density": 0.5561510044678326,
+        "gradientPerM": [
+          3.358411517358283,
+          -3.7396415310669298,
+          3.3584115173582827
+        ]
+      },
+      "nativeBoundary": {
+        "density": 1.0453962500617762,
+        "gradientPerM": [
+          -3.8105924943156406,
+          -2.6914097086926233e-15,
+          -3.8105924943156397
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.5562192406082114,
+        "gradientPerM": [
+          3.3593408336779174,
+          -3.7401574865016136,
+          3.359340833677918
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 1.0454677287252634,
+        "gradientPerM": [
+          -3.8107690260096105,
+          3.849641640480737e-16,
+          -3.8107690260096114
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.49763970191570533,
+          "gradientPerM": [
+            2.9871108528308805,
+            -3.280237843573467,
+            2.9871108528308743
+          ]
+        },
+        "solid": {
+          "density": 0.35717273899729807,
+          "gradientPerM": [
+            -3.8591224675586986,
+            -6.813162409440138e-17,
+            -3.8591513050754847
+          ]
+        },
+        "air": {
+          "density": 0.14518762745274466,
+          "gradientPerM": [
+            0.8719685485784757,
+            3.2803355302396033,
+            0.8719685485784724
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.49763974984230674,
+          "gradientPerM": [
+            2.987233053250193,
+            -3.280332214570969,
+            2.987233053250167
+          ]
+        },
+        "solid": {
+          "density": 0.35717256377712936,
+          "gradientPerM": [
+            -3.859194909489405,
+            -4.677213209245925e-17,
+            -3.8591941045117295
+          ]
+        },
+        "air": {
+          "density": 0.1451876705747304,
+          "gradientPerM": [
+            0.871965703441556,
+            3.280328535080249,
+            0.8719657034415583
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.058511254625525866,
+        "gradientPerM": [
+          0.3711784641080902,
+          -0.45930931649596074,
+          0.3711784641081155
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.6882236862846468,
+        "gradientPerM": [
+          0.04860241517376451,
+          -2.644637576600164e-15,
+          0.04860161019608977
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -6.823614037876347e-05,
+        "gradientPerM": [
+          -0.0009293163196342213,
+          0.0005159554346838569,
+          -0.0009293163196351095
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -7.147866348722332e-05,
+        "gradientPerM": [
+          0.00017653169396991686,
+          -3.076373872740697e-15,
+          0.00017653169397169322
+        ]
+      },
+      "expectedCombinedDensity": 0.8548123136194361,
+      "actualCombinedDensity": 1.6015472545296088
+    },
+    {
+      "kind": "probe",
+      "name": "planar-q-0.000000",
+      "positionM": [
+        0.5,
+        0,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "nativeFluid": {
+        "density": 0.5025419195827638,
+        "gradientPerM": [
+          3.3723028078758274e-15,
+          7.5958919307617085,
+          2.7213707463446656e-15
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.9999999968461353,
+        "gradientPerM": [
+          3.6846068730833625e-15,
+          0,
+          3.754754753643175e-15
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.5026301481892433,
+        "gradientPerM": [
+          2.4355794700393907e-15,
+          7.596447069942891,
+          1.797836417447877e-15
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 1.0000800523553806,
+        "gradientPerM": [
+          1.4598481096794702e-15,
+          0,
+          1.1018590900230173e-15
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.5000013704116426,
+          "gradientPerM": [
+            6.020086112744259e-15,
+            6.730501068775173,
+            -2.8488100296326273e-18
+          ]
+        },
+        "solid": {
+          "density": 0.5000013704116426,
+          "gradientPerM": [
+            -6.4899946139797515e-15,
+            -6.730501068775173,
+            3.7172045853338646e-17
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.5000000176186186,
+          "gradientPerM": [
+            -9.16226151663576e-15,
+            6.7304917086923695,
+            -1.925136782372546e-17
+          ]
+        },
+        "solid": {
+          "density": 0.5000000176186188,
+          "gradientPerM": [
+            8.634323376090378e-15,
+            -6.730491708692375,
+            -8.325574707115556e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "analyticSolid": 0.49999999999999906,
+      "analyticSolidDerivativePerM": -6.730497994767904,
+      "analyticSkin": 0.9999999999999999,
+      "analyticSkinDerivativePerM": 0,
+      "fluidQuadratureError": {
+        "density": 0.0025419019641452767,
+        "gradientPerM": [
+          1.2534564324511587e-14,
+          0.8654002220693391,
+          2.740622114168391e-15
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.4999999792275165,
+        "gradientPerM": [
+          -4.949716503007016e-15,
+          6.730491708692375,
+          3.76308032835029e-15
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -8.822860647950126e-05,
+        "gradientPerM": [
+          9.367233378364367e-16,
+          -0.0005551391811824402,
+          9.235343288967885e-16
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -8.005550924528038e-05,
+        "gradientPerM": [
+          2.2247587634038923e-15,
+          0,
+          2.6528956636201574e-15
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000352372374,
+      "actualCombinedDensity": 1.5025419164288991
+    },
+    {
+      "kind": "probe",
+      "name": "planar-q-0.125000",
+      "positionM": [
+        0.5,
+        0.026001047788148803,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "nativeFluid": {
+        "density": 0.6899870234210881,
+        "gradientPerM": [
+          4.5363018896793506e-15,
+          6.588478701740188,
+          7.244205235679146e-15
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.9145257408950326,
+        "gradientPerM": [
+          3.3792421782357675e-15,
+          -6.297781557391365,
+          3.454063986598529e-15
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.6899720125172601,
+        "gradientPerM": [
+          2.0395818332273467e-15,
+          6.588273060957823,
+          1.6082257641920472e-15
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.9145055853300454,
+        "gradientPerM": [
+          1.7116068456645703e-15,
+          -6.297585593533304,
+          2.344741133187463e-15
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.6699296559596467,
+          "gradientPerM": [
+            -2.2286602606638724e-15,
+            6.154919660628875,
+            3.2622653400331725e-17
+          ]
+        },
+        "solid": {
+          "density": 0.33007307194542146,
+          "gradientPerM": [
+            -2.7980245810932196e-15,
+            -6.155016757794559,
+            1.9625965146118952e-17
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.669925986983188,
+          "gradientPerM": [
+            -3.5639370548470665e-15,
+            6.154908109449481,
+            -1.2880653193190818e-17
+          ]
+        },
+        "solid": {
+          "density": 0.33007402946058917,
+          "gradientPerM": [
+            -1.2538508314932818e-14,
+            -6.154916223045127,
+            3.3875502151306215e-17
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "analyticSolid": 0.3300740559895825,
+      "analyticSolidDerivativePerM": -6.154912717034544,
+      "analyticSkin": 0.9144810267857142,
+      "analyticSkinDerivativePerM": -6.304476358300613,
+      "fluidQuadratureError": {
+        "density": 0.020061036437900137,
+        "gradientPerM": [
+          8.100238944526417e-15,
+          0.4335705922907067,
+          7.257085888872337e-15
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.5844517114344434,
+        "gradientPerM": [
+          1.5917750493168586e-14,
+          -0.14286533434623738,
+          3.4201884844472226e-15
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": 1.5010903827938904e-05,
+        "gradientPerM": [
+          2.496720056452004e-15,
+          0.00020564078236517958,
+          5.635979471487099e-15
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": 2.0155564987134333e-05,
+        "gradientPerM": [
+          1.6676353325711971e-15,
+          -0.00019596385806064376,
+          1.109322853411066e-15
+        ]
+      },
+      "expectedCombinedDensity": 1.000000016443777,
+      "actualCombinedDensity": 1.6045127643161208
+    },
+    {
+      "kind": "probe",
+      "name": "planar-q-0.250000",
+      "positionM": [
+        0.5,
+        0.052002095576297605,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "nativeFluid": {
+        "density": 0.8378527296524056,
+        "gradientPerM": [
+          5.648259637780484e-15,
+          4.776858322887696,
+          4.718447854656915e-15
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.6967920143915676,
+        "gradientPerM": [
+          2.725250580759564e-15,
+          -9.861024580763212,
+          7.627904384521766e-16
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.8378765966316013,
+        "gradientPerM": [
+          2.158420004664798e-15,
+          4.777477302834504,
+          2.1396725693794637e-15
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.6968283374712603,
+        "gradientPerM": [
+          1.702050860765404e-15,
+          -9.861610908053166,
+          8.066043076233414e-16
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.8122420130801518,
+          "gradientPerM": [
+            4.2271394829080714e-15,
+            4.687148741399582,
+            -1.8920025388564557e-16
+          ]
+        },
+        "solid": {
+          "density": 0.1877606924658927,
+          "gradientPerM": [
+            -7.686628649359315e-16,
+            -4.687209385872106,
+            -8.969635542614712e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.812239610132923,
+          "gradientPerM": [
+            2.056823112262082e-14,
+            4.687323684338012,
+            6.407546170797544e-17
+          ]
+        },
+        "solid": {
+          "density": 0.18776040737836075,
+          "gradientPerM": [
+            -3.675246841223751e-15,
+            -4.687311862401162,
+            2.9150378317863792e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "analyticSolid": 0.18776041666666587,
+      "analyticSolidDerivativePerM": -4.687311103499074,
+      "analyticSkin": 0.6964285714285711,
+      "analyticSkinDerivativePerM": -9.872541701509046,
+      "fluidQuadratureError": {
+        "density": 0.02561311951948264,
+        "gradientPerM": [
+          -1.4919971484840337e-14,
+          0.0895346385496838,
+          4.65437239294894e-15
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.5090316070132068,
+        "gradientPerM": [
+          6.400497421983315e-15,
+          -5.17371271836205,
+          7.598754006203903e-16
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -2.3866979195652505e-05,
+        "gradientPerM": [
+          3.489839633115686e-15,
+          -0.0006189799468083734,
+          2.5787752852774516e-15
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -3.6323079692701654e-05,
+        "gradientPerM": [
+          1.0231997199941599e-15,
+          0.0005863272899535588,
+          -4.381386917116476e-17
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000175112838,
+      "actualCombinedDensity": 1.5346447440439732
+    },
+    {
+      "kind": "probe",
+      "name": "planar-q-0.500000",
+      "positionM": [
+        0.5,
+        0.10400419115259521,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "nativeFluid": {
+        "density": 0.9850962651341049,
+        "gradientPerM": [
+          7.026497439444057e-15,
+          0.892565423842239,
+          8.146261443187086e-15
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.2142329890530361,
+        "gradientPerM": [
+          9.367506770274758e-16,
+          -6.868049404119911,
+          1.27675647831893e-15
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.9852256622423674,
+        "gradientPerM": [
+          3.1127744901303213e-15,
+          0.8914017148446918,
+          4.4351698927953324e-15
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.21425147548229548,
+        "gradientPerM": [
+          1.7354497891460832e-16,
+          -6.868593354994679,
+          2.675915563909575e-16
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.9666693363269634,
+          "gradientPerM": [
+            -1.049194509886743e-14,
+            1.4420413357214195,
+            1.53720498797221e-17
+          ]
+        },
+        "solid": {
+          "density": 0.03333334685311558,
+          "gradientPerM": [
+            2.3177468414837827e-17,
+            -1.442250987674342,
+            -6.7516466830048246e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.9666667115680643,
+          "gradientPerM": [
+            -1.7718508783435097e-14,
+            1.4422561417294077,
+            -6.362658356657469e-17
+          ]
+        },
+        "solid": {
+          "density": 0.03333333383095152,
+          "gradientPerM": [
+            2.5070291748472507e-17,
+            -1.4422491681268566,
+            -2.8954425434604574e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "analyticSolid": 0.033333333333332604,
+      "analyticSolidDerivativePerM": -1.4422495703074063,
+      "analyticSkin": 0.21428571428571402,
+      "analyticSkinDerivativePerM": -6.867855096701945,
+      "fluidQuadratureError": {
+        "density": 0.01842955356604059,
+        "gradientPerM": [
+          2.4745006222879155e-14,
+          -0.5496907178871687,
+          8.209888026753661e-15
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.18089965522208457,
+        "gradientPerM": [
+          9.116803852790033e-16,
+          -5.425800235993054,
+          1.2796519208623905e-15
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -0.00012939710826254114,
+        "gradientPerM": [
+          3.913722949313736e-15,
+          0.0011637089975472525,
+          3.711091550391754e-15
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -1.8486429259390036e-05,
+        "gradientPerM": [
+          7.632056981128675e-16,
+          0.0005439508747677735,
+          1.0091649219279724e-15
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000453990159,
+      "actualCombinedDensity": 1.199329254187141
+    },
+    {
+      "kind": "probe",
+      "name": "planar-q-0.750000",
+      "positionM": [
+        0.5,
+        0.15600628672889283,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "nativeFluid": {
+        "density": 1.0005277174622904,
+        "gradientPerM": [
+          7.396860901565105e-15,
+          0.29237554652736025,
+          6.661338147750939e-15
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.017848781124945434,
+        "gradientPerM": [
+          1.3010426069826053e-16,
+          -1.2946617173083568,
+          1.0755285551056204e-16
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 1.0005111953642065,
+        "gradientPerM": [
+          3.58732630774413e-15,
+          0.2944717526569197,
+          4.539145563517648e-15
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.0178435767538656,
+        "gradientPerM": [
+          6.697939869559351e-17,
+          -1.2944331384182468,
+          7.829678526593076e-17
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.9987016928957727,
+          "gradientPerM": [
+            1.3740337841651132e-14,
+            0.11968788183941656,
+            -3.0456723979753475e-17
+          ]
+        },
+        "solid": {
+          "density": 0.0013020839104538901,
+          "gradientPerM": [
+            -4.9268068423740405e-18,
+            -0.12019020771958816,
+            1.7893571010747095e-19
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.998697955126566,
+          "gradientPerM": [
+            2.0389134942007755e-14,
+            0.12021490053725307,
+            1.2022774235650146e-16
+          ]
+        },
+        "solid": {
+          "density": 0.0013020831950208975,
+          "gradientPerM": [
+            5.104142785176834e-19,
+            -0.12018743305239027,
+            1.6584764486535067e-20
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "analyticSolid": 0.001302083333332979,
+      "analyticSolidDerivativePerM": -0.1201874641922804,
+      "analyticSkin": 0.01785714285714232,
+      "analyticSkinDerivativePerM": -1.287722830631613,
+      "fluidQuadratureError": {
+        "density": 0.0018297623357244053,
+        "gradientPerM": [
+          -1.299227404044265e-14,
+          0.17216064599010716,
+          6.541110405394438e-15
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.016546697929924536,
+        "gradientPerM": [
+          1.2959384641974285e-16,
+          -1.1744742842559666,
+          1.075362707460755e-16
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": 1.6522098083893155e-05,
+        "gradientPerM": [
+          3.809534593820976e-15,
+          -0.0020962061295594636,
+          2.1221925842332913e-15
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": 5.204371079835235e-06,
+        "gradientPerM": [
+          6.312486200266702e-17,
+          -0.00022857889010996502,
+          2.9256070244631275e-17
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000383215868,
+      "actualCombinedDensity": 1.018376498587236
+    },
+    {
+      "kind": "probe",
+      "name": "planar-q-1.000000",
+      "positionM": [
+        0.5,
+        0.20800838230519042,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "nativeFluid": {
+        "density": 0.9994848974233818,
+        "gradientPerM": [
+          7.426351200656711e-15,
+          -0.2758428274546795,
+          8.409939411535561e-15
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.9993584076565503,
+        "gradientPerM": [
+          2.349165288369873e-15,
+          -0.2758929950899461,
+          2.5009549435856628e-15
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 1.0000060398670716,
+          "gradientPerM": [
+            -3.7343006053416003e-16,
+            -1.4932253829895415e-16,
+            4.0487380785367505e-17
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.9999999485967409,
+          "gradientPerM": [
+            -5.922700835100607e-16,
+            5.314581657539653e-16,
+            -1.9895913222919918e-16
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "analyticSolid": 0,
+      "analyticSolidDerivativePerM": 0,
+      "analyticSkin": 0,
+      "analyticSkinDerivativePerM": 0,
+      "fluidQuadratureError": {
+        "density": -0.000515051173359149,
+        "gradientPerM": [
+          8.018621284166772e-15,
+          -0.27584282745468003,
+          8.60889854376476e-15
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": 0.0001264897668314946,
+        "gradientPerM": [
+          5.077185912286838e-15,
+          5.016763526660695e-05,
+          5.908984467949898e-15
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": 0,
+        "gradientPerM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "expectedCombinedDensity": 0.9999999485967409,
+      "actualCombinedDensity": 0.9994848974233818
+    },
+    {
+      "kind": "probe",
+      "name": "zero-edge",
+      "positionM": [
+        0,
+        0.3,
+        0
+      ],
+      "initialParticleId": -1,
+      "nativeFluid": {
+        "density": 0.24972975089646698,
+        "gradientPerM": [
+          3.868041105967775,
+          -0.06472304411135166,
+          3.868041105967775
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.9299350024119879,
+        "gradientPerM": [
+          5.654926419756776,
+          -0.0045619075080067465,
+          5.6549264197567775
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.24970651991795081,
+        "gradientPerM": [
+          3.867710731493317,
+          -0.06436894629265195,
+          3.8677107314933163
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.9299127612777337,
+        "gradientPerM": [
+          5.654443433659724,
+          -0.0042159486957054374,
+          5.654443433659726
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.25000018742457775,
+          "gradientPerM": [
+            3.3652561731811934,
+            -4.386413863416695e-17,
+            3.365256173181194
+          ]
+        },
+        "solid": {
+          "density": 0.7500015578362206,
+          "gradientPerM": [
+            -3.3652448955939795,
+            -5.283018772884468e-17,
+            -3.3652561731811943
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.2500000114348764,
+          "gradientPerM": [
+            3.3652509556989862,
+            -8.714377773278317e-17,
+            3.3652509556989556
+          ]
+        },
+        "solid": {
+          "density": 0.7500000290534904,
+          "gradientPerM": [
+            -3.365240752993375,
+            2.704411067625392e-16,
+            -3.3652509556989565
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": -0.0002702605384093948,
+        "gradientPerM": [
+          0.5027901502687886,
+          -0.06472304411135157,
+          0.5027901502688192
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": 0.1799349733584975,
+        "gradientPerM": [
+          9.020167172750151,
+          -0.004561907508007017,
+          9.020177375455734
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": 2.3230978516169953e-05,
+        "gradientPerM": [
+          0.00033037447445805057,
+          -0.0003540978186997029,
+          0.00033037447445849466
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": 2.224113425419727e-05,
+        "gradientPerM": [
+          0.0004829860970518851,
+          -0.00034595881230130906,
+          0.0004829860970518851
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000404883669,
+      "actualCombinedDensity": 1.179664753308455
+    },
+    {
+      "kind": "probe",
+      "name": "zero-corner",
+      "positionM": [
+        0,
+        0,
+        0
+      ],
+      "initialParticleId": -1,
+      "nativeFluid": {
+        "density": 0.12563547989569096,
+        "gradientPerM": [
+          1.961810082955269,
+          1.8989729826904271,
+          1.961810082955269
+        ]
+      },
+      "nativeBoundary": {
+        "density": 0.7535803010468184,
+        "gradientPerM": [
+          5.520999729645609,
+          5.743600714879258,
+          5.520999729645608
+        ]
+      },
+      "directCubicFluidSameVolumes": {
+        "density": 0.12565753704731092,
+        "gradientPerM": [
+          1.9620709410312993,
+          1.899111767485724,
+          1.9620709410312993
+        ]
+      },
+      "directCubicBoundarySameVolumes": {
+        "density": 0.7536311541639256,
+        "gradientPerM": [
+          5.521482340287036,
+          5.744096197359555,
+          5.521482340287036
+        ]
+      },
+      "continuum24": {
+        "fluid": {
+          "density": 0.1249999787951788,
+          "gradientPerM": [
+            1.682640095598423,
+            1.6826400955984162,
+            1.6826400955984187
+          ]
+        },
+        "solid": {
+          "density": 0.8750015366313996,
+          "gradientPerM": [
+            -1.6826047999955591,
+            -1.6826160775827812,
+            -1.682640095598419
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "continuum48": {
+        "fluid": {
+          "density": 0.12500000070997266,
+          "gradientPerM": [
+            1.6826251267595183,
+            1.682625126759523,
+            1.6826251267595234
+          ]
+        },
+        "solid": {
+          "density": 0.8750000297634628,
+          "gradientPerM": [
+            -1.682615626233858,
+            -1.6826258289394265,
+            -1.6826251267595227
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "fluidQuadratureError": {
+        "density": 0.0006354791857182962,
+        "gradientPerM": [
+          0.2791849561957507,
+          0.21634785593090422,
+          0.27918495619574557
+        ]
+      },
+      "boundaryRepresentationError": {
+        "density": -0.12141972871664442,
+        "gradientPerM": [
+          7.203615355879466,
+          7.426226543818684,
+          7.20362485640513
+        ]
+      },
+      "queryLutFluidDifferenceSameVolumes": {
+        "density": -2.205715161995858e-05,
+        "gradientPerM": [
+          -0.00026085807603037914,
+          -0.00013878479529694232,
+          -0.00026085807603037914
+        ]
+      },
+      "queryLutBoundaryDifferenceSameVolumes": {
+        "density": -5.085311710717466e-05,
+        "gradientPerM": [
+          -0.00048261064142707255,
+          -0.0004954824802974045,
+          -0.00048261064142796073
+        ]
+      },
+      "expectedCombinedDensity": 1.0000000304734356,
+      "actualCombinedDensity": 0.8792157809425094
+    }
+  ],
+  "result": {
+    "kind": "result",
+    "pass": true,
+    "oracleQualified": true,
+    "normalizationQualified": true,
+    "stateUnmoved": true,
+    "probes": 17,
+    "fluidCount": 600,
+    "boundaryCount": 2722,
+    "massKg": 539.999999999994,
+    "radiusM": 0.052002095576297605,
+    "supportM": 0.20800838230519042,
+    "endpointChecks": true,
+    "maxOrderDensityDifference": 6.0912703306881255e-06,
+    "maxOrderGradientTimesR": 0.00010962430678156142,
+    "maxPartitionDensityError": 5.140325909369636e-08,
+    "maxPartitionGradientTimesR": 5.713467092304565e-06,
+    "maxControlDensityError": 2.9763462805476593e-08,
+    "maxControlGradientTimesR": 1.8455456601918023e-06,
+    "maxRawNormalizationError": 3.791480943448728e-09,
+    "maxCorrectedSelfNormalizationError": 9.283323945973526e-16,
+    "maxDirectCubicSameVolumesNormalizationError": 9.774107182883277e-05,
+    "initializationMs": 9.507059,
+    "normalizationMs": 14.051018,
+    "nativeProbeMs": 0.159469,
+    "oracleMs": 36.324106,
+    "numericalPlusProbeOutputMs": 36.872004,
+    "elapsedMs": 60.44858
+  },
+  "nativeCaptureParseSeconds": 0.06459986697882414,
+  "maxChildRssKiB": 21944,
+  "evidenceSha256": {
+    "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout": "5e7ff736ee1559830b2a81dfeb186e460a80db32bb22a05421222b0982d32f37",
+    "initialization.csv": "79eb55f7355639d261e02067c46352ba87737625a7931f44da1419860f47e7ad"
+  }
+}

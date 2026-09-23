@@ -1,0 +1,166 @@
+{
+  "state": "Native toolchain and compiled physical caller; numerical basin not run",
+  "archiveCovers": "All original upstream bytes; post-build archive comparison separately records any changes",
+  "files": [
+    {
+      "path": "ARCHIVE-COMPARISON.md",
+      "bytes": 1503,
+      "sha256": "724e3a06c71b73a773372771b32659d271d6ce70005d25e732f7891272b3e559"
+    },
+    {
+      "path": "FIRST-SHAPE.md",
+      "bytes": 5502,
+      "sha256": "41effa95ad963c2064367ecdeb166fd2c6958a3769eaf04e6cf2a549e6b7bb4e"
+    },
+    {
+      "path": "archive-inventory.json",
+      "bytes": 233995,
+      "sha256": "a6cc43c9d003d772d5cec7091cb129052ef334c7575cdbeacb13e718588383ac"
+    },
+    {
+      "path": "basilisk/src/Makefile.deps",
+      "bytes": 51,
+      "sha256": "1f9019558261e5d584cbd02a1824576c2545667413919d7633aac4bcb98dcb3d"
+    },
+    {
+      "path": "basilisk/src/Makefile.tests",
+      "bytes": 51,
+      "sha256": "1f9019558261e5d584cbd02a1824576c2545667413919d7633aac4bcb98dcb3d"
+    },
+    {
+      "path": "basilisk/src/ast/libast.a",
+      "bytes": 3038482,
+      "sha256": "d7870e04a7e9ae47f1fabb7c31264639d5f5fb66f3144c71911900e5704836ff"
+    },
+    {
+      "path": "basilisk/src/config",
+      "bytes": 1250,
+      "sha256": "12b97e0b7a4576999289b6d5c601f49b20682c1771f47296f7bf5624920101e6"
+    },
+    {
+      "path": "basilisk/src/qcc",
+      "bytes": 1654088,
+      "sha256": "b7429c88f8e39253015d549bfdbd18ce6253833992ff08e3bf738cb1a3521828"
+    },
+    {
+      "path": "basilisk.tar.gz",
+      "bytes": 9617283,
+      "sha256": "a629017cabad6626d71c782510f1d70b078eae44cc1c594c3e6b6fbb808164ae"
+    },
+    {
+      "path": "basin-observation.h",
+      "bytes": 5322,
+      "sha256": "0544aa933596eec97403d8df452a77a6dfea579fbe7eed987be10419f261e1d8"
+    },
+    {
+      "path": "basin.c",
+      "bytes": 3418,
+      "sha256": "d9c156d9d6ff1d1aa763daf1f7976c8a36d922029bc3cd4e124192017c8a66b0"
+    },
+    {
+      "path": "build-toolchain-v2.py",
+      "bytes": 2859,
+      "sha256": "0c74a0f86c683c6addbdcd451aa7a98eb99c90065079ff6147a2d7bd9ab60f8c"
+    },
+    {
+      "path": "build-toolchain.py",
+      "bytes": 2697,
+      "sha256": "2e354ae76ff2b469b36d39d2000cbc65d6a06391de74b25b15be625b51e5f305"
+    },
+    {
+      "path": "caller-build-v1/_basin.c",
+      "bytes": 1816383,
+      "sha256": "b489bcccaca60665da2cd9435a89b82971d1c2529a9513e9f2d78bf0f7aa97bd"
+    },
+    {
+      "path": "caller-build-v1/basin",
+      "bytes": 381160,
+      "sha256": "08bfb3585a886a4cf1f78b7e5ae3b87a9a4c36f5155adb34d0a1c778779fcc6b"
+    },
+    {
+      "path": "caller-build-v1/basin-observation.h",
+      "bytes": 5322,
+      "sha256": "0544aa933596eec97403d8df452a77a6dfea579fbe7eed987be10419f261e1d8"
+    },
+    {
+      "path": "caller-build-v1/basin.c",
+      "bytes": 3418,
+      "sha256": "d9c156d9d6ff1d1aa763daf1f7976c8a36d922029bc3cd4e124192017c8a66b0"
+    },
+    {
+      "path": "caller-build-v1/command-1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "caller-build-v1/command-2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "caller-build-v1/compile-basin.py",
+      "bytes": 1841,
+      "sha256": "46323b7093fe1950faf07c2d76c3330e0d81e7a629e157d76b74d98a8d508e90"
+    },
+    {
+      "path": "caller-build-v1/receipt.json",
+      "bytes": 1931,
+      "sha256": "243b8196e5d43e95f60bfce9e77d475fe1685fd5b09cf9923bfc7ca3530d5925"
+    },
+    {
+      "path": "compile-basin.py",
+      "bytes": 1841,
+      "sha256": "46323b7093fe1950faf07c2d76c3330e0d81e7a629e157d76b74d98a8d508e90"
+    },
+    {
+      "path": "post-build-archive-source-check.json",
+      "bytes": 71,
+      "sha256": "256f165364a75c3060b08541330e229bf649a9d58da506723942af4e90e678cd"
+    },
+    {
+      "path": "read-snapshot-comparison.json",
+      "bytes": 12474,
+      "sha256": "c77e636df5eaf815cd5879133a54eadd58f97b53e1de7dbfc7563951d7292413"
+    },
+    {
+      "path": "run-basin.py",
+      "bytes": 4059,
+      "sha256": "5086d559e9fb585c804c820ba1b0149cd41515e1fabd7648a8518656b89a9ff8"
+    },
+    {
+      "path": "toolchain-build-v1/build-toolchain.py",
+      "bytes": 2697,
+      "sha256": "2e354ae76ff2b469b36d39d2000cbc65d6a06391de74b25b15be625b51e5f305"
+    },
+    {
+      "path": "toolchain-build-v1/command-1.log",
+      "bytes": 3600,
+      "sha256": "21824bad24dfd1483e7405893d2b26da89d6f010b47a913399707e248d00cc69"
+    },
+    {
+      "path": "toolchain-build-v1/receipt.json",
+      "bytes": 662,
+      "sha256": "3487d28d332c4911baee4048d11e1f02d765e8f672fb5dfbadb1727f02e83c58"
+    },
+    {
+      "path": "toolchain-build-v2/command-1.log",
+      "bytes": 585,
+      "sha256": "63d05cff85e1482335f64a19619bb6d53206f13aa618c3add14684b1733b519e"
+    },
+    {
+      "path": "toolchain-build-v2/command-2.log",
+      "bytes": 732,
+      "sha256": "0010a36606e684144b41d522a6114a6f487b03342cbbc34cf3212fc4dcbfbb14"
+    },
+    {
+      "path": "toolchain-build-v2/command-3.log",
+      "bytes": 1357,
+      "sha256": "72d0ed233cc719bceddc64946d7f75dcd0c62c1019bde61217d9d2f1d3fbbfb4"
+    },
+    {
+      "path": "toolchain-build-v2/receipt.json",
+      "bytes": 1753,
+      "sha256": "c109cc557ad0b7a11ae74ea14dd5c816332a6ae4bcca9bf48bc630288ec07a47"
+    }
+  ]
+}

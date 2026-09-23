@@ -1,0 +1,1375 @@
+{
+  "status": "pass",
+  "sourcePins": {
+    "qualify.mjs": "0f043edb0e023b6d2f53e27864231dcbbece05f18d6a3b0b053f9d56a0ffbda4",
+    "CONTRACT.md": "fa9551f512d1eb3c8321481b08d4d254c95dc1af667cc9bf93ef01ac2b14dc53",
+    "../finite-momentum-v1/finite-gas.mjs": "8d24cb07f9e9b19a1f2766d34c84e30e60ad26c3e22eef150b24da9887e2ae5a",
+    "../finite-momentum-v1/momentum.mjs": "4c7af4ed79d2c64079c5d981257efee0ce31f7d7799ac2fd4a42e7820dae1674",
+    "../finite-momentum-v1/projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+    "../finite-momentum-v1/geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+    "../transport-v2/checkpoint/geometry.mjs": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14",
+    "../finite-thermo-v1/checkpoint/thermodynamics.mjs": "b2a58ea2488b91c8ca49db32bff6e5bdf2734977cd89b14da198d0289cd6db4c",
+    "../finite-thermo-v1/checkpoint/definitions.mjs": "536a5cd870d3bed14ceda3b21a01110a0b32dcd24b19d93f556d7f5cfca13ff3",
+    "../linear-buoyancy-oracle-v1/oracle.mjs": "3994179249750d872d478e16f9642019b345104211c91a611e849a53b4b7f9c8",
+    "../linear-buoyancy-oracle-v1/run-v1/proof.json": "6787123a8cabd3b979fe77d5b5a55284639c22471bdd24c108e506f6f895e2c7"
+  },
+  "checks": 309,
+  "groups": [
+    {
+      "name": "initial spatial and amplitude acceleration under actual gravity",
+      "wallSeconds": 1.2660655790000002
+    },
+    {
+      "name": "short-time evolution distinct from initial amplitude and mesh floors",
+      "wallSeconds": 2.2399578090000003
+    },
+    {
+      "name": "finite three-dimensional density circulation and mechanical quality",
+      "wallSeconds": 3.568107094
+    },
+    {
+      "name": "actual moving file restart and authority rejection",
+      "wallSeconds": 4.745714097000001
+    }
+  ],
+  "returnedRKSteps": 136,
+  "exposedEulerStages": 6,
+  "wallSeconds": 11.845833128,
+  "cpuSeconds": 8.878114,
+  "finalRSSBytes": 304037888,
+  "errors": {
+    "probe_4_0.005_local_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_4_0.005_local_U": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_4_0.005_local_P": {
+      "actual": 4.2775163836342167e-19,
+      "expected": 0,
+      "absoluteError": 4.2775163836342167e-19
+    },
+    "probe_4_0.005_total_mass": {
+      "actual": 40.13902224677112,
+      "expected": 40.13902224677112,
+      "absoluteError": 0
+    },
+    "probe_4_0.005_total_U": {
+      "actual": 8640000.000000002,
+      "expected": 8640000.000000002,
+      "absoluteError": 0
+    },
+    "probe_4_0.005_K_operations": {
+      "actual": 2.0406232854092004e-9,
+      "expected": 2.0406232853660555e-9,
+      "absoluteError": 4.314491357015337e-20
+    },
+    "probe_4_0.005_PE_from_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_4_0.005_PE_operations": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.02_local_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.02_local_U": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.02_local_P": {
+      "actual": 5.421010862427522e-20,
+      "expected": 0,
+      "absoluteError": 5.421010862427522e-20
+    },
+    "probe_8_0.02_total_mass": {
+      "actual": 40.139022246771056,
+      "expected": 40.139022246771056,
+      "absoluteError": 0
+    },
+    "probe_8_0.02_total_U": {
+      "actual": 8640000.000000002,
+      "expected": 8640000.000000002,
+      "absoluteError": 0
+    },
+    "probe_8_0.02_K_operations": {
+      "actual": 5.456209181938621e-8,
+      "expected": 5.456209181946975e-8,
+      "absoluteError": 8.353862442295537e-20
+    },
+    "probe_8_0.02_PE_from_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.02_PE_operations": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.01_local_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.01_local_U": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.01_local_P": {
+      "actual": 5.378659215064807e-20,
+      "expected": 0,
+      "absoluteError": 5.378659215064807e-20
+    },
+    "probe_8_0.01_total_mass": {
+      "actual": 40.139022246771184,
+      "expected": 40.139022246771184,
+      "absoluteError": 0
+    },
+    "probe_8_0.01_total_U": {
+      "actual": 8640000.000000002,
+      "expected": 8640000.000000002,
+      "absoluteError": 0
+    },
+    "probe_8_0.01_K_operations": {
+      "actual": 1.3639941685623314e-8,
+      "expected": 1.3639941685676671e-8,
+      "absoluteError": 5.33564582321205e-20
+    },
+    "probe_8_0.01_PE_from_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.01_PE_operations": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.005_local_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.005_local_U": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.005_local_P": {
+      "actual": 5.394541082825825e-20,
+      "expected": 0,
+      "absoluteError": 5.394541082825825e-20
+    },
+    "probe_8_0.005_total_mass": {
+      "actual": 40.13902224677107,
+      "expected": 40.13902224677107,
+      "absoluteError": 0
+    },
+    "probe_8_0.005_total_U": {
+      "actual": 8640000.000000002,
+      "expected": 8640000.000000002,
+      "absoluteError": 0
+    },
+    "probe_8_0.005_K_operations": {
+      "actual": 3.40994909626057e-9,
+      "expected": 3.4099490963095808e-9,
+      "absoluteError": 4.9010864884073166e-20
+    },
+    "probe_8_0.005_PE_from_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.005_PE_operations": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.001_local_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.001_local_U": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.001_local_P": {
+      "actual": 5.407775972626674e-20,
+      "expected": 0,
+      "absoluteError": 5.407775972626674e-20
+    },
+    "probe_8_0.001_total_mass": {
+      "actual": 40.13902224677117,
+      "expected": 40.13902224677117,
+      "absoluteError": 0
+    },
+    "probe_8_0.001_total_U": {
+      "actual": 8640000.000000002,
+      "expected": 8640000.000000002,
+      "absoluteError": 0
+    },
+    "probe_8_0.001_K_operations": {
+      "actual": 1.3639749890269401e-10,
+      "expected": 1.3639749898118614e-10,
+      "absoluteError": 7.849212475274006e-20
+    },
+    "probe_8_0.001_PE_from_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0.001_PE_operations": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0_local_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0_local_U": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0_local_P": {
+      "actual": 5.411846760482429e-20,
+      "expected": 0,
+      "absoluteError": 5.411846760482429e-20
+    },
+    "probe_8_0_total_mass": {
+      "actual": 40.13902224677086,
+      "expected": 40.13902224677086,
+      "absoluteError": 0
+    },
+    "probe_8_0_total_U": {
+      "actual": 8640000.000000002,
+      "expected": 8640000.000000002,
+      "absoluteError": 0
+    },
+    "probe_8_0_K_operations": {
+      "actual": 1.4943676573682618e-26,
+      "expected": 0,
+      "absoluteError": 1.4943676573682618e-26
+    },
+    "probe_8_0_PE_from_mass": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "probe_8_0_PE_operations": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "uniform_gravity_rest": {
+      "actual": 6.103971494919591e-14,
+      "expected": 0,
+      "absoluteError": 6.103971494919591e-14
+    },
+    "short_0.25_local_mass": {
+      "actual": 6.938893903907228e-17,
+      "expected": 0,
+      "absoluteError": 6.938893903907228e-17
+    },
+    "short_0.25_local_U": {
+      "actual": 1.8189894035458565e-11,
+      "expected": 0,
+      "absoluteError": 1.8189894035458565e-11
+    },
+    "short_0.25_local_P": {
+      "actual": 8.271784949706595e-17,
+      "expected": 0,
+      "absoluteError": 8.271784949706595e-17
+    },
+    "short_0.25_total_mass": {
+      "actual": 40.13902224677116,
+      "expected": 40.13902224677117,
+      "absoluteError": 7.105427357601002e-15
+    },
+    "short_0.25_total_U": {
+      "actual": 8640000.000000006,
+      "expected": 8640000.000000002,
+      "absoluteError": 3.725290298461914e-9
+    },
+    "short_0.25_K_operations": {
+      "actual": 0.000008938097198719105,
+      "expected": 0.000008938097198668054,
+      "absoluteError": 5.105067573101668e-17
+    },
+    "short_0.25_PE_from_mass": {
+      "actual": -0.000008938414794101845,
+      "expected": -0.000008938414764497488,
+      "absoluteError": 2.9604357160151196e-14
+    },
+    "short_0.25_PE_operations": {
+      "actual": -0.000008938414737258427,
+      "expected": -0.000008938414764497488,
+      "absoluteError": 2.723906170065682e-14
+    },
+    "short_0.125_local_mass": {
+      "actual": 8.326672684688674e-17,
+      "expected": 0,
+      "absoluteError": 8.326672684688674e-17
+    },
+    "short_0.125_local_U": {
+      "actual": 2.1827872842550278e-11,
+      "expected": 0,
+      "absoluteError": 2.1827872842550278e-11
+    },
+    "short_0.125_local_P": {
+      "actual": 3.7332130117286033e-17,
+      "expected": 0,
+      "absoluteError": 3.7332130117286033e-17
+    },
+    "short_0.125_total_mass": {
+      "actual": 40.13902224677113,
+      "expected": 40.13902224677117,
+      "absoluteError": 4.263256414560601e-14
+    },
+    "short_0.125_total_U": {
+      "actual": 8640000.000000007,
+      "expected": 8640000.000000002,
+      "absoluteError": 5.587935447692871e-9
+    },
+    "short_0.125_K_operations": {
+      "actual": 0.000002234683540162675,
+      "expected": 0.000002234683540606899,
+      "absoluteError": 4.4422388808867605e-16
+    },
+    "short_0.125_PE_from_mass": {
+      "actual": -0.000002234703117665049,
+      "expected": -0.000002234703096218678,
+      "absoluteError": 2.1446371086908216e-14
+    },
+    "short_0.125_PE_operations": {
+      "actual": -0.000002234703117665049,
+      "expected": -0.000002234703096218678,
+      "absoluteError": 2.1446371086908216e-14
+    },
+    "short_0.0625_local_mass": {
+      "actual": 1.1102230246251565e-16,
+      "expected": 0,
+      "absoluteError": 1.1102230246251565e-16
+    },
+    "short_0.0625_local_U": {
+      "actual": 2.546585164964199e-11,
+      "expected": 0,
+      "absoluteError": 2.546585164964199e-11
+    },
+    "short_0.0625_local_P": {
+      "actual": 1.873975692505414e-17,
+      "expected": 0,
+      "absoluteError": 1.873975692505414e-17
+    },
+    "short_0.0625_total_mass": {
+      "actual": 40.13902224677117,
+      "expected": 40.13902224677117,
+      "absoluteError": 0
+    },
+    "short_0.0625_total_U": {
+      "actual": 8640000.000000011,
+      "expected": 8640000.000000002,
+      "absoluteError": 9.313225746154785e-9
+    },
+    "short_0.0625_K_operations": {
+      "actual": 5.586808378693908e-7,
+      "expected": 5.586808380005498e-7,
+      "absoluteError": 1.3115902847582895e-16
+    },
+    "short_0.0625_PE_from_mass": {
+      "actual": -5.586820748249011e-7,
+      "expected": -5.586820568521697e-7,
+      "absoluteError": 1.7972731321865693e-14
+    },
+    "short_0.0625_PE_operations": {
+      "actual": -5.586820748249011e-7,
+      "expected": -5.586820568521697e-7,
+      "absoluteError": 1.7972731321865693e-14
+    },
+    "moving_4_0.03125_local_mass": {
+      "actual": 1.1102230246251565e-15,
+      "expected": 0,
+      "absoluteError": 1.1102230246251565e-15
+    },
+    "moving_4_0.03125_local_U": {
+      "actual": 3.2014213502407074e-10,
+      "expected": 0,
+      "absoluteError": 3.2014213502407074e-10
+    },
+    "moving_4_0.03125_local_P": {
+      "actual": 2.9004576518332215e-15,
+      "expected": 0,
+      "absoluteError": 2.9004576518332215e-15
+    },
+    "moving_4_0.03125_total_mass": {
+      "actual": 40.139022246771155,
+      "expected": 40.13902224677116,
+      "absoluteError": 7.105427357601002e-15
+    },
+    "moving_4_0.03125_total_U": {
+      "actual": 8640000.000000004,
+      "expected": 8640000.000000002,
+      "absoluteError": 1.862645149230957e-9
+    },
+    "moving_4_0.03125_K_operations": {
+      "actual": 0.7319421396108398,
+      "expected": 0.7319421396108438,
+      "absoluteError": 3.9968028886505635e-15
+    },
+    "moving_4_0.03125_PE_from_mass": {
+      "actual": -0.7612668992405816,
+      "expected": -0.7612668992405648,
+      "absoluteError": 1.6764367671839864e-14
+    },
+    "moving_4_0.03125_PE_operations": {
+      "actual": -0.7612668992406384,
+      "expected": -0.7612668992405648,
+      "absoluteError": 7.360778653264788e-14
+    },
+    "moving_8_0.0625_local_mass": {
+      "actual": 1.1102230246251565e-16,
+      "expected": 0,
+      "absoluteError": 1.1102230246251565e-16
+    },
+    "moving_8_0.0625_local_U": {
+      "actual": 2.9103830456733704e-11,
+      "expected": 0,
+      "absoluteError": 2.9103830456733704e-11
+    },
+    "moving_8_0.0625_local_P": {
+      "actual": 5.273559366969494e-16,
+      "expected": 0,
+      "absoluteError": 5.273559366969494e-16
+    },
+    "moving_8_0.0625_total_mass": {
+      "actual": 40.13902224677119,
+      "expected": 40.139022246771155,
+      "absoluteError": 3.552713678800501e-14
+    },
+    "moving_8_0.0625_total_U": {
+      "actual": 8640000.000000004,
+      "expected": 8640000.000000002,
+      "absoluteError": 1.862645149230957e-9
+    },
+    "moving_8_0.0625_K_operations": {
+      "actual": 1.2235566639994109,
+      "expected": 1.2235566639994055,
+      "absoluteError": 5.329070518200751e-15
+    },
+    "moving_8_0.0625_PE_from_mass": {
+      "actual": -1.293560733336676,
+      "expected": -1.2935607333366659,
+      "absoluteError": 1.021405182655144e-14
+    },
+    "moving_8_0.0625_PE_operations": {
+      "actual": -1.2935607333366477,
+      "expected": -1.2935607333366659,
+      "absoluteError": 1.8207657603852567e-14
+    },
+    "moving_8_0.03125_local_mass": {
+      "actual": 1.3877787807814457e-16,
+      "expected": 0,
+      "absoluteError": 1.3877787807814457e-16
+    },
+    "moving_8_0.03125_local_U": {
+      "actual": 4.3655745685100555e-11,
+      "expected": 0,
+      "absoluteError": 4.3655745685100555e-11
+    },
+    "moving_8_0.03125_local_P": {
+      "actual": 6.435824095873954e-16,
+      "expected": 0,
+      "absoluteError": 6.435824095873954e-16
+    },
+    "moving_8_0.03125_total_mass": {
+      "actual": 40.13902224677111,
+      "expected": 40.139022246771155,
+      "absoluteError": 4.263256414560601e-14
+    },
+    "moving_8_0.03125_total_U": {
+      "actual": 8640000.000000007,
+      "expected": 8640000.000000002,
+      "absoluteError": 5.587935447692871e-9
+    },
+    "moving_8_0.03125_K_operations": {
+      "actual": 1.2235088498155267,
+      "expected": 1.2235088498155104,
+      "absoluteError": 1.6209256159527285e-14
+    },
+    "moving_8_0.03125_PE_from_mass": {
+      "actual": -1.2932339429640933,
+      "expected": -1.29323394296405,
+      "absoluteError": 4.3298697960381105e-14
+    },
+    "moving_8_0.03125_PE_operations": {
+      "actual": -1.293233942964065,
+      "expected": -1.29323394296405,
+      "absoluteError": 1.4876988529977098e-14
+    },
+    "continued_local_mass": {
+      "actual": 1.1102230246251565e-16,
+      "expected": 0,
+      "absoluteError": 1.1102230246251565e-16
+    },
+    "continued_local_U": {
+      "actual": 2.9103830456733704e-11,
+      "expected": 0,
+      "absoluteError": 2.9103830456733704e-11
+    },
+    "continued_local_P": {
+      "actual": 1.9081958235744878e-16,
+      "expected": 0,
+      "absoluteError": 1.9081958235744878e-16
+    },
+    "continued_total_mass": {
+      "actual": 40.13902224677111,
+      "expected": 40.13902224677114,
+      "absoluteError": 2.842170943040401e-14
+    },
+    "continued_total_U": {
+      "actual": 8640000.000000007,
+      "expected": 8640000.000000006,
+      "absoluteError": 1.862645149230957e-9
+    },
+    "continued_K_operations": {
+      "actual": 0.8790127367455629,
+      "expected": 0.8790127367455617,
+      "absoluteError": 1.2212453270876722e-15
+    },
+    "continued_PE_from_mass": {
+      "actual": -0.9438143682511395,
+      "expected": -0.9438143682511305,
+      "absoluteError": 8.992806499463768e-15
+    },
+    "continued_PE_operations": {
+      "actual": -0.9438143682510827,
+      "expected": -0.9438143682511305,
+      "absoluteError": 4.785061236134425e-14
+    }
+  },
+  "cases": {
+    "initial": {
+      "coarse": {
+        "n": 4,
+        "epsilon": 0.005,
+        "exposedEulerStage": true,
+        "interval": 0.0009765625,
+        "accelerationRelativeL2": 0.10501026899659316,
+        "componentRelativeL2": [
+          0.04895965210102913,
+          0.12135328736957829,
+          0.04895965210102912
+        ],
+        "momentumRateRelativeL2": 0.10501669193545322,
+        "pressure": {
+          "relativeL2": 0.058399206093492154,
+          "maxErrorPa": 0.0005104690974702675,
+          "rangeToP0": 0.00018466710989380162,
+          "forceTime": 0,
+          "constraintTime": 0.0009765625,
+          "interval": 0.0009765625,
+          "constraintM3S": 4.2214014461423323e-14,
+          "linearResidual": 4.221824242544856e-14,
+          "iterations": 27
+        },
+        "laws": {
+          "massResidualKg": 0,
+          "energyResidualJ": 0,
+          "momentumResidualKgMS": [
+            0,
+            -1.6653345369377348e-16,
+            0
+          ],
+          "constraintM3S": 4.2214014461423323e-14,
+          "eosRelative": 1.4551915228366853e-16,
+          "maxMach": 3.354207577231481e-8,
+          "temperatureRangeK": [
+            299.4536700477127,
+            300.54832706896343
+          ],
+          "kineticChangeJ": 2.0406232854092004e-9,
+          "potentialChangeJ": 0,
+          "mechanicalResidualJ": 2.040621893684147e-9,
+          "operations": {
+            "advectionKChangeJ": 0,
+            "bodyKChangeJ": 0.0018419375223362399,
+            "wallConstraintKChangeJ": -0.0004604843805840592,
+            "pressureKChangeJ": -0.0013814511011288953,
+            "rkAveragingKChangeJ": 0,
+            "potentialEnergyChangeJ": 0
+          },
+          "cells": 64,
+          "faces": 176,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 1,
+            "pressureSolves": 1,
+            "iterations": 27,
+            "matrixProducts": 27,
+            "workspaceBytes": 8320,
+            "eulerAttempts": 1,
+            "eulerStages": 1,
+            "faceEvaluations": 176,
+            "dualTransferAttempts": 1,
+            "dualFaceEvaluations": 576,
+            "thermodynamicCellReads": 448,
+            "dualNodes": 208,
+            "dualInterfaces": 576
+          }
+        }
+      },
+      "fine": [
+        {
+          "n": 8,
+          "epsilon": 0.02,
+          "exposedEulerStage": true,
+          "interval": 0.0009765625,
+          "accelerationRelativeL2": 0.027444470017396604,
+          "componentRelativeL2": [
+            0.013196156510473464,
+            0.031645290478250356,
+            0.013196156510498448
+          ],
+          "momentumRateRelativeL2": 0.027341154245138947,
+          "pressure": {
+            "relativeL2": 0.02502313688292739,
+            "maxErrorPa": 0.0018845300573981372,
+            "rangeToP0": 0.00021608442574613915,
+            "forceTime": 0,
+            "constraintTime": 0.0009765625,
+            "interval": 0.0009765625,
+            "constraintM3S": 5.174295004133523e-14,
+            "linearResidual": 5.174601660765621e-14,
+            "iterations": 63
+          },
+          "laws": {
+            "massResidualKg": 0,
+            "energyResidualJ": 0,
+            "momentumResidualKgMS": [
+              0,
+              -9.367506770274758e-16,
+              0
+            ],
+            "constraintM3S": 5.174294665320344e-14,
+            "eosRelative": 2.9103830456733706e-16,
+            "maxMach": 3.019197165391994e-7,
+            "temperatureRangeK": [
+              295.33433077442675,
+              304.8154512433971
+            ],
+            "kineticChangeJ": 5.456209181938621e-8,
+            "potentialChangeJ": 0,
+            "mechanicalResidualJ": 5.4562065088248346e-8,
+            "operations": {
+              "advectionKChangeJ": 0,
+              "bodyKChangeJ": 0.001841937522336242,
+              "wallConstraintKChangeJ": -0.00023024219029203156,
+              "pressureKChangeJ": -0.001611640769952391,
+              "rkAveragingKChangeJ": 0,
+              "potentialEnergyChangeJ": 0
+            },
+            "cells": 512,
+            "faces": 1472,
+            "work": {
+              "topologyBuilds": 1,
+              "coefficientBuilds": 1,
+              "pressureSolves": 1,
+              "iterations": 63,
+              "matrixProducts": 63,
+              "workspaceBytes": 68096,
+              "eulerAttempts": 1,
+              "eulerStages": 1,
+              "faceEvaluations": 1472,
+              "dualTransferAttempts": 1,
+              "dualFaceEvaluations": 4608,
+              "thermodynamicCellReads": 3584,
+              "dualNodes": 1600,
+              "dualInterfaces": 4608
+            }
+          }
+        },
+        {
+          "n": 8,
+          "epsilon": 0.01,
+          "exposedEulerStage": true,
+          "interval": 0.0009765625,
+          "accelerationRelativeL2": 0.026734745347552626,
+          "componentRelativeL2": [
+            0.012114850966541241,
+            0.030955144518533716,
+            0.012114850966500477
+          ],
+          "momentumRateRelativeL2": 0.02670831381497272,
+          "pressure": {
+            "relativeL2": 0.019326350060332963,
+            "maxErrorPa": 0.0007332471559700904,
+            "rangeToP0": 0.00021571407831924227,
+            "forceTime": 0,
+            "constraintTime": 0.0009765625,
+            "interval": 0.0009765625,
+            "constraintM3S": 4.9120876226243354e-14,
+            "linearResidual": 4.9103402404267195e-14,
+            "iterations": 63
+          },
+          "laws": {
+            "massResidualKg": 0,
+            "energyResidualJ": 0,
+            "momentumResidualKgMS": [
+              0,
+              1.3877787807814457e-17,
+              0
+            ],
+            "constraintM3S": 4.9120876226243354e-14,
+            "eosRelative": 1.4551915228366853e-16,
+            "maxMach": 1.5086439337071248e-7,
+            "temperatureRangeK": [
+              297.648882828828,
+              302.3885556661114
+            ],
+            "kineticChangeJ": 1.3639941685623314e-8,
+            "potentialChangeJ": 0,
+            "mechanicalResidualJ": 1.3639919416164048e-8,
+            "operations": {
+              "advectionKChangeJ": 0,
+              "bodyKChangeJ": 0.0018419375223362423,
+              "wallConstraintKChangeJ": -0.0002302421902920294,
+              "pressureKChangeJ": -0.0016116816921025272,
+              "rkAveragingKChangeJ": 0,
+              "potentialEnergyChangeJ": 0
+            },
+            "cells": 512,
+            "faces": 1472,
+            "work": {
+              "topologyBuilds": 1,
+              "coefficientBuilds": 1,
+              "pressureSolves": 1,
+              "iterations": 63,
+              "matrixProducts": 63,
+              "workspaceBytes": 68096,
+              "eulerAttempts": 1,
+              "eulerStages": 1,
+              "faceEvaluations": 1472,
+              "dualTransferAttempts": 1,
+              "dualFaceEvaluations": 4608,
+              "thermodynamicCellReads": 3584,
+              "dualNodes": 1600,
+              "dualInterfaces": 4608
+            }
+          }
+        },
+        {
+          "n": 8,
+          "epsilon": 0.005,
+          "exposedEulerStage": true,
+          "interval": 0.0009765625,
+          "accelerationRelativeL2": 0.026554415452096393,
+          "componentRelativeL2": [
+            0.01182920284841605,
+            0.030780251876387412,
+            0.011829202848481995
+          ],
+          "momentumRateRelativeL2": 0.026547768049999712,
+          "pressure": {
+            "relativeL2": 0.016636963505389065,
+            "maxErrorPa": 0.0003144735758870282,
+            "rangeToP0": 0.00021552734997019396,
+            "forceTime": 0,
+            "constraintTime": 0.0009765625,
+            "interval": 0.0009765625,
+            "constraintM3S": 9.042627537465256e-14,
+            "linearResidual": 9.045411397460086e-14,
+            "iterations": 62
+          },
+          "laws": {
+            "massResidualKg": 0,
+            "energyResidualJ": 0,
+            "momentumResidualKgMS": [
+              0,
+              -3.191891195797325e-16,
+              0
+            ],
+            "constraintM3S": 9.042627537465256e-14,
+            "eosRelative": 1.4551915228366853e-16,
+            "maxMach": 7.540849392219513e-8,
+            "temperatureRangeK": [
+              298.81981683289854,
+              301.1895423528441
+            ],
+            "kineticChangeJ": 3.40994909626057e-9,
+            "potentialChangeJ": 0,
+            "mechanicalResidualJ": 3.409923010622151e-9,
+            "operations": {
+              "advectionKChangeJ": 0,
+              "bodyKChangeJ": 0.0018419375223362453,
+              "wallConstraintKChangeJ": -0.00023024219029203373,
+              "pressureKChangeJ": -0.0016116919220951153,
+              "rkAveragingKChangeJ": 0,
+              "potentialEnergyChangeJ": 0
+            },
+            "cells": 512,
+            "faces": 1472,
+            "work": {
+              "topologyBuilds": 1,
+              "coefficientBuilds": 1,
+              "pressureSolves": 1,
+              "iterations": 62,
+              "matrixProducts": 62,
+              "workspaceBytes": 68096,
+              "eulerAttempts": 1,
+              "eulerStages": 1,
+              "faceEvaluations": 1472,
+              "dualTransferAttempts": 1,
+              "dualFaceEvaluations": 4608,
+              "thermodynamicCellReads": 3584,
+              "dualNodes": 1600,
+              "dualInterfaces": 4608
+            }
+          }
+        }
+      ],
+      "amplitudeDifferences": [
+        0.0059355452568942944,
+        0.0029669871987053763
+      ],
+      "amplitudeRatio": 2.000529445992968,
+      "anchor": {
+        "n": 8,
+        "epsilon": 0.001,
+        "exposedEulerStage": true,
+        "interval": 0.0009765625,
+        "accelerationRelativeL2": 0.026496456219510696,
+        "componentRelativeL2": [
+          0.011736337089340933,
+          0.030724081174817962,
+          0.011736337089281366
+        ],
+        "momentumRateRelativeL2": 0.026496189831423385,
+        "pressure": {
+          "relativeL2": 0.014614119084120893,
+          "maxErrorPa": 0.0000545605681430447,
+          "rangeToP0": 0.0002153772193130715,
+          "forceTime": 0,
+          "constraintTime": 0.0009765625,
+          "interval": 0.0009765625,
+          "constraintM3S": 9.364687574634544e-14,
+          "linearResidual": 9.36515816258033e-14,
+          "iterations": 60
+        },
+        "laws": {
+          "massResidualKg": 0,
+          "energyResidualJ": 0,
+          "momentumResidualKgMS": [
+            0,
+            -7.355227538141662e-16,
+            0
+          ],
+          "constraintM3S": 9.364687574634544e-14,
+          "eosRelative": 1.4551915228366853e-16,
+          "maxMach": 1.507792226295479e-8,
+          "temperatureRangeK": [
+            299.76321817745634,
+            300.23715618436734
+          ],
+          "kineticChangeJ": 1.3639749890269401e-10,
+          "potentialChangeJ": 0,
+          "mechanicalResidualJ": 1.3642420526593924e-10,
+          "operations": {
+            "advectionKChangeJ": 0,
+            "bodyKChangeJ": 0.0018419375223362423,
+            "wallConstraintKChangeJ": -0.00023024219029202917,
+            "pressureKChangeJ": -0.0016116951956467141,
+            "rkAveragingKChangeJ": 0,
+            "potentialEnergyChangeJ": 0
+          },
+          "cells": 512,
+          "faces": 1472,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 1,
+            "pressureSolves": 1,
+            "iterations": 60,
+            "matrixProducts": 60,
+            "workspaceBytes": 68096,
+            "eulerAttempts": 1,
+            "eulerStages": 1,
+            "faceEvaluations": 1472,
+            "dualTransferAttempts": 1,
+            "dualFaceEvaluations": 4608,
+            "thermodynamicCellReads": 3584,
+            "dualNodes": 1600,
+            "dualInterfaces": 4608
+          }
+        }
+      }
+    },
+    "uniform": {
+      "n": 8,
+      "epsilon": 0,
+      "exposedEulerStage": true,
+      "laws": {
+        "massResidualKg": 0,
+        "energyResidualJ": 0,
+        "momentumResidualKgMS": [
+          0,
+          -2.1649348980190553e-15,
+          0
+        ],
+        "constraintM3S": 4.0171964180344206e-14,
+        "eosRelative": 0,
+        "maxMach": 1.7581058001137169e-16,
+        "temperatureRangeK": [
+          300,
+          300
+        ],
+        "kineticChangeJ": 1.4943676573682618e-26,
+        "potentialChangeJ": 0,
+        "mechanicalResidualJ": 0,
+        "operations": {
+          "advectionKChangeJ": 0,
+          "bodyKChangeJ": 0.0018419375223362173,
+          "wallConstraintKChangeJ": -0.00023024219029202202,
+          "pressureKChangeJ": -0.0016116953320441953,
+          "rkAveragingKChangeJ": 0,
+          "potentialEnergyChangeJ": 0
+        },
+        "cells": 512,
+        "faces": 1472,
+        "work": {
+          "topologyBuilds": 1,
+          "coefficientBuilds": 1,
+          "pressureSolves": 1,
+          "iterations": 55,
+          "matrixProducts": 55,
+          "workspaceBytes": 68096,
+          "eulerAttempts": 1,
+          "eulerStages": 1,
+          "faceEvaluations": 1472,
+          "dualTransferAttempts": 1,
+          "dualFaceEvaluations": 4608,
+          "thermodynamicCellReads": 3584,
+          "dualNodes": 1600,
+          "dualInterfaces": 4608
+        }
+      }
+    },
+    "shortTime": [
+      {
+        "time": 0.25,
+        "dt": 0.03125,
+        "returnedRKSteps": 8,
+        "discreteInitialRelativeDrift": 0.0000797137473005865,
+        "continuumInitialRelativeError": 0.026540142198536915,
+        "maxVelocityMS": 0.0013405941388464698,
+        "massChangeRelativeL1": 4.203784217285393e-8,
+        "maxStageConstraintM3S": 6.76894209628888e-13,
+        "maxStageEOSRelative": 8.394999895244837e-13,
+        "maxStageMach": 0.000004342167219918293,
+        "laws": {
+          "massResidualKg": 0,
+          "energyResidualJ": 0,
+          "momentumResidualKgMS": [
+            -1.1092129381405955e-20,
+            1.2434497875801753e-14,
+            -7.547276632747316e-20
+          ],
+          "constraintM3S": 6.76894209628888e-13,
+          "eosRelative": 6.399932317435741e-13,
+          "maxMach": 0.000003859741810078238,
+          "temperatureRangeK": [
+            299.76321818585956,
+            300.23715617592944
+          ],
+          "kineticChangeJ": 0.000008938097198719105,
+          "potentialChangeJ": -0.000008938414794101845,
+          "mechanicalResidualJ": -3.175841811753344e-10,
+          "operations": {
+            "advectionKChangeJ": -4.203482954998099e-10,
+            "bodyKChangeJ": 15.089161121568335,
+            "wallConstraintKChangeJ": -1.886144022874588,
+            "pressureKChangeJ": -13.203007042914045,
+            "rkAveragingKChangeJ": -0.0000011172621553872731,
+            "potentialEnergyChangeJ": -0.000008938414737258427
+          },
+          "cells": 512,
+          "faces": 1472,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 24,
+            "pressureSolves": 24,
+            "iterations": 1104,
+            "matrixProducts": 1104,
+            "workspaceBytes": 68096,
+            "eulerAttempts": 16,
+            "eulerStages": 16,
+            "faceEvaluations": 23552,
+            "dualTransferAttempts": 16,
+            "dualFaceEvaluations": 73728,
+            "thermodynamicCellReads": 35840,
+            "dualNodes": 1600,
+            "dualInterfaces": 4608
+          }
+        }
+      },
+      {
+        "time": 0.125,
+        "dt": 0.015625,
+        "returnedRKSteps": 8,
+        "discreteInitialRelativeDrift": 0.00001992939934335972,
+        "continuumInitialRelativeError": 0.026507362448766114,
+        "maxVelocityMS": 0.0006703239579686856,
+        "massChangeRelativeL1": 1.0509757676256469e-8,
+        "maxStageConstraintM3S": 1.2515095432425252e-13,
+        "maxStageEOSRelative": 1.5410478226840497e-13,
+        "maxStageMach": 0.000002171186498123056,
+        "laws": {
+          "massResidualKg": 0,
+          "energyResidualJ": 0,
+          "momentumResidualKgMS": [
+            -1.540634363458274e-20,
+            -2.042810365310288e-14,
+            -3.3221625258336906e-20
+          ],
+          "constraintM3S": 1.2515094754798894e-13,
+          "eosRelative": 1.3998942449688912e-13,
+          "maxMach": 0.0000019299482547971803,
+          "temperatureRangeK": [
+            299.76321817797736,
+            300.23715618384944
+          ],
+          "kineticChangeJ": 0.000002234683540162675,
+          "potentialChangeJ": -0.000002234703117665049,
+          "mechanicalResidualJ": -1.9554136088117957e-11,
+          "operations": {
+            "advectionKChangeJ": -2.627461245966396e-11,
+            "bodyKChangeJ": 3.772290280458663,
+            "wallConstraintKChangeJ": -0.47153600571822074,
+            "pressureKChangeJ": -3.300751760695184,
+            "rkAveragingKChangeJ": -2.793354426060075e-7,
+            "potentialEnergyChangeJ": -0.000002234703117665049
+          },
+          "cells": 512,
+          "faces": 1472,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 24,
+            "pressureSolves": 24,
+            "iterations": 1048,
+            "matrixProducts": 1048,
+            "workspaceBytes": 68096,
+            "eulerAttempts": 16,
+            "eulerStages": 16,
+            "faceEvaluations": 23552,
+            "dualTransferAttempts": 16,
+            "dualFaceEvaluations": 73728,
+            "thermodynamicCellReads": 35840,
+            "dualNodes": 1600,
+            "dualInterfaces": 4608
+          }
+        }
+      },
+      {
+        "time": 0.0625,
+        "dt": 0.0078125,
+        "returnedRKSteps": 8,
+        "discreteInitialRelativeDrift": 0.000004982474489152743,
+        "continuumInitialRelativeError": 0.026499181515896437,
+        "maxVelocityMS": 0.0003351653395686507,
+        "massChangeRelativeL1": 2.6274579310111477e-9,
+        "maxStageConstraintM3S": 6.1310521123312e-14,
+        "maxStageEOSRelative": 7.319613359868526e-14,
+        "maxStageMach": 0.0000010856061079826974,
+        "laws": {
+          "massResidualKg": 0,
+          "energyResidualJ": 0,
+          "momentumResidualKgMS": [
+            -5.929230627251799e-21,
+            -7.993605777301127e-15,
+            5.293955908136685e-22
+          ],
+          "constraintM3S": 5.134697632629571e-14,
+          "eosRelative": 6.461050361394883e-14,
+          "maxMach": 9.64983794726208e-7,
+          "temperatureRangeK": [
+            299.76321817748834,
+            300.23715618433505
+          ],
+          "kineticChangeJ": 5.586808378693908e-7,
+          "potentialChangeJ": -5.586820748249011e-7,
+          "mechanicalResidualJ": -1.2505552149377763e-12,
+          "operations": {
+            "advectionKChangeJ": -1.6422086108061281e-12,
+            "bodyKChangeJ": 0.9430725701188969,
+            "wallConstraintKChangeJ": -0.11788400142952873,
+            "pressureKChangeJ": -0.8251879401717832,
+            "rkAveragingKChangeJ": -6.983510473494713e-8,
+            "potentialEnergyChangeJ": -5.586820748249011e-7
+          },
+          "cells": 512,
+          "faces": 1472,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 24,
+            "pressureSolves": 24,
+            "iterations": 1024,
+            "matrixProducts": 1024,
+            "workspaceBytes": 68096,
+            "eulerAttempts": 16,
+            "eulerStages": 16,
+            "faceEvaluations": 23552,
+            "dualTransferAttempts": 16,
+            "dualFaceEvaluations": 73728,
+            "thermodynamicCellReads": 35840,
+            "dualNodes": 1600,
+            "dualInterfaces": 4608
+          }
+        }
+      }
+    ],
+    "moving": {
+      "coarse": {
+        "n": 4,
+        "epsilon": 0.1,
+        "time": 1,
+        "dt": 0.03125,
+        "returnedRKSteps": 32,
+        "rejected": 0,
+        "movement": {
+          "lightMeanYVelocityMS": 0.17718979204969362,
+          "heavyMeanYVelocityMS": -0.17718979204969365,
+          "initialLightnessVelocityCorrelation": 0.1746565428091901,
+          "componentRmsMS": [
+            0.07808144686363215,
+            0.17991464641801166,
+            0.07808144686363218
+          ],
+          "maxVelocityMS": 0.2213045628344562,
+          "massChangeRelativeL1": 0.0038530407851323977
+        },
+        "mechanicalRelativeResidual": 0.0385209965900056,
+        "phasePressure": {
+          "first": 0.00018605032801369273,
+          "second": 0.0001860361665932982
+        },
+        "maxStageConstraintM3S": 9.53941786674406e-14,
+        "maxStageEOSRelative": 2.2992026060819626e-14,
+        "maxStageMach": 0.0006661157501150577,
+        "laws": {
+          "massResidualKg": 0,
+          "energyResidualJ": 0,
+          "momentumResidualKgMS": [
+            9.74508006103755e-17,
+            -8.526512829121202e-14,
+            -1.2127225642904607e-16
+          ],
+          "constraintM3S": 2.0063713994372997e-14,
+          "eosRelative": 2.066371962428093e-14,
+          "maxMach": 0.0006487092016987853,
+          "temperatureRangeK": [
+            289.6455725835345,
+            311.12215265954245
+          ],
+          "kineticChangeJ": 0.7319421396108398,
+          "potentialChangeJ": -0.7612668992405816,
+          "mechanicalResidualJ": -0.02932475962973058,
+          "operations": {
+            "advectionKChangeJ": -0.049720925280053535,
+            "bodyKChangeJ": 61.14202824782235,
+            "wallConstraintKChangeJ": -15.090059388692717,
+            "pressureKChangeJ": -45.247315905343704,
+            "rkAveragingKChangeJ": -0.022989888895033127,
+            "potentialEnergyChangeJ": -0.7612668992406384
+          },
+          "cells": 64,
+          "faces": 176,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 96,
+            "pressureSolves": 96,
+            "iterations": 2736,
+            "matrixProducts": 2736,
+            "workspaceBytes": 8320,
+            "eulerAttempts": 64,
+            "eulerStages": 64,
+            "faceEvaluations": 11264,
+            "dualTransferAttempts": 64,
+            "dualFaceEvaluations": 36864,
+            "thermodynamicCellReads": 16704,
+            "dualNodes": 208,
+            "dualInterfaces": 576
+          }
+        }
+      },
+      "fineCoarseTime": {
+        "n": 8,
+        "epsilon": 0.1,
+        "time": 1,
+        "dt": 0.0625,
+        "returnedRKSteps": 16,
+        "rejected": 0,
+        "movement": {
+          "lightMeanYVelocityMS": 0.17853563688191815,
+          "heavyMeanYVelocityMS": -0.17853563688191723,
+          "initialLightnessVelocityCorrelation": 0.27396629451861915,
+          "componentRmsMS": [
+            0.09729075986944964,
+            0.21950385928200125,
+            0.09729075986944967
+          ],
+          "maxVelocityMS": 0.5014732192171739,
+          "massChangeRelativeL1": 0.006210064811062971
+        },
+        "mechanicalRelativeResidual": 0.05411734256703379,
+        "phasePressure": {
+          "first": 0.00021896314507312744,
+          "second": 0.000218980139427722
+        },
+        "maxStageConstraintM3S": 9.82963710427498e-14,
+        "maxStageEOSRelative": 3.491004463285208e-13,
+        "maxStageMach": 0.0014675881226796073,
+        "laws": {
+          "massResidualKg": 0,
+          "energyResidualJ": 0,
+          "momentumResidualKgMS": [
+            -4.1602115021442955e-17,
+            -1.0658141036401503e-13,
+            3.554817285125007e-17
+          ],
+          "constraintM3S": 5.392474661247704e-14,
+          "eosRelative": 2.9380316846072673e-13,
+          "maxMach": 0.0013988995274319305,
+          "temperatureRangeK": [
+            279.3805051216629,
+            323.5993189235614
+          ],
+          "kineticChangeJ": 1.2235566639994109,
+          "potentialChangeJ": -1.293560733336676,
+          "mechanicalResidualJ": -0.07000406933724435,
+          "operations": {
+            "advectionKChangeJ": -0.08946412522973657,
+            "bodyKChangeJ": 122.04016728118008,
+            "wallConstraintKChangeJ": -15.089399769646713,
+            "pressureKChangeJ": -105.56038531490731,
+            "rkAveragingKChangeJ": -0.07736140739690488,
+            "potentialEnergyChangeJ": -1.2935607333366477
+          },
+          "cells": 512,
+          "faces": 1472,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 48,
+            "pressureSolves": 48,
+            "iterations": 3145,
+            "matrixProducts": 3145,
+            "workspaceBytes": 68096,
+            "eulerAttempts": 32,
+            "eulerStages": 32,
+            "faceEvaluations": 47104,
+            "dualTransferAttempts": 32,
+            "dualFaceEvaluations": 147456,
+            "thermodynamicCellReads": 68096,
+            "dualNodes": 1600,
+            "dualInterfaces": 4608
+          }
+        }
+      },
+      "fine": {
+        "n": 8,
+        "epsilon": 0.1,
+        "time": 1,
+        "dt": 0.03125,
+        "returnedRKSteps": 32,
+        "rejected": 0,
+        "movement": {
+          "lightMeanYVelocityMS": 0.17853319248550162,
+          "heavyMeanYVelocityMS": -0.17853319248550206,
+          "initialLightnessVelocityCorrelation": 0.27396322383946403,
+          "componentRmsMS": [
+            0.0972884136608603,
+            0.2195000898160685,
+            0.09728841366086025
+          ],
+          "maxVelocityMS": 0.5014793954928454,
+          "massChangeRelativeL1": 0.006207964013969057
+        },
+        "mechanicalRelativeResidual": 0.05391529779118456,
+        "phasePressure": {
+          "first": 0.0002189700351747039,
+          "second": 0.00021897853908918818
+        },
+        "maxStageConstraintM3S": 9.661629135626626e-14,
+        "maxStageEOSRelative": 4.685716703534126e-13,
+        "maxStageMach": 0.0014327729781634124,
+        "laws": {
+          "massResidualKg": 0,
+          "energyResidualJ": 0,
+          "momentumResidualKgMS": [
+            3.342877254692308e-18,
+            -2.1316282072803006e-14,
+            -2.4621911052812625e-17
+          ],
+          "constraintM3S": 4.9009407643296754e-14,
+          "eosRelative": 4.2302417568862436e-13,
+          "maxMach": 0.0013989093894420726,
+          "temperatureRangeK": [
+            279.3785848123512,
+            323.6026716468092
+          ],
+          "kineticChangeJ": 1.2235088498155267,
+          "potentialChangeJ": -1.2932339429640933,
+          "mechanicalResidualJ": -0.06972509314857689,
+          "operations": {
+            "advectionKChangeJ": -0.09081405093360653,
+            "bodyKChangeJ": 61.678008397833295,
+            "wallConstraintKChangeJ": -7.544690243128574,
+            "pressureKChangeJ": -52.78031474231366,
+            "rkAveragingKChangeJ": -0.03868051164194129,
+            "potentialEnergyChangeJ": -1.293233942964065
+          },
+          "cells": 512,
+          "faces": 1472,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 96,
+            "pressureSolves": 96,
+            "iterations": 6131,
+            "matrixProducts": 6131,
+            "workspaceBytes": 68096,
+            "eulerAttempts": 64,
+            "eulerStages": 64,
+            "faceEvaluations": 94208,
+            "dualTransferAttempts": 64,
+            "dualFaceEvaluations": 294912,
+            "thermodynamicCellReads": 133632,
+            "dualNodes": 1600,
+            "dualInterfaces": 4608
+          }
+        }
+      },
+      "temporalVelocityDifferenceMS": 0.00001453359493236726
+    },
+    "restart": {
+      "savedTime": 0.5,
+      "finalTime": 1,
+      "exactState": true,
+      "gravityMismatchRejected": true,
+      "domainMismatchRejected": true
+    }
+  }
+}

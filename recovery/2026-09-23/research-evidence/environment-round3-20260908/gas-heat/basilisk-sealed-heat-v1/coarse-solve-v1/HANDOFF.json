@@ -1,0 +1,93 @@
+{
+  "scope": "Algebra accepted. Single conditional physical run rejected next coarse backward-error check after 25 valid native steps. No rerun.",
+  "physicalScope": "run-u3475.scope",
+  "invocationId": "f1d71e4a13654f1491bdd206e44e8e9a",
+  "wrapperExitCode": 1,
+  "nativeExitCode": 3,
+  "completedPhysicalSeconds": 0.24735390459260645,
+  "completedSteps": 25,
+  "matchedPriorCycles": 1758,
+  "candidateCompletedCycles": 124,
+  "elapsedSeconds": 0.4731504280352965,
+  "childCpuSeconds": 0.133774,
+  "actualFailure": "original-unit coarse stencil backward error; offending row/system not yet captured",
+  "compilePinsUnchanged": true,
+  "files": {
+    "RESULTS.md": {
+      "bytes": 5149,
+      "sha256": "b126afa3d8f07b4f18561bec9a59b5182ce5929fc66689f564b2951edf7ee7c2"
+    },
+    "MATCHED-PARTIAL.json": {
+      "bytes": 5534,
+      "sha256": "8c0ac87bce16f13d0693b117d889f5869955c2a5b18c7b9719826077554a5c90"
+    },
+    "COMPILE-HANDOFF.json": {
+      "bytes": 2970,
+      "sha256": "4cba2b48316a9b4d55fa4244919fb965801a394d9b84765ae78d1e93b554e14d"
+    },
+    "GENERATED-REVIEW.md": {
+      "bytes": 1986,
+      "sha256": "91d5710b40b7460faab87f484bb2c182ec30d0e5b8dcc524c2bba64334f5e12e"
+    },
+    "COMPILER-DISPOSITION.md": {
+      "bytes": 1655,
+      "sha256": "12a0001362edc4e502ff3ed4aac9d46c3b8114fbaa302746f1648656fac24f5e"
+    },
+    "SOURCE-CHECKPOINT.json": {
+      "bytes": 1680,
+      "sha256": "7104b893093d84971aed014612718807ab4c445141c8b55095edd5ca1cfbe239"
+    },
+    "EXECUTABLE-CHECKPOINT.json": {
+      "bytes": 2429,
+      "sha256": "b304bd5abb3596f9d38dc64ef0f50c81a3be74794de7a0868ca07278548d74f2"
+    },
+    "EXECUTABLE-CHECKPOINT-v2.json": {
+      "bytes": 2894,
+      "sha256": "887b6e3f2625a90fee9f79016580c165d0d5b5f12631f5022b4d22abadf75472"
+    },
+    "coarse-thermal.h": {
+      "bytes": 8870,
+      "sha256": "288b73d931162158be76f94a8bf970080055a0f584233b50d10f2e42ee091711"
+    },
+    "algebra.c": {
+      "bytes": 6620,
+      "sha256": "a49309735613f5ca78e79412e0f70f2c31ce42922b82a5f542361e6de83e569f"
+    },
+    "overlay.patch": {
+      "bytes": 1073,
+      "sha256": "c8d9b9e475d02319ad3f404de7fa88af5724bfbdb3604c4ccd4d14c6773fc025"
+    },
+    "build-v1/receipt.json": {
+      "bytes": 2216,
+      "sha256": "9abcdd31b593908926191415432a5005df6ab0097a22142574958501d4eeca74"
+    },
+    "compiler-diagnostic-v1/receipt.json": {
+      "bytes": 2379,
+      "sha256": "3033485abf4d5e55eec059fc6a496ad6e41d3b937189773c7529ce34f22ae3ad"
+    },
+    "compiler-diagnostic-v1/dimensions.log": {
+      "bytes": 81,
+      "sha256": "4696ce0260d39da5fbba9612c032fa099c0999a90c0b767c90b39bf4669ba586"
+    },
+    "build-v2/receipt.json": {
+      "bytes": 3923,
+      "sha256": "66ed12f8b367e99814618481ba749f8e848a9713d584ad56ab6fc023f033f055"
+    },
+    "algebra-run-v1/receipt.json": {
+      "bytes": 4134,
+      "sha256": "47a0d416f15203c3dd96d27d0c3fa58d1d00ea3e14c795d2d6e5045e06fdc06d"
+    },
+    "run-physical-v1/receipt.json": {
+      "bytes": 51828,
+      "sha256": "786dd0cc3ea474064314526a4d37619275ba1c4c3532c02af88e54fc7f4de3ea"
+    },
+    "run-physical-v1/stdout.log": {
+      "bytes": 40581,
+      "sha256": "d31299675f633afd5955b4cf9999a63753a7e388e2620ccfafd9d093bfafe661"
+    },
+    "run-physical-v1/stderr.log": {
+      "bytes": 64,
+      "sha256": "86de5ce8658659ffa5f9b05481567b07584e76d654ab6022f4a7f3a97893de4f"
+    }
+  }
+}

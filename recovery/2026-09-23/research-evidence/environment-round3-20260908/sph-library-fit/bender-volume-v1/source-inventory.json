@@ -1,0 +1,22 @@
+{
+  "status": "source-only fit review; no new numerical run",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "sourceSha256": {
+    "upstream/Simulator/SimulatorBase.cpp": "b56506c8e88c2bc2ec26fc96e9305ca24e36a9ee10a35263cce161a9f44dde33",
+    "upstream/Simulator/SimulatorBase.h": "308698e5b814a933d1702e98f9d9d41140504238b0d22851ff29ba05e87ca199",
+    "upstream/SPlisHSPlasH/BoundaryModel_Bender2019.cpp": "632562b81df89d288c3b469a25108f15b92265fbe3d7acd1b0d6ca7d22e6cd9d",
+    "upstream/SPlisHSPlasH/BoundaryModel_Bender2019.h": "07bb2ed5e3e534aae816ec615b3ad32631fb3509fe862cac1c0e05a338a881e1",
+    "upstream/SPlisHSPlasH/TimeStep.cpp": "07be5993b2038fb5360b696412a4a8fb4706c2e2bfa4b976567db20a6c55773c",
+    "upstream/SPlisHSPlasH/TimeStep.h": "02ae6046db7b8fc717b3a24775e2f9c2f3f1b30544c523426f45c75ec3dd1c53",
+    "upstream/SPlisHSPlasH/DFSPH/TimeStepDFSPH.cpp": "5dcc295c24fbf083c200f264e2284516a540b5b1b61747cdea80a56ac74e9889",
+    "upstream/SPlisHSPlasH/Simulation.h": "2d11a8dcd2dc96ee297944ad46640f7142c52d465cf5a5689e47ec5b9094d36c",
+    "upstream/SPlisHSPlasH/Utilities/GaussQuadrature.cpp": "55de6b4982e407462b93bb476938cd24d429a4742feec1bc133cb7dc033c8f86",
+    "upstream/SPlisHSPlasH/Utilities/GaussQuadrature.h": "1980cdc32fb40d38520b277fb2eda8f4b4dd32da16d2edad9bc3452ad2f04cf6",
+    "stable-order-v1/dependencies/Discregrid/discregrid/src/cubic_lagrange_discrete_grid.cpp": "3a4645184f8ae1db2b589eb451568e5a5cb015671fa73505aaf9c9136cbbbdac",
+    "stable-order-v1/dependencies/Discregrid/discregrid/include/Discregrid/discrete_grid.hpp": "7b0755be8e8f735bc9cdb1e138287e8bd0fd3c68c2de87f0f948a6c53068f43c",
+    "stable-order-v1/build/lib/libSPlisHSPlasH.a": "68cb48d6331e3a86c695ee69edd8ccc6e8023fad30b4faa2bf017897e11d4d87",
+    "stable-order-v1/build/extern/install/Discregrid/lib/libDiscregrid.a": "2e23c922c401dfcbf3fa8559ff8670a7d65b443064083b48e0cafe6f61d98d1b"
+  },
+  "reviewSha256": "c84ae885409e0291237e5bc8dc22da8e40e5b9f8bee00f32fdf98cb60f8d1751",
+  "previousColdHandoffSha256": "44aa5e751c8dbc9c62999b67f5cbe88a66d8775b62cd33a597e9980aacca1491"
+}

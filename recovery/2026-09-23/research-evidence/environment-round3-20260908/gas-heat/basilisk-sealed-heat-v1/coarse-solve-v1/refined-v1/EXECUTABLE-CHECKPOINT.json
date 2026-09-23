@@ -1,0 +1,83 @@
+{
+  "scope": "Accepted one-refinement source with passive failure capture; thresholds unchanged before native regression",
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 3013,
+      "sha256": "e66c65663c5fcff5a17e99a6c9dbd6732534936002ed18b56d2c97cc9ce91c51"
+    },
+    "SOURCE-CHECKPOINT.json": {
+      "bytes": 1481,
+      "sha256": "4fa864082d07259547d6c090cb1daaef36c6bf7accbadaa87c9586af0d2ccdb6"
+    },
+    "captured-regression.c": {
+      "bytes": 2591,
+      "sha256": "58ac0a31ecd25299485eb18a8213a11a605abe6196baeaade6054b8f23550f82"
+    },
+    "captured-system.h": {
+      "bytes": 8071,
+      "sha256": "5c8ab9b1b597d8b7eb4b8ed9623bd4e064406e0f363f005f37f81a0cd8804ec0"
+    },
+    "coarse-capture.h": {
+      "bytes": 2854,
+      "sha256": "0f3548c9250a370c7657b2776794f5beb0dc56b6ae291f75f52112b2e9066177"
+    },
+    "coarse-thermal.h": {
+      "bytes": 12654,
+      "sha256": "1b6db8e10c30907cfba09f12cc5d292604ecc55602222c1e40d26f0966809baf"
+    },
+    "compile-v1.py": {
+      "bytes": 2347,
+      "sha256": "7aaf58a14e832e75123e6a988a71baf0a396c49d1f6f273ba8f209419c084551"
+    },
+    "refinement.patch": {
+      "bytes": 8094,
+      "sha256": "d71d9b07c5724ad4d10bad5138012951d004f65d49211f83b48f1b0a48592124"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "sealed-heat.c": {
+      "bytes": 6607,
+      "sha256": "9ce5135616089f81d138f97c634a47d6c30fe75e9a811815fb718cb77b1b2dee"
+    },
+    "thermal-overlay.h": {
+      "bytes": 9050,
+      "sha256": "4a8ed85806adef7e32b46bd0b2d8ff5fbedc93c69c24511b08392cbbc1642596"
+    }
+  },
+  "upstream": {
+    "compressible/thermal.h": {
+      "bytes": 8959,
+      "sha256": "1b685f1279634a6adb4f88da70e3d48c4f7cbc29bcc831db79711bba727f0f47"
+    },
+    "compressible/NASG.h": {
+      "bytes": 3324,
+      "sha256": "c45057c628ddcfe52422fb1964bea00162ed95bc412c78662d9e0f8068415f8b"
+    },
+    "compressible/two-phase.h": {
+      "bytes": 13581,
+      "sha256": "6111af5eb899222c320a316cedbb569670ae0a4c31318399c13f49bba4e2f231"
+    },
+    "common.h": {
+      "bytes": 12559,
+      "sha256": "3eb996a0166ffe44ebd3b43f58fb9971f343d3a5348ed5d20d6bb5680f66fd9b"
+    },
+    "poisson.h": {
+      "bytes": 14079,
+      "sha256": "f7df8d2d0d14bbe1832d4b0cc2fc4ec2fa50f586e80af4f5ecf61af671a333e4"
+    },
+    "all-mach.h": {
+      "bytes": 7148,
+      "sha256": "ea6dd43da175fd056ed7775f7ca2dad11b2b363f0997bbdd841ee6abcdfde785"
+    },
+    "grid/events.h": {
+      "bytes": 7584,
+      "sha256": "0e0083811806ae9d37512d24e5b73c2c3c26af10bcf5d106f29c86f4084019a1"
+    },
+    "qcc": {
+      "bytes": 1654088,
+      "sha256": "b7429c88f8e39253015d549bfdbd18ce6253833992ff08e3bf738cb1a3521828"
+    }
+  }
+}

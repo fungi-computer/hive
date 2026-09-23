@@ -1,0 +1,35 @@
+{
+  "scope": "Frozen accepted wave and actual native owners before isolated checkpoint hooks.",
+  "files": [
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/transport-accounted-v1/source-pins.json",
+      "sha256": "a3593cdb4e03f2d0916cc1859b315df439a16aab6161c255f51cd4909c72d996",
+      "bytes": 2880
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/transport-accounted-v1/RESULT-HANDOFF.json",
+      "sha256": "d2cf0d646005bd5652bcb519350c46a862df843a874f539860951a44a3b49dd5",
+      "bytes": 3473
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/transport-accounted-v1/build-v1/receipt.json",
+      "sha256": "f50a6e92190e267d2c470c97a48614397ae7eb64e68e84ae21b5c7fc54545c0f",
+      "bytes": 2554
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/transport-accounted-v1/build-v1/wave",
+      "sha256": "676ea7d3ff7276541d2832155e5aca565b655420d156c35ed6ea4c8d0a53b9e1",
+      "bytes": 461944
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/restart-v1/upstream-original/run.h",
+      "sha256": "3c8d8f5c40fddd013684c67c6824518589039e2035e605e17e249675eedd6ef7",
+      "bytes": 953
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/restart-v1/upstream-original/timestep.h",
+      "sha256": "7a728bfe633cac8e6682fd8288ec6296a18d1486fb3c5b4b4019d227fb3947b4",
+      "bytes": 458
+    }
+  ]
+}

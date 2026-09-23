@@ -1,0 +1,71 @@
+{
+  "suite": "corrected-shape",
+  "stamp": "corrected",
+  "hashes": {
+    "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "experiment.mjs": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+    "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+  },
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "x64",
+  "timestamp": "2026-09-08T06:31:18.445Z",
+  "outcomes": [
+    {
+      "name": "li-theta1-closed",
+      "status": "completed",
+      "summary": {
+        "time": 600,
+        "reservoir": 34.335441564477506,
+        "reach": 41.15450269473781,
+        "diversion": 0,
+        "pond": 0,
+        "user": 5.502326356211396,
+        "collected": 34.20772938457306,
+        "total": 80.99227061542673,
+        "balanceError": -3.126388037344441e-13,
+        "arrivalSeconds": 30.200000000000003,
+        "steps": 6000,
+        "minDt": 0.099999999997749,
+        "maxMassError": 3.836930773104541e-13,
+        "maxFrAbove1cm": 18.7835719218736,
+        "wetFaceTimeFractionFrAboveHalf": 0.005556724421269321,
+        "wetFaceTimeFractionFrAboveOne": 0.00037530066701164347,
+        "maxGradient": 0.302,
+        "limitedDonors": 1212,
+        "minFactor": 0,
+        "minDepth": 0,
+        "gateBeforeOpen": 0
+      },
+      "elapsedMs": 7371.117682
+    },
+    {
+      "name": "li-theta1-divert-no-dig",
+      "status": "completed",
+      "summary": {
+        "time": 600,
+        "reservoir": 7.45846494249148,
+        "reach": 3.864057047870327,
+        "diversion": 7.096228123113069,
+        "pond": 68.86451836243577,
+        "user": 0.0009583290853266175,
+        "collected": 27.915773195005112,
+        "total": 87.28422680499595,
+        "balanceError": 9.663381206337363e-13,
+        "arrivalSeconds": 30.200000000000003,
+        "steps": 6000,
+        "minDt": 0.099999999997749,
+        "maxMassError": 1.1226575225009583e-12,
+        "maxFrAbove1cm": 29.630683379010215,
+        "wetFaceTimeFractionFrAboveHalf": 0.01278117466174952,
+        "wetFaceTimeFractionFrAboveOne": 0.00047563762335906033,
+        "maxGradient": 0.302,
+        "limitedDonors": 6626,
+        "minFactor": 0,
+        "minDepth": 0,
+        "gateBeforeOpen": 0
+      },
+      "elapsedMs": 5785.170491
+    }
+  ]
+}

@@ -1,0 +1,555 @@
+{
+  "state": {
+    "version": "rigid-richards-finite-boundaries-be-v1",
+    "identity": "{\"version\":\"rigid-richards-finite-boundaries-be-v1\",\"geometry\":\"{\\\"cells\\\":4,\\\"lengthM\\\":2.16,\\\"areaM2\\\":1,\\\"pondAreaM2\\\":1,\\\"standpipeAreaM2\\\":1,\\\"groundM\\\":0}\",\"soil\":\"{\\\"id\\\":\\\"synthetic-rigid-loam-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.0001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000}\",\"faceRule\":\"series-centre-half-trace-quarter-v1\",\"solver\":\"analytic-newton-conservative-closure-v1\"}",
+    "massKg": [
+      0,
+      207.27563181733265,
+      243,
+      243,
+      243,
+      1560
+    ],
+    "initialTotalKg": 2496.2756318173324,
+    "timeS": 600,
+    "steps": 10
+  },
+  "receipt": {
+    "startS": 0,
+    "endS": 600,
+    "faceTransferKg": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "steps": [
+      {
+        "startS": 0,
+        "endS": 60,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 60,
+        "endS": 120,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 120,
+        "endS": 180,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 180,
+        "endS": 240,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 240,
+        "endS": 300,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 300,
+        "endS": 360,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 360,
+        "endS": 420,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 420,
+        "endS": 480,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 480,
+        "endS": 540,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 540,
+        "endS": 600,
+        "headM": [
+          -0.6000000000000001,
+          -0.33,
+          0.20999999999999996,
+          0.75,
+          1.29,
+          1.56
+        ],
+        "transferKg": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "metrics": {
+          "transferKg": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "constitutiveKg": 0,
+          "darcyKg": 8.599196801093963e-17,
+          "darcyM3S": 1.4331994668489938e-21,
+          "pairKg": 0,
+          "totalKg": 0,
+          "complementarityM2": 0
+        },
+        "closure": {
+          "node": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "node": 5,
+              "massKg": 1560,
+              "previousHeadM": 1.56,
+              "headM": 1.56,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "lastStep": {
+    "startS": 540,
+    "endS": 600,
+    "headM": [
+      -0.6000000000000001,
+      -0.33,
+      0.20999999999999996,
+      0.75,
+      1.29,
+      1.56
+    ],
+    "transferKg": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "metrics": {
+      "transferKg": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "constitutiveKg": 0,
+      "darcyKg": 8.599196801093963e-17,
+      "darcyM3S": 1.4331994668489938e-21,
+      "pairKg": 0,
+      "totalKg": 0,
+      "complementarityM2": 0
+    },
+    "closure": {
+      "node": null,
+      "correctionKg": 0,
+      "wetBoundaryNormalizations": [
+        {
+          "node": 5,
+          "massKg": 1560,
+          "previousHeadM": 1.56,
+          "headM": 1.56,
+          "deltaHeadM": 0
+        }
+      ]
+    }
+  },
+  "work": {
+    "evaluations": 20,
+    "evaluationLimit": 250000,
+    "faceEvaluations": 100,
+    "iterations": 0,
+    "lineTrials": 0,
+    "rejected": 0
+  }
+}

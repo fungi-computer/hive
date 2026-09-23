@@ -1,0 +1,239 @@
+{
+  "groups": [
+    {
+      "name": "independent UTF-16 hash identity and coordinate representation",
+      "facts": {
+        "coordinateCases": 2084,
+        "salts": 4,
+        "prefixes": 3
+      }
+    },
+    {
+      "name": "complete terrain facts and footprint outputs preserve identity",
+      "facts": {
+        "seeds": 3,
+        "coordinatesPerAxis": 15,
+        "footprints": 5,
+        "overviewDimensions": [
+          64,
+          64
+        ]
+      }
+    },
+    {
+      "name": "actual cave bricks, edits, eviction and both codec directions",
+      "facts": {
+        "comparedBricks": 12,
+        "decodedCells": 49152,
+        "savedHash": "131ffeb24bca186ba1069a4d0bf5bce826ddfd528687b657ccd3ad4dbd1cd8cd",
+        "work": {
+          "revision": 1,
+          "changedCells": 1,
+          "changedBricks": 1,
+          "sparseOverlayBytes": 52,
+          "checkpointBytes": 1270,
+          "residentBricks": 1,
+          "residentBytes": 4096,
+          "maxResidentBricks": 8,
+          "residentProjectionCapBytes": 32768,
+          "generatedBricks": 14,
+          "heightSamples": 3585,
+          "caveMetricEvaluations": 43009,
+          "caveFeatures": {
+            "descriptors": 5,
+            "heightSamples": 5,
+            "membershipQueries": 0,
+            "segmentTests": 0,
+            "chamberTests": 0,
+            "evictions": 4,
+            "residentDescriptors": 1,
+            "residentDescriptorCap": 16,
+            "geometryTestsPerCellAtMost": 4
+          },
+          "evictions": 13
+        }
+      }
+    }
+  ],
+  "performance": [
+    {
+      "name": "4096 exact terrain queries",
+      "samples": [
+        {
+          "round": 0,
+          "order": [
+            "old",
+            "candidate"
+          ],
+          "old": 132.221141,
+          "candidate": 46.08170199999995
+        },
+        {
+          "round": 1,
+          "order": [
+            "candidate",
+            "old"
+          ],
+          "candidate": 141.08815000000004,
+          "old": 305.6606820000002
+        },
+        {
+          "round": 2,
+          "order": [
+            "old",
+            "candidate"
+          ],
+          "old": 276.805474,
+          "candidate": 120.80876500000022
+        },
+        {
+          "round": 3,
+          "order": [
+            "candidate",
+            "old"
+          ],
+          "candidate": 146.53672700000016,
+          "old": 230.9933799999999
+        },
+        {
+          "round": 4,
+          "order": [
+            "old",
+            "candidate"
+          ],
+          "old": 222.12015100000008,
+          "candidate": 152.72538699999996
+        },
+        {
+          "round": 5,
+          "order": [
+            "candidate",
+            "old"
+          ],
+          "candidate": 160.86123399999997,
+          "old": 270.5390160000002
+        },
+        {
+          "round": 6,
+          "order": [
+            "old",
+            "candidate"
+          ],
+          "old": 314.9767489999999,
+          "candidate": 203.23649699999942
+        },
+        {
+          "round": 7,
+          "order": [
+            "candidate",
+            "old"
+          ],
+          "candidate": 82.31646600000022,
+          "old": 68.77360599999975
+        }
+      ],
+      "medianOldMs": 250.76619800000003,
+      "medianCandidateMs": 143.8124385000001,
+      "candidateOverOld": 0.573492119938749
+    },
+    {
+      "name": "8 cold generated volume bricks",
+      "samples": [
+        {
+          "round": 0,
+          "order": [
+            "old",
+            "candidate"
+          ],
+          "old": 157.36466199999995,
+          "candidate": 66.52124000000003
+        },
+        {
+          "round": 1,
+          "order": [
+            "candidate",
+            "old"
+          ],
+          "candidate": 69.54591100000016,
+          "old": 158.5195730000005
+        },
+        {
+          "round": 2,
+          "order": [
+            "old",
+            "candidate"
+          ],
+          "old": 159.40135400000054,
+          "candidate": 65.40749099999994
+        },
+        {
+          "round": 3,
+          "order": [
+            "candidate",
+            "old"
+          ],
+          "candidate": 64.42212399999971,
+          "old": 152.2845529999995
+        },
+        {
+          "round": 4,
+          "order": [
+            "old",
+            "candidate"
+          ],
+          "old": 130.18198699999994,
+          "candidate": 50.15200800000002
+        },
+        {
+          "round": 5,
+          "order": [
+            "candidate",
+            "old"
+          ],
+          "candidate": 62.294758,
+          "old": 136.51590699999997
+        },
+        {
+          "round": 6,
+          "order": [
+            "old",
+            "candidate"
+          ],
+          "old": 119.62641200000053,
+          "candidate": 47.659520999999586
+        },
+        {
+          "round": 7,
+          "order": [
+            "candidate",
+            "old"
+          ],
+          "candidate": 48.63153599999987,
+          "old": 106.0056139999997
+        }
+      ],
+      "medianOldMs": 144.40022999999974,
+      "medianCandidateMs": 63.35844099999986,
+      "candidateOverOld": 0.4387696681646558
+    }
+  ],
+  "inventory": {
+    "lattice-hash.mjs": "eae43f3c20f871dca2cd39d7f7c495334eda51b3a17dec35f0739b1dfdd18e24",
+    "terrain.js": "66279f7dc089a18b5263dce48c1128413af048e4b68f8b614b75b4feef892f3b",
+    "voxel-world.mjs": "59a51f9cbb4b4e1229c6aea2cd1956220e0a96d66341feb2841eea08e0b65351",
+    "features.mjs": "247ec9319c9bff937eee385bf540f73e0c9533969e4194cfc04df086d1bc3add",
+    "qualify.mjs": "95e2d2e0134da5c76dd7d55757c46c84316a16f2e5cf0f8a35e41cf7b872971c",
+    "CONTRACT.md": "2e8ff52980a0ff1ab702ae3c8267acff91bbe5af969183b18e215df8380209bf",
+    "../height-sea/terrain.js": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+    "../connected-caves-v1/voxel-world.mjs": "68dcf790fc56b83cf661ad2a78294860809d98648a321d2c60fa3a4340d54112",
+    "../connected-caves-v1/features.mjs": "b91219b568be736243b80fd16af35473587d3b7ada5819fd51ac2efde1590f48"
+  },
+  "active": {
+    "workload": "8 cold generated volume bricks",
+    "round": 7,
+    "order": [
+      "candidate",
+      "old"
+    ]
+  }
+}

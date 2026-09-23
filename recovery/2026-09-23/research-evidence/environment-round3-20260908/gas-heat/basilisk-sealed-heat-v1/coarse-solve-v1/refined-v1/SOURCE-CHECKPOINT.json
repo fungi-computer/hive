@@ -1,0 +1,45 @@
+{
+  "scope": "First refinement source and actual captured-system regression; no compile or physics yet",
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 3013,
+      "sha256": "e66c65663c5fcff5a17e99a6c9dbd6732534936002ed18b56d2c97cc9ce91c51"
+    },
+    "captured-regression.c": {
+      "bytes": 2591,
+      "sha256": "58ac0a31ecd25299485eb18a8213a11a605abe6196baeaade6054b8f23550f82"
+    },
+    "captured-system.h": {
+      "bytes": 8071,
+      "sha256": "5c8ab9b1b597d8b7eb4b8ed9623bd4e064406e0f363f005f37f81a0cd8804ec0"
+    },
+    "coarse-thermal.h": {
+      "bytes": 12170,
+      "sha256": "bb912213d63d27fe3aa07786bae529357eb3889da3627ae9ab75848b8d1471c4"
+    },
+    "refinement.patch": {
+      "bytes": 7598,
+      "sha256": "de02c455c31f69343688808143dc272ddf4335e5a452c4bb19e36dcf99258519"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "sealed-heat.c": {
+      "bytes": 6607,
+      "sha256": "9ce5135616089f81d138f97c634a47d6c30fe75e9a811815fb718cb77b1b2dee"
+    },
+    "thermal-overlay.h": {
+      "bytes": 9050,
+      "sha256": "4a8ed85806adef7e32b46bd0b2d8ff5fbedc93c69c24511b08392cbbc1642596"
+    }
+  },
+  "capturedInput": {
+    "bytes": 21760,
+    "sha256": "e6780c930f052ec238c3e39b28947affd56e5548b6a74435b7efbb718ada5e67"
+  },
+  "offlineInput": {
+    "bytes": 19030,
+    "sha256": "b202013f698963acb759107f03d0bf49de31092375c8b5b893548a8d5efcb019"
+  }
+}

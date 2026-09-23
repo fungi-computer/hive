@@ -1,0 +1,8 @@
+{
+  "command": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh timeout 30s node .botanical/research/environment-round3-20260908/worldgen/volume-v2/probe.mjs",
+  "unit": "run-u2768.scope",
+  "invocationId": "f9a4df10cf2a4aaf9b8139c7b666742e",
+  "exitCode": 0,
+  "elapsedSeconds": 8.067265359,
+  "stdout": "{\"checks\":5,\"errors\":0,\"totalMs\":8059.073,\"pocket\":{\"x\":18,\"y\":-48,\"z\":-64,\"width\":3,\"height\":4,\"depth\":3,\"meaning\":\"generated geometric empty pocket only; not pathfinding, actor clearance, traversal, or a natural entrance\"},\"codec\":{\"revision\":1,\"changedCells\":2,\"sparseOverlayBytes\":101,\"checkpointBytes\":993,\"residentProjectionCapBytes\":32768,\"caveMetricEvaluations\":4842}}"
+}

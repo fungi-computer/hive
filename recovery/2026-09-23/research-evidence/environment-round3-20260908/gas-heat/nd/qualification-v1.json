@@ -1,0 +1,177 @@
+{
+  "geometrySha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14",
+  "solverSha256": "49114c0ea61680ee36608c4b16283556f83fa003f163819b99eea6fed0fc120d",
+  "proofSha256": "e2ed293cf08638dcd9e6b9f67b888af423dcc51c3a0008ec2b3414e1f80cc8a8",
+  "wallMs": 877.193397,
+  "rssBytes": 175788032,
+  "rows": [
+    {
+      "name": "shared 2D operator and transport retain qualified numerical consumer",
+      "status": "pass",
+      "dimensions": 2,
+      "velocityError": 0,
+      "heatError": 0,
+      "smokeError": 0,
+      "receiptError": 0,
+      "wallMs": 89.40096600000001
+    },
+    {
+      "name": "3D voxel metrics, global identity and independent inputs",
+      "status": "pass",
+      "cells": 120,
+      "faces": 308,
+      "volume": 0.54,
+      "firstCenter": [
+        -7.5,
+        -2.43,
+        -10.5
+      ],
+      "independentInputs": true,
+      "unsafeExtentRejected": true,
+      "wallMs": 7.278830999999997
+    },
+    {
+      "name": "3D ambient and warm hydrostatic rest use world y",
+      "status": "pass",
+      "verticalAxis": "y",
+      "maxWarmSpeed": 6.26674276707484e-12,
+      "divergence": 8.581006169629321e-12,
+      "pressureSolves": 10,
+      "iterations": 320,
+      "matrixProducts": 320,
+      "operatorBuilds": 1,
+      "workspaceBytes": 36544,
+      "wallMs": 44.39285899999999
+    },
+    {
+      "name": "3D gradient and random-field projection",
+      "status": "pass",
+      "gradientResidual": 3.34171579297049e-12,
+      "beforeEnergy": 3.081768602055707,
+      "afterEnergy": 2.2588990765735013,
+      "idempotence": 0,
+      "divergence": 5.909606137777246e-12,
+      "wallMs": 13.712946999999986
+    },
+    {
+      "name": "3D decaying ABC flow nonlinear advection and pressure",
+      "status": "pass",
+      "analyticResidual": 0,
+      "results": [
+        {
+          "size": [
+            4,
+            6,
+            4
+          ],
+          "cells": 96,
+          "domain": [
+            6.283185307179586,
+            6.283185307179586,
+            6.283185307179586
+          ],
+          "velocityRmsError": 0.0015617993941925352,
+          "pressureRmsError": 0.05247334928660007,
+          "divergence": 6.159087129198326e-12,
+          "momentumCourant": 0.0019401488501811883,
+          "steps": 20,
+          "pressureSolves": 21,
+          "iterations": 481,
+          "matrixProducts": 481,
+          "operatorBuilds": 1,
+          "workspaceBytes": 16128
+        },
+        {
+          "size": [
+            8,
+            12,
+            8
+          ],
+          "cells": 768,
+          "domain": [
+            6.283185307179586,
+            6.283185307179586,
+            6.283185307179586
+          ],
+          "velocityRmsError": 0.000980785562000455,
+          "pressureRmsError": 0.02259539278544515,
+          "divergence": 7.159516902943697e-12,
+          "momentumCourant": 0.004261268244148098,
+          "steps": 20,
+          "pressureSolves": 21,
+          "iterations": 924,
+          "matrixProducts": 924,
+          "operatorBuilds": 1,
+          "workspaceBytes": 129024
+        },
+        {
+          "size": [
+            12,
+            18,
+            12
+          ],
+          "cells": 2592,
+          "domain": [
+            6.283185307179586,
+            6.283185307179586,
+            6.283185307179586
+          ],
+          "velocityRmsError": 0.0006817218783010116,
+          "pressureRmsError": 0.014418826436097279,
+          "divergence": 7.170042337634186e-12,
+          "momentumCourant": 0.0068814709206192985,
+          "steps": 20,
+          "pressureSolves": 21,
+          "iterations": 1323,
+          "matrixProducts": 1323,
+          "operatorBuilds": 1,
+          "workspaceBytes": 435456
+        }
+      ],
+      "wallMs": 614.417976
+    },
+    {
+      "name": "three-axis scalar receipts and exact domain reload",
+      "status": "pass",
+      "massError": 1.4210854715202004e-13,
+      "heatError": 4.092726157978177e-12,
+      "minSmoke": 0.4425473598659006,
+      "faceReceipts": [
+        {
+          "axis": "x",
+          "area": 0.54,
+          "actual": 0.0108,
+          "expected": 0.010800000000000002
+        },
+        {
+          "axis": "y",
+          "area": 1,
+          "actual": 0.01,
+          "expected": 0.010000000000000002
+        },
+        {
+          "axis": "z",
+          "area": 0.54,
+          "actual": -0.008100000000000001,
+          "expected": -0.008100000000000001
+        }
+      ],
+      "exactReload": true,
+      "rejected": [
+        {
+          "name": "domain",
+          "reason": "state/domain geometry identity"
+        },
+        {
+          "name": "origin",
+          "reason": "state/domain geometry identity"
+        },
+        {
+          "name": "vertical spacing",
+          "reason": "state/domain geometry identity"
+        }
+      ],
+      "wallMs": 106.19296799999995
+    }
+  ]
+}

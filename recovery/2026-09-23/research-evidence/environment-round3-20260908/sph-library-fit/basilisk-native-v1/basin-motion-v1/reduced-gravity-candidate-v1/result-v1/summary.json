@@ -1,0 +1,17 @@
+{
+  "invocationId": "aa2b090c5bdc4d8badaa39dd4d0aca3b",
+  "comparisonExitCode": 1,
+  "capturedForceAccountingPassed": false,
+  "comparatorSha256": "e6e1fe204b72af072d6f15a62a80980cb1258517c31cdfb3e925cd04d050f2f8",
+  "runnerSha256": "e036dba543e4a0d706df3d8b332f2065c51c7acbce3d718bc29686f8e46dc22d",
+  "forceAccountingSourceSha256": "9b32bbb2ca949ac6b05692e1919c33d04d0e3402ac7a5707616f60a695accd67",
+  "nativeCaptureWallSeconds": 2.8692032199469395,
+  "nativePeakRssKiBBatch": 19200,
+  "caseExitCodes": [
+    {
+      "case": "coarse",
+      "exitCode": 1,
+      "timedOut": false
+    }
+  ]
+}

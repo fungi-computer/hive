@@ -1,0 +1,70 @@
+{
+  "status": "frozen first failed static Bender packet; no second run or dynamics",
+  "compileSuccess": {
+    "unit": "run-u3026.scope",
+    "invocation": "907a3d5f050e4f378f35223c658746fd",
+    "exit": 0
+  },
+  "compileFailure": {
+    "unit": "run-u3024.scope",
+    "invocation": "8d9a457364c6479cbc6d2d9cfaeb233b",
+    "exit": 1,
+    "evidence": "compile-v1-failed"
+  },
+  "proof": {
+    "unit": "run-u3090.scope",
+    "invocation": "99ae7c2c684e42c4bffc3632902617cd",
+    "wrapperExit": 1,
+    "nativeExit": -6,
+    "result": "result-v1/result.json",
+    "source": "result-v1/source",
+    "firstFailure": "negative interpolated effective volume before query/contact output"
+  },
+  "filesSha256": {
+    "FIRST-SHAPE.md": "5e48644163371a38a7633a209e1cfd1e9eebc595750eadbfdee057d3babfdf47",
+    "RESULTS.md": "fca366f4539db8fb553036c78abf7548a9d33d1a42f1c506dc296924ee49ae95",
+    "SOURCE-FIT.md": "c84ae885409e0291237e5bc8dc22da8e40e5b9f8bee00f32fdf98cb60f8d1751",
+    "compile-command.json": "1461e39049f92200179780ceb252cbef654c329013919820d8828ec054bb17f8",
+    "compile-reference.py": "d468096f115bf3a14cf6ecd41a6b537885c9df7192a6a1a272fb30ddcd358f6f",
+    "compile-v1-failed/compile-command.json": "1461e39049f92200179780ceb252cbef654c329013919820d8828ec054bb17f8",
+    "compile-v1-failed/compile-reference.py": "d468096f115bf3a14cf6ecd41a6b537885c9df7192a6a1a272fb30ddcd358f6f",
+    "compile-v1-failed/compile.log": "5054273546b45f9b1e04fe716e40e57be5215157b476b6d0e59152547c2d6526",
+    "compile-v1-failed/map-input.h": "f10dc2d5808beb4b6c600309787999459e898b201436926c0be28847ac7f1340",
+    "compile-v1-failed/native-volume-leaf.inc": "1ca2154acf1d3234b4dd7260841356d90371c5f1eff27a4a680ee0b429d4e2e5",
+    "compile-v1-failed/probes.h": "df5568860d8d489f6f9ba579c3869005dfd8c57a979f5a8f1ff543bc547beddb",
+    "compile-v1-failed/reference.cpp": "4e682a56460917d7206638e1ceed189e80038da9c8659af214823494d87a13f7",
+    "compile.log": "91fc7d6346580a8b98f2786b2275e33cd492f44d14d0d9f5ecdedf6325707a2b",
+    "continuum.h": "012d85f997c78d48a148b6f54d5a86bd727f2b5936725842984018de9821181e",
+    "geometry.h": "7e5e8181d94e54e7fed574c53fa582a89feae7a9ab485eb01b33ce48ada18396",
+    "leaf-provenance.json": "88e0571ba931f015b71516687e36d262c04cfc3716225a19c38a3f43280cbd4f",
+    "map-input.h": "f10dc2d5808beb4b6c600309787999459e898b201436926c0be28847ac7f1340",
+    "native-volume-leaf.inc": "1ca2154acf1d3234b4dd7260841356d90371c5f1eff27a4a680ee0b429d4e2e5",
+    "probes.h": "e7ad028fbdbfcfbf7a3ceffda18b09bed9034f7a781868e372361f2cddbb1e86",
+    "reference": "f73ee38063c65d4698c430f73de577c6d5258f0492337497cdc14ec483e01567",
+    "reference.cpp": "4e682a56460917d7206638e1ceed189e80038da9c8659af214823494d87a13f7",
+    "result-v1/initialization.csv": "74e9f1e569189715a0b5cd51d27159d0a48db1f496f4deed8fc636c862a0c28a",
+    "result-v1/result.json": "c52b928fc0a752049f261ccb24293ac6bfeef9ddc5f870d9c5786947b43a829b",
+    "result-v1/source/FIRST-SHAPE.md": "5e48644163371a38a7633a209e1cfd1e9eebc595750eadbfdee057d3babfdf47",
+    "result-v1/source/SOURCE-FIT.md": "c84ae885409e0291237e5bc8dc22da8e40e5b9f8bee00f32fdf98cb60f8d1751",
+    "result-v1/source/compile-command.json": "1461e39049f92200179780ceb252cbef654c329013919820d8828ec054bb17f8",
+    "result-v1/source/compile-reference.py": "d468096f115bf3a14cf6ecd41a6b537885c9df7192a6a1a272fb30ddcd358f6f",
+    "result-v1/source/continuum.h": "012d85f997c78d48a148b6f54d5a86bd727f2b5936725842984018de9821181e",
+    "result-v1/source/geometry.h": "7e5e8181d94e54e7fed574c53fa582a89feae7a9ab485eb01b33ce48ada18396",
+    "result-v1/source/leaf-provenance.json": "88e0571ba931f015b71516687e36d262c04cfc3716225a19c38a3f43280cbd4f",
+    "result-v1/source/map-input.h": "f10dc2d5808beb4b6c600309787999459e898b201436926c0be28847ac7f1340",
+    "result-v1/source/native-volume-leaf.inc": "1ca2154acf1d3234b4dd7260841356d90371c5f1eff27a4a680ee0b429d4e2e5",
+    "result-v1/source/probes.h": "e7ad028fbdbfcfbf7a3ceffda18b09bed9034f7a781868e372361f2cddbb1e86",
+    "result-v1/source/reference": "f73ee38063c65d4698c430f73de577c6d5258f0492337497cdc14ec483e01567",
+    "result-v1/source/reference.cpp": "4e682a56460917d7206638e1ceed189e80038da9c8659af214823494d87a13f7",
+    "result-v1/source/run-proof.py": "9d5d30b80175a2c62760a225cdfc3de351b36d013f024360dd5e1b09d42e4fc8",
+    "result-v1/stderr": "b3a96a749cf77ea323bb649c34f894e54656510c5242354a0e228c311481fedc",
+    "result-v1/stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "run-proof.py": "9d5d30b80175a2c62760a225cdfc3de351b36d013f024360dd5e1b09d42e4fc8",
+    "source-inventory.json": "83fd76bfed22928f514a1eeb25665e81d9b58cd74aaff06f913f445ce8f85e22"
+  },
+  "priorFrozenHandoffs": {
+    "boundary-consistency-v1/HANDOFF.json": "44aa5e751c8dbc9c62999b67f5cbe88a66d8775b62cd33a597e9980aacca1491",
+    "physical-voxel-v1/HANDOFF.json": "bfa598d9e8430e43cccb585219e327e3b434b3160b68d1ce4e0f79641406f168",
+    "stable-order-v1/HANDOFF.json": "4d25c26648f232857079039faf9e05e3bcd8b58d8abcba4fae24f97f05b048b3"
+  }
+}

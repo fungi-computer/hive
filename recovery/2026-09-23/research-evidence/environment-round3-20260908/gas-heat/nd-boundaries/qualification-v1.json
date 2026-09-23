@@ -1,0 +1,35 @@
+{
+  "pins": [
+    {
+      "path": "../nd-checkpoint/geometry.mjs",
+      "sha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14"
+    },
+    {
+      "path": "../nd-checkpoint/solver.mjs",
+      "sha256": "49114c0ea61680ee36608c4b16283556f83fa003f163819b99eea6fed0fc120d"
+    },
+    {
+      "path": "reference.mjs",
+      "sha256": "e2ea94bad8f5ae143e52f2e486aa457d7054bd78abd15b33eac74b2dd01f8e36"
+    },
+    {
+      "path": "CONTRACT.md",
+      "sha256": "15c910b45296963e5cc5a8c34c9dec6e5916030772eddf6c04280642f3c3c19a"
+    },
+    {
+      "path": "qualify.mjs",
+      "sha256": "62162869e7f3b6a5b9ff3de385afdf30395a6591032247d400f9d8580d7284c9"
+    }
+  ],
+  "wallMs": 23.764427999999995,
+  "cpuMs": 17.826,
+  "rssBytes": 60424192,
+  "rows": [
+    {
+      "name": "independent reference PDE, walls, initial residual and truncation",
+      "status": "fail",
+      "error": "initial residual convergence",
+      "wallMs": 21.096724000000002
+    }
+  ]
+}

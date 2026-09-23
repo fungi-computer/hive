@@ -1,0 +1,66 @@
+{
+  "startedUtc": "2026-09-08T22:35:46.209049+00:00",
+  "invocationId": "28c1e055e1054fb1a2aaf45d824f6d2c",
+  "scope": "Compile ast/libast.a and qcc only; no numerical simulation.",
+  "maxMakeJobs": 2,
+  "innerGuardSeconds": 120,
+  "commands": [
+    {
+      "argv": [
+        "make",
+        "-C",
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/ast/interpreter",
+        "-j2",
+        "CC=gcc",
+        "interpreter.o"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 4.763138432987034,
+      "log": "command-1.log"
+    },
+    {
+      "argv": [
+        "make",
+        "-C",
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/ast",
+        "-j2",
+        "CC=gcc",
+        "libast.a"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.7449110759771429,
+      "log": "command-2.log"
+    },
+    {
+      "argv": [
+        "make",
+        "-C",
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src",
+        "-j2",
+        "CC=gcc",
+        "-o",
+        "Makefile.tests",
+        "-o",
+        "Makefile.deps",
+        "qcc"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 1.246201203961391,
+      "log": "command-3.log"
+    }
+  ],
+  "wallSeconds": 6.755232042982243,
+  "exitCode": 0,
+  "artifacts": [
+    {
+      "path": "basilisk/src/ast/libast.a",
+      "bytes": 3038482,
+      "sha256": "d7870e04a7e9ae47f1fabb7c31264639d5f5fb66f3144c71911900e5704836ff"
+    },
+    {
+      "path": "basilisk/src/qcc",
+      "bytes": 1654088,
+      "sha256": "b7429c88f8e39253015d549bfdbd18ce6253833992ff08e3bf738cb1a3521828"
+    }
+  ]
+}

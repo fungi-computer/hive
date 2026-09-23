@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-08",
+  "upstream_commit": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "scope": "read-only source/caller review; no new numerical execution by reviewer",
+  "note_sha256": "49d6c96b8efbb948a39330d652e1454b755a0dffa630f227cf3d0f5d3a5dbdec",
+  "upstream_source": {
+    "SPlisHSPlasH/Simulation.cpp": "2e633f278c437938a55e57475c61a89e701d7dc77ee21e496db59c2ddaa1739a",
+    "SPlisHSPlasH/Simulation.h": "2d11a8dcd2dc96ee297944ad46640f7142c52d465cf5a5689e47ec5b9094d36c",
+    "SPlisHSPlasH/FluidModel.cpp": "3fb54331d21209f524a4ae38e0068275fb1ea1ea15fd75bbac9ed1ca2007d684",
+    "SPlisHSPlasH/FluidModel.h": "22406cd58080a706d9ca06021ac6d669fbba43a5f4d49793c6e763c582f18577",
+    "SPlisHSPlasH/DFSPH/TimeStepDFSPH.cpp": "5dcc295c24fbf083c200f264e2284516a540b5b1b61747cdea80a56ac74e9889",
+    "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h": "759fb7b2ea860cf6383fd8e6e7571bf32428666a28e540ddaa56bfe7fd35c264",
+    "SPlisHSPlasH/DFSPH/SimulationDataDFSPH.cpp": "16b5a3024a88549a236fc05f52f1ff4227e0f57baba75fcbd67fcf4856c7a5f6",
+    "SPlisHSPlasH/DFSPH/SimulationDataDFSPH.h": "b6664d158bdcd549c05b8bb52feb9d85b398cc4473dc23df5d2da6643e964b5e",
+    "SPlisHSPlasH/TimeStep.h": "02ae6046db7b8fc717b3a24775e2f9c2f3f1b30544c523426f45c75ec3dd1c53",
+    "SPlisHSPlasH/TimeStep.cpp": "07be5993b2038fb5360b696412a4a8fb4706c2e2bfa4b976567db20a6c55773c",
+    "SPlisHSPlasH/TimeManager.cpp": "bf8128fa4e2aad0705341f0dbdef048eb02161e154991c64299f5a1a6b150b9a",
+    "SPlisHSPlasH/BoundaryModel_Akinci2012.cpp": "dcd289c26ed31608a9932e71330beb0d3e69f40c2c9a0636ef8e6f7e2dcdb172",
+    "SPlisHSPlasH/BoundaryModel_Akinci2012.h": "74ab9183b2e347f8581f36781824c4286731b15411c5d75f5966436e8785b962",
+    "SPlisHSPlasH/NeighborhoodSearch.h": "098aa375585acbbfacc848598b93a82572aa6300317b471db8920113352785b3",
+    "SPlisHSPlasH/XSPH.cpp": "4dd5877c6429bda53dd8ab1a8a04fb72bba789c281fc7a688c31917c3988d413",
+    "Simulator/SimulatorBase.cpp": "b56506c8e88c2bc2ec26fc96e9305ca24e36a9ee10a35263cce161a9f44dde33",
+    "Tests/ReadWriteState/ReadWriteStateTests.cpp": "36c348568c50d99498f9d85bc1e3398fe15f89d14a63ca69a6f9d67fc357d957"
+  }
+}

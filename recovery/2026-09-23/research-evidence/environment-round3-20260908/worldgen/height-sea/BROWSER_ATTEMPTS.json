@@ -1,0 +1,17 @@
+{
+  "preservedFailures": [
+    {
+      "unit": "run-u2740.scope",
+      "invocationId": "b66a508a79864c3bb09b322bb85c22df",
+      "exitCode": 1,
+      "retainedFinding": "served copied page and worker loaded; the proof incorrectly used the previous alternate-seed coordinate (-720,135) rather than reading the candidate page's generated data-cell"
+    },
+    {
+      "unit": "run-u2741.scope",
+      "invocationId": "13724314d06141a08f945c8bd9bb8ce4",
+      "exitCode": 1,
+      "retainedFinding": "page/worker, generated wet/dry boundary, and overview/local/section checks passed; Playwright screenshot requires a filesystem string path rather than a URL object"
+    }
+  ],
+  "resolution": "run-u2742 reads the generated jump coordinate and passes fileURLToPath for screenshots; it exited 0"
+}

@@ -1,0 +1,91 @@
+{
+  "scope": "Compile only; algebra/physics not run",
+  "invocationId": "a71894aa7c124f659af20c0bd1ca3d26",
+  "commands": [
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-disable-dimensions",
+        "-events",
+        "-source",
+        "sealed-heat.c"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 3.0519520129892044
+    },
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-disable-dimensions",
+        "sealed-heat.c",
+        "-o",
+        "sealed-heat",
+        "-lm"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 28.75128687097458
+    }
+  ],
+  "exitCode": 0,
+  "wallSeconds": 31.804151571006514,
+  "sourceUnchanged": true,
+  "upstreamUnchanged": true,
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 2260,
+      "sha256": "bdbaad0cccca9fbefb27c4f495127eed475bf09acab345bd619af067b315e7ae"
+    },
+    "SOURCE-PIN.json": {
+      "bytes": 2306,
+      "sha256": "b1940a74f7a5bbbf3ffec48c4465dede3e09cf402efd48e8c8eee4e945db8c2d"
+    },
+    "_sealed-heat.c": {
+      "bytes": 1895906,
+      "sha256": "319dd049c96c9ff75911e739c2734b36a991c0c6486a8e01abbbc6b6dfb3ca83"
+    },
+    "capture.h": {
+      "bytes": 3989,
+      "sha256": "6535e7f5747faefa7ce0b217e8199d34cd337a0c829a4dd7559d6325778f38ce"
+    },
+    "capture.patch": {
+      "bytes": 2091,
+      "sha256": "625d2f65d1329972367af1ed650a9c2a289112fe3d7fe750a3c13b4207bc42f9"
+    },
+    "coarse-thermal.h": {
+      "bytes": 9337,
+      "sha256": "2f44c47b933e5137853d5ef6e1d4203a442d21fe99023cde9fa352314a974454"
+    },
+    "command-1.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "command-2.log": {
+      "bytes": 413,
+      "sha256": "53eef8f8e59f515004ad69457e97a1926846e71a0f32c64d56a5430ed23ea868"
+    },
+    "compile-v1.py": {
+      "bytes": 2199,
+      "sha256": "8b0aeb5ac538c13685f8b0604a9a79c1a5d1100d30b88e6a7b33204a5b17ab73"
+    },
+    "sealed-heat": {
+      "bytes": 774056,
+      "sha256": "d4e2e59ee33defb5ab7d0bfba860cb54c0ddf7440b22aafb93a503e33b7a47d5"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "sealed-heat.c": {
+      "bytes": 6607,
+      "sha256": "9ce5135616089f81d138f97c634a47d6c30fe75e9a811815fb718cb77b1b2dee"
+    },
+    "thermal-overlay.h": {
+      "bytes": 9050,
+      "sha256": "4a8ed85806adef7e32b46bd0b2d8ff5fbedc93c69c24511b08392cbbc1642596"
+    }
+  }
+}

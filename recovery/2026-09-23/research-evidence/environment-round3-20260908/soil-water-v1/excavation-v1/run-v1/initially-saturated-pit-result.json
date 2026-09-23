@@ -1,0 +1,699 @@
+{
+  "state": {
+    "version": "one-vented-soil-excavation-with-finite-pit-v1",
+    "identity": "{\"version\":\"one-vented-soil-excavation-with-finite-pit-v1\",\"worldIdentity\":{\"base\":{\"bounds\":{\"maxX\":2048,\"maxY\":64,\"maxZ\":2048,\"minX\":-2048,\"minY\":-64,\"minZ\":-2048},\"brickSide\":16,\"cave\":{\"detail\":{\"horizontalMetres\":11,\"salt\":\"cave-detail\",\"verticalMetres\":7,\"weight\":0.22},\"id\":\"global-trilinear-two-octave-cave-v1\",\"macro\":{\"horizontalMetres\":32,\"salt\":\"cave-macro\",\"verticalMetres\":18,\"weight\":0.78},\"protectedSolidLayers\":3,\"sampleNamespace\":\"height-sea-cave-density-v2\",\"voidThreshold\":0.42},\"codecSchema\":2,\"features\":{\"cacheCapRegions\":16,\"candidateJitterCells\":20,\"chamberRadiiMetres\":[3.8,2.4,3.4],\"dryMarginLevels\":3,\"id\":\"pit-gallery-capsules-v1\",\"points\":[[0,2,0],[0,-5,0],[8,-10,6],[20,-18,10]],\"radiusMetres\":1.35,\"regionMetres\":128,\"sampling\":\"physical-voxel-centres\"},\"heightIdentity\":\"world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907\",\"heightSeed\":\"hive-world-lab-seed-20260907\",\"heightSource\":\"530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf\",\"residentBrickCap\":8,\"units\":{\"horizontalMetres\":1,\"verticalMetres\":0.54,\"voxelsPerStorey\":4},\"voxelRecipe\":\"height-sea-connected-caves-v3\"},\"spaceId\":\"surface\",\"worldId\":\"one-generated-soil-excavation\"},\"regionId\":\"generated-pit-region\"}",
+    "world": {
+      "schema": 2,
+      "identity": {
+        "base": {
+          "bounds": {
+            "maxX": 2048,
+            "maxY": 64,
+            "maxZ": 2048,
+            "minX": -2048,
+            "minY": -64,
+            "minZ": -2048
+          },
+          "brickSide": 16,
+          "cave": {
+            "detail": {
+              "horizontalMetres": 11,
+              "salt": "cave-detail",
+              "verticalMetres": 7,
+              "weight": 0.22
+            },
+            "id": "global-trilinear-two-octave-cave-v1",
+            "macro": {
+              "horizontalMetres": 32,
+              "salt": "cave-macro",
+              "verticalMetres": 18,
+              "weight": 0.78
+            },
+            "protectedSolidLayers": 3,
+            "sampleNamespace": "height-sea-cave-density-v2",
+            "voidThreshold": 0.42
+          },
+          "codecSchema": 2,
+          "features": {
+            "cacheCapRegions": 16,
+            "candidateJitterCells": 20,
+            "chamberRadiiMetres": [
+              3.8,
+              2.4,
+              3.4
+            ],
+            "dryMarginLevels": 3,
+            "id": "pit-gallery-capsules-v1",
+            "points": [
+              [
+                0,
+                2,
+                0
+              ],
+              [
+                0,
+                -5,
+                0
+              ],
+              [
+                8,
+                -10,
+                6
+              ],
+              [
+                20,
+                -18,
+                10
+              ]
+            ],
+            "radiusMetres": 1.35,
+            "regionMetres": 128,
+            "sampling": "physical-voxel-centres"
+          },
+          "heightIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907",
+          "heightSeed": "hive-world-lab-seed-20260907",
+          "heightSource": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+          "residentBrickCap": 8,
+          "units": {
+            "horizontalMetres": 1,
+            "verticalMetres": 0.54,
+            "voxelsPerStorey": 4
+          },
+          "voxelRecipe": "height-sea-connected-caves-v3"
+        },
+        "spaceId": "surface",
+        "worldId": "one-generated-soil-excavation"
+      },
+      "revision": 1,
+      "changes": [
+        {
+          "x": 0,
+          "y": 14,
+          "z": 128,
+          "material": 0,
+          "revision": 1
+        }
+      ]
+    },
+    "soilGeometry": {
+      "version": "rigid-soil-voxel-pit-graph-v1",
+      "regionId": "generated-pit-region",
+      "revision": 1,
+      "spacingM": [
+        1,
+        0.54,
+        1
+      ],
+      "exterior": "closed",
+      "definitions": [
+        {
+          "id": "synthetic-rigid-loam-si-v1",
+          "thetaR": 0.05,
+          "porosity": 0.45,
+          "alphaPerM": 2,
+          "n": 2,
+          "ksMPerS": 0.0001,
+          "ell": 0.5,
+          "minHeadM": -4,
+          "maxHeadM": 8,
+          "densityKgM3": 1000
+        }
+      ],
+      "cells": [
+        {
+          "at": [
+            -1,
+            13,
+            127
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            -1,
+            13,
+            128
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            -1,
+            13,
+            129
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            -1,
+            14,
+            127
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            -1,
+            14,
+            128
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            -1,
+            14,
+            129
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            0,
+            13,
+            127
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            0,
+            13,
+            128
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            0,
+            13,
+            129
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            0,
+            14,
+            127
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            0,
+            14,
+            129
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            1,
+            13,
+            127
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            1,
+            13,
+            128
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            1,
+            13,
+            129
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            1,
+            14,
+            127
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            1,
+            14,
+            128
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        },
+        {
+          "at": [
+            1,
+            14,
+            129
+          ],
+          "soilId": "synthetic-rigid-loam-si-v1"
+        }
+      ],
+      "reservoirs": [
+        {
+          "id": "excavation-pit",
+          "kind": "vented-pit",
+          "at": [
+            0,
+            14,
+            128
+          ]
+        }
+      ],
+      "ports": [
+        {
+          "cell": [
+            -1,
+            14,
+            128
+          ],
+          "side": "x+",
+          "reservoirId": "excavation-pit"
+        },
+        {
+          "cell": [
+            1,
+            14,
+            128
+          ],
+          "side": "x-",
+          "reservoirId": "excavation-pit"
+        },
+        {
+          "cell": [
+            0,
+            13,
+            128
+          ],
+          "side": "y+",
+          "reservoirId": "excavation-pit"
+        },
+        {
+          "cell": [
+            0,
+            14,
+            127
+          ],
+          "side": "z+",
+          "reservoirId": "excavation-pit"
+        },
+        {
+          "cell": [
+            0,
+            14,
+            129
+          ],
+          "side": "z-",
+          "reservoirId": "excavation-pit"
+        }
+      ],
+      "closedFaces": []
+    },
+    "soilState": {
+      "version": "rigid-richards-connected-volume-be-v1",
+      "identity": "{\"version\":\"rigid-richards-connected-volume-be-v1\",\"geometry\":\"{\\\"version\\\":\\\"rigid-soil-voxel-pit-graph-v1\\\",\\\"regionId\\\":\\\"generated-pit-region\\\",\\\"revision\\\":1,\\\"spacingM\\\":[1,0.54,1],\\\"exterior\\\":\\\"closed\\\",\\\"definitions\\\":[{\\\"id\\\":\\\"synthetic-rigid-loam-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.0001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000}],\\\"cells\\\":[{\\\"at\\\":[-1,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"}],\\\"reservoirs\\\":[{\\\"id\\\":\\\"excavation-pit\\\",\\\"kind\\\":\\\"vented-pit\\\",\\\"at\\\":[0,14,128]}],\\\"ports\\\":[{\\\"cell\\\":[-1,14,128],\\\"side\\\":\\\"x+\\\",\\\"reservoirId\\\":\\\"excavation-pit\\\"},{\\\"cell\\\":[1,14,128],\\\"side\\\":\\\"x-\\\",\\\"reservoirId\\\":\\\"excavation-pit\\\"},{\\\"cell\\\":[0,13,128],\\\"side\\\":\\\"y+\\\",\\\"reservoirId\\\":\\\"excavation-pit\\\"},{\\\"cell\\\":[0,14,127],\\\"side\\\":\\\"z+\\\",\\\"reservoirId\\\":\\\"excavation-pit\\\"},{\\\"cell\\\":[0,14,129],\\\"side\\\":\\\"z-\\\",\\\"reservoirId\\\":\\\"excavation-pit\\\"}],\\\"closedFaces\\\":[]}\",\"faceRule\":\"series-centre-half-trace-quarter-v1\",\"solver\":\"analytic-dense-newton-tree-closure-v1\",\"pressureGuess\":\"stable-id-multisource-bfs-canonical-stock-v1\",\"dryBoundary\":\"single-port-only-v1\",\"pitBoundary\":\"integrated-side-seepage-single-floor-positive-depth-v1\",\"dryPitReference\":\"exposed-saturated-side-atmosphere-v1\"}",
+      "massKg": [
+        243,
+        243,
+        243,
+        242.99739164911819,
+        242.9877087626295,
+        242.99739164911819,
+        243,
+        243,
+        243,
+        242.9877087626295,
+        242.9877087626295,
+        243,
+        243,
+        243,
+        242.99739164911819,
+        242.9877087626295,
+        242.99739164911819,
+        0.059598353009499117
+      ],
+      "initialTotalKg": 4131,
+      "timeS": 1,
+      "steps": 1
+    },
+    "initialWaterKg": 4310.735064736295,
+    "pit": {
+      "at": [
+        0,
+        14,
+        128
+      ],
+      "mode": "open-vented-integrated-seepage",
+      "reservoirId": "excavation-pit"
+    },
+    "exports": [
+      {
+        "id": "wet-spoil:first-wet-soil-cut",
+        "fromNodeId": "cell:0,14,128",
+        "soilId": "synthetic-rigid-loam-si-v1",
+        "waterKg": 179.73506473629425,
+        "sourceVoxelM3": 0.54
+      }
+    ],
+    "excavation": {
+      "command": {
+        "operationId": "first-wet-soil-cut",
+        "expectedWorldRevision": 0,
+        "at": [
+          0,
+          14,
+          128
+        ]
+      },
+      "previousWorldTarget": null,
+      "previousSoilIdentity": "{\"version\":\"rigid-richards-connected-volume-be-v1\",\"geometry\":\"{\\\"version\\\":\\\"rigid-soil-voxel-graph-v1\\\",\\\"regionId\\\":\\\"generated-pit-region\\\",\\\"revision\\\":0,\\\"spacingM\\\":[1,0.54,1],\\\"exterior\\\":\\\"closed\\\",\\\"definitions\\\":[{\\\"id\\\":\\\"synthetic-rigid-loam-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.0001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000}],\\\"cells\\\":[{\\\"at\\\":[-1,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[-1,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,14,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,13,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,127],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,128],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,14,129],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"}],\\\"reservoirs\\\":[],\\\"ports\\\":[],\\\"closedFaces\\\":[]}\",\"faceRule\":\"series-centre-half-trace-quarter-v1\",\"solver\":\"analytic-dense-newton-tree-closure-v1\",\"pressureGuess\":\"stable-id-multisource-bfs-canonical-stock-v1\",\"dryBoundary\":\"single-port-only-v1\"}"
+    }
+  },
+  "receipt": {
+    "startS": 0,
+    "endS": 1,
+    "faceIds": [
+      "x:0,13,127",
+      "x:0,13,128",
+      "x:0,13,129",
+      "x:0,14,127",
+      "x:0,14,128",
+      "x:0,14,129",
+      "x:1,13,127",
+      "x:1,13,128",
+      "x:1,13,129",
+      "x:1,14,127",
+      "x:1,14,128",
+      "x:1,14,129",
+      "y:-1,14,127",
+      "y:-1,14,128",
+      "y:-1,14,129",
+      "y:0,14,127",
+      "y:0,14,128",
+      "y:0,14,129",
+      "y:1,14,127",
+      "y:1,14,128",
+      "y:1,14,129",
+      "z:-1,13,128",
+      "z:-1,13,129",
+      "z:-1,14,128",
+      "z:-1,14,129",
+      "z:0,13,128",
+      "z:0,13,129",
+      "z:0,14,128",
+      "z:0,14,129",
+      "z:1,13,128",
+      "z:1,13,129",
+      "z:1,14,128",
+      "z:1,14,129"
+    ],
+    "faceTransferKg": [
+      0.0011512333476846651,
+      0.007970018197428642,
+      0.0011512333476846163,
+      0.00015294209329063372,
+      0.0069295700549760276,
+      0.00015294209329063416,
+      -0.0011512333476846862,
+      -0.007970018197429115,
+      -0.0011512333476845227,
+      -0.0001529420932100227,
+      -0.0069295700549156436,
+      -0.0001529420932101862,
+      -0.0023024666952887168,
+      -0.005667551501999448,
+      -0.0023024666952887163,
+      -0.005667551502059668,
+      0.03188007278971575,
+      -0.005667551502059832,
+      -0.0023024666953693276,
+      -0.005667551502059832,
+      -0.002302466695369164,
+      0.001151233347825094,
+      -0.0011512333476040998,
+      0.0001529420932353081,
+      -0.0001529420932353081,
+      0.007970018197429018,
+      -0.007970018197428971,
+      0.006929570054945848,
+      -0.006929570054945848,
+      0.0011512333476846415,
+      -0.0011512333476846415,
+      0.0001529420932353081,
+      -0.0001529420932353081
+    ],
+    "steps": [
+      {
+        "startS": 0,
+        "endS": 1,
+        "dtS": 1,
+        "headM": [
+          0.5250478605354938,
+          0.5037287244672596,
+          0.5250478605354937,
+          -0.0024572257999939885,
+          -0.0053342634993402095,
+          -0.002457225799993986,
+          0.5037287244672599,
+          0.35613579488524155,
+          0.5037287244672596,
+          -0.005334263499340233,
+          -0.0053342634993402025,
+          0.5250478605354936,
+          0.5037287244672596,
+          0.5250478605354938,
+          -0.002457225799993993,
+          -0.005334263499340204,
+          -0.0024572257999939725,
+          0.000059598353009499115
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          242.99739164911819,
+          242.9877087626295,
+          242.99739164911819,
+          243,
+          243,
+          243,
+          242.9877087626295,
+          242.9877087626295,
+          243,
+          243,
+          243,
+          242.99739164911819,
+          242.9877087626295,
+          242.99739164911819,
+          0.059598353009499117
+        ],
+        "ledger": {
+          "transferKg": [
+            0.0011512333476846651,
+            0.007970018197428642,
+            0.0011512333476846163,
+            0.00015294209329063372,
+            0.0069295700549760276,
+            0.00015294209329063416,
+            -0.0011512333476846862,
+            -0.007970018197429115,
+            -0.0011512333476845227,
+            -0.0001529420932100227,
+            -0.0069295700549156436,
+            -0.0001529420932101862,
+            -0.0023024666952887168,
+            -0.005667551501999448,
+            -0.0023024666952887163,
+            -0.005667551502059668,
+            0.03188007278971575,
+            -0.005667551502059832,
+            -0.0023024666953693276,
+            -0.005667551502059832,
+            -0.002302466695369164,
+            0.001151233347825094,
+            -0.0011512333476040998,
+            0.0001529420932353081,
+            -0.0001529420932353081,
+            0.007970018197429018,
+            -0.007970018197428971,
+            0.006929570054945848,
+            -0.006929570054945848,
+            0.0011512333476846415,
+            -0.0011512333476846415,
+            0.0001529420932353081,
+            -0.0001529420932353081
+          ],
+          "darcyTransferKg": [
+            0.0011512333476846415,
+            0.007970018197428971,
+            0.0011512333476846415,
+            0.0001529420932353081,
+            0.006929570054945848,
+            0.0001529420932353081,
+            -0.0011512333476845936,
+            -0.007970018197428971,
+            -0.0011512333476846415,
+            -0.0001529420932353081,
+            -0.006929570054945848,
+            -0.0001529420932353081,
+            -0.002302466695369164,
+            -0.005667551502059832,
+            -0.0023024666953693276,
+            -0.005667551502059668,
+            0.03188007278971575,
+            -0.005667551502059832,
+            -0.0023024666953693276,
+            -0.005667551502059832,
+            -0.002302466695369164,
+            0.0011512333476846896,
+            -0.0011512333476846415,
+            0.0001529420932353081,
+            -0.0001529420932353081,
+            0.007970018197429018,
+            -0.007970018197428971,
+            0.006929570054945848,
+            -0.006929570054945848,
+            0.0011512333476846415,
+            -0.0011512333476846415,
+            0.0001529420932353081,
+            -0.0001529420932353081
+          ],
+          "treeCorrectionKg": [
+            2.3635607360183997e-17,
+            -3.2916377956659915e-16,
+            -2.5153490401663703e-17,
+            5.5325617134491245e-14,
+            3.017968904298063e-14,
+            5.532605081536024e-14,
+            -9.259086553026208e-17,
+            -1.4354836763708079e-16,
+            1.1882855810441129e-16,
+            2.5285410701000877e-14,
+            3.0203975171644304e-14,
+            2.5121913013390063e-14,
+            8.044753014788131e-14,
+            6.038366421462493e-14,
+            8.061146151636112e-14,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1.4040445238741595e-13,
+            8.054163889645305e-14,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "initialContinuityKg": 3.0204137801970177e-14,
+          "rootCompatibilityKg": -2.210425852772202e-13
+        },
+        "metrics": {
+          "mixedKg": 3.0204137801970177e-14,
+          "constitutiveKg": 0,
+          "darcyKg": 1.4040439817730732e-13,
+          "darcyM3S": 1.4040439817730732e-16,
+          "pairKg": 2.2737367544323206e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 1.4040445238741595e-13,
+          "rootCompatibilityKg": -2.210425852772202e-13,
+          "initialContinuityKg": 3.0204137801970177e-14,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:excavation-pit",
+              "portCount": 5,
+              "massKg": 0.059598353009499117,
+              "depthM": 0.000059598353009499115,
+              "headM": 0.000059598353009499115,
+              "gapM": 0,
+              "kind": "pit",
+              "rimDepthM": 0.54
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:excavation-pit",
+              "massKg": 0.059598353009499117,
+              "previousHeadM": 0.000059598353009499115,
+              "headM": 0.000059598353009499115,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      }
+    ],
+    "rejectedStages": [],
+    "maxAbsMetrics": {
+      "mixedKg": 3.0204137801970177e-14,
+      "constitutiveKg": 0,
+      "darcyKg": 1.4040439817730732e-13,
+      "darcyM3S": 1.4040439817730732e-16,
+      "pairKg": 2.2737367544323206e-13,
+      "totalKg": 0,
+      "treeCorrectionKg": 1.4040445238741595e-13,
+      "rootCompatibilityKg": 2.210425852772202e-13,
+      "initialContinuityKg": 3.0204137801970177e-14,
+      "chordDifferenceKg": 0,
+      "complementarityM2": 0,
+      "stockClosureKg": 0
+    },
+    "aggregateResidual": {
+      "pairKg": 2.2737367544323206e-13,
+      "totalKg": 0
+    }
+  },
+  "work": {
+    "evaluations": 13,
+    "evaluationLimit": 250000,
+    "faceEvaluations": 429,
+    "iterations": 7,
+    "lineTrials": 11,
+    "rejected": 0,
+    "guessEdgeVisits": 66,
+    "guessNodeReads": 18,
+    "guessProjections": 8,
+    "matrixBuilds": 7,
+    "matrixAssemblyAdds": 924,
+    "peakDenseBytes": 2592,
+    "pivotComparisons": 1071,
+    "matrixSwapEntries": 18,
+    "factorDivisions": 1071,
+    "matrixUpdates": 12495,
+    "matrixUpdateLimit": 30000000,
+    "rhsUpdates": 1071,
+    "backSubProducts": 1071,
+    "backSubDivisions": 126,
+    "maxLinearResidualKg": 3.255317022887727e-17,
+    "closureFaceVisits": 33,
+    "closureTreeVisits": 17
+  },
+  "balance": {
+    "retainedWaterKg": 4130.940401646991,
+    "exportWaterKg": 179.73506473629425,
+    "pitWaterKg": 0.059598353009499117,
+    "totalWaterKg": 4310.735064736295,
+    "residualKg": 0
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "status": "Source-only candidate, not applied or executed. Frozen physical result-v1 remains unchanged.",
+  "originalComparatorSha256": "4cd64a2d4596886d2c682a93907afa94f6b9ed8f967d9560d18dc042cbcdfbed",
+  "candidateComparatorSha256": "e6e1fe204b72af072d6f15a62a80980cb1258517c31cdfb3e925cd04d050f2f8",
+  "patchSha256": "d6ee8601db3dd90285c68218f477471c794749db34f88b156c2df46d470323cf"
+}

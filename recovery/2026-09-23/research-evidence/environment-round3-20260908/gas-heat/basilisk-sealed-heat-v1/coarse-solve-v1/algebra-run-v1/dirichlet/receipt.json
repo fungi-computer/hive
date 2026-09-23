@@ -1,0 +1,15 @@
+{
+  "mode": "dirichlet",
+  "nativeExitCode": 3,
+  "wallSeconds": 0.0024503550375811756,
+  "stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "bytes": 74,
+    "sha256": "ab6cc18119db2909e5ee56fe50c044a606e560b4017be32c782be1fdb9dc3dac"
+  },
+  "accepted": true,
+  "errors": []
+}

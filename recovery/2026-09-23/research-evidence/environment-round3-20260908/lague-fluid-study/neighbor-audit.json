@@ -1,0 +1,35 @@
+{
+  "sourceCommit": "4717b7259718d349b0001c82836f24ce5fec81d7",
+  "mode": "CPU translation of pinned hash/lookup, independently checked against all pairs",
+  "particles": 1000,
+  "radius": 1,
+  "query": [
+    0.1,
+    0.1,
+    0.1
+  ],
+  "nearNeighbor": [
+    0.1,
+    0.1,
+    -0.1
+  ],
+  "oracle": [
+    0,
+    1
+  ],
+  "pinnedLookup": [
+    0,
+    1,
+    1
+  ],
+  "uniqueBinLookup": [
+    0,
+    1
+  ],
+  "conclusion": "Distinct neighboring cells can hash to the same queried bucket. The pinned loop visits that bucket repeatedly and double-counts an in-radius particle.",
+  "limits": [
+    "Not executed on GPU",
+    "No whole-SPH accuracy/capacity claim",
+    "Deduplicating bucket keys is a demonstrated local correction, not a complete adapted solver"
+  ]
+}

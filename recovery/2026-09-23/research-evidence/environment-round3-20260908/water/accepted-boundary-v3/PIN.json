@@ -1,0 +1,34 @@
+{
+  "candidate.mjs": {
+    "sha256": "be1c41fbf70ecb0e870cfee81b86a3ab58767c0b1a4d972facb5a4fe945b3088",
+    "bytes": 12552
+  },
+  "admission.mjs": {
+    "sha256": "d20105704b7981792fa6e369605abacc7faeb489c5b3d232af1a614671ae008a",
+    "bytes": 9920
+  },
+  "fixtures.mjs": {
+    "sha256": "d7f53ed6e01fd3c27fabe0f4d5695fc0658a6efb691649f740c9636a7b72c416",
+    "bytes": 2149
+  },
+  "boundary-proof.mjs": {
+    "sha256": "b9b997ce4c9375014037409e3db9fa5e0f884b44d3aad2346cb718d3ee746a91",
+    "bytes": 12774
+  },
+  "BOUNDARY-PREDECLARED.md": {
+    "sha256": "82ed9774b475d9855854ad836513b10359ada8a9b43654b98133091d36843f68",
+    "bytes": 3581
+  },
+  "BOUNDARY-RESULTS.md": {
+    "sha256": "1f2f17c5b8fd5d1f7fad9546fa0f8544b83b380de5404cddd3f228b2f6e668ef",
+    "bytes": 6249
+  },
+  "NEXT-QUALIFICATION-054.md": {
+    "sha256": "c2250167d41380c4ab8efed003ac57bca3acc1c68174f17318e35419f1f962a5",
+    "bytes": 5356
+  },
+  "reference/solver.mjs": {
+    "sha256": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "bytes": 12091
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "command": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh timeout 40s node .botanical/research/environment-round3-20260908/worldgen/height-sea/browser-proof.mjs",
+  "unit": "run-u2742.scope",
+  "invocationId": "b6acfa87f968459db735168837049e6b",
+  "exitCode": 0,
+  "elapsedSeconds": 18.035280625,
+  "server": "ephemeral Vite server bound only to 127.0.0.1 and closed by the proof",
+  "browser": "Playwright Chromium headless shell 1234 with retained repository browser libraries",
+  "screenshots": [
+    "browser-proof/normal-wet-dry.png",
+    "browser-proof/narrow-390-wet-dry.png"
+  ],
+  "inspection": "normal and 390px frames opened locally after proof; normal shows the selected wet/dry boundary across overview, local raster and section, while 390px remains a single-column 390px-wide document"
+}

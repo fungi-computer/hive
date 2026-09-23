@@ -1,0 +1,147 @@
+{
+  "suite": "restart",
+  "stamp": "corrected",
+  "hashes": {
+    "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "experiment.mjs": "2f16cebe3906930240d818ec3d8ec0f3390f6cf674e46d9c1dd3ca1c07221795",
+    "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+  },
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "x64",
+  "timestamp": "2026-09-08T06:29:02.029Z",
+  "outcomes": [
+    {
+      "name": "restart-li",
+      "status": "completed",
+      "summary": {
+        "exactWithHistory": true,
+        "maxVolumeDifferenceDiscardQ": 0.011331023301382748
+      },
+      "elapsedMs": 8135.372351
+    },
+    {
+      "name": "restart-swe",
+      "status": "completed",
+      "summary": {
+        "exactWithHistory": true,
+        "maxVolumeDifferenceDiscardQ": 0
+      },
+      "elapsedMs": 9393.528240999998
+    },
+    {
+      "name": "rotation90-li",
+      "status": "completed",
+      "summary": {
+        "mappedVolumeMaxDifference": 4.440892098500626e-16,
+        "mappedMomentumMaxDifference": 0,
+        "mappedDischargeMaxDifference": 5.106592232406726e-17,
+        "pass": true,
+        "a": {
+          "time": 119.99999999999687,
+          "reservoir": 42.62483586815379,
+          "reach": 40.50233037648477,
+          "diversion": 12.05210758910867,
+          "pond": 9.619826657320909,
+          "user": 5.386929456393627,
+          "collected": 5.013970052538207,
+          "total": 110.18602994746185,
+          "balanceError": -4.263256414560601e-14,
+          "arrivalSeconds": 38.40000000000012,
+          "steps": 1200,
+          "minDt": 0.09999999999985931,
+          "maxMassError": 1.8474111129762605e-13,
+          "maxFrAbove1cm": 19.43563007844485,
+          "wetFaceTimeFractionFrAboveHalf": 0.04839895066706119,
+          "wetFaceTimeFractionFrAboveOne": 0.006736962446538048,
+          "maxGradient": 0.302,
+          "limitedDonors": 1504,
+          "minFactor": 0,
+          "minDepth": 0,
+          "gateBeforeOpen": 0
+        },
+        "b": {
+          "time": 119.99999999999687,
+          "reservoir": 42.62483586815379,
+          "reach": 40.50233037648477,
+          "diversion": 12.05210758910867,
+          "pond": 9.619826657320907,
+          "user": 5.386929456393627,
+          "collected": 5.013970052538207,
+          "total": 110.18602994746185,
+          "balanceError": -4.263256414560601e-14,
+          "arrivalSeconds": 38.40000000000012,
+          "steps": 1200,
+          "minDt": 0.09999999999985931,
+          "maxMassError": 2.4158453015843406e-13,
+          "maxFrAbove1cm": 19.43563007844485,
+          "wetFaceTimeFractionFrAboveHalf": 0.04839895066706119,
+          "wetFaceTimeFractionFrAboveOne": 0.006736962446538048,
+          "maxGradient": 0.302,
+          "limitedDonors": 1504,
+          "minFactor": 0,
+          "minDepth": 0,
+          "gateBeforeOpen": 0
+        }
+      },
+      "elapsedMs": 6996.0470300000015
+    },
+    {
+      "name": "rotation90-swe",
+      "status": "completed",
+      "summary": {
+        "mappedVolumeMaxDifference": 3.3306690738754696e-16,
+        "mappedMomentumMaxDifference": 7.19910242530375e-17,
+        "mappedDischargeMaxDifference": 1.231653667943533e-16,
+        "pass": true,
+        "a": {
+          "time": 119.99999999999687,
+          "reservoir": 40.66750596791621,
+          "reach": 35.18032806118022,
+          "diversion": 11.41915521593721,
+          "pond": 17.7397978439114,
+          "user": 4.865861195155479,
+          "collected": 5.327351715899454,
+          "total": 109.87264828410053,
+          "balanceError": -1.1368683772161603e-13,
+          "arrivalSeconds": 32.80000000000004,
+          "steps": 1200,
+          "minDt": 0.09999999999985931,
+          "maxMassError": 1.9895196601282805e-13,
+          "maxFrAbove1cm": 1.3685257264047188,
+          "wetFaceTimeFractionFrAboveHalf": 0.01653911465723804,
+          "wetFaceTimeFractionFrAboveOne": 0.00003101568618328743,
+          "maxGradient": 0.302,
+          "limitedDonors": 1304,
+          "minFactor": 0,
+          "minDepth": 0,
+          "gateBeforeOpen": 0
+        },
+        "b": {
+          "time": 119.99999999999687,
+          "reservoir": 40.667505967916235,
+          "reach": 35.18032806118022,
+          "diversion": 11.419155215937208,
+          "pond": 17.7397978439114,
+          "user": 4.865861195155479,
+          "collected": 5.327351715899454,
+          "total": 109.87264828410059,
+          "balanceError": -5.684341886080802e-14,
+          "arrivalSeconds": 32.80000000000004,
+          "steps": 1200,
+          "minDt": 0.09999999999985931,
+          "maxMassError": 2.4158453015843406e-13,
+          "maxFrAbove1cm": 1.3685257264047188,
+          "wetFaceTimeFractionFrAboveHalf": 0.01653911465723804,
+          "wetFaceTimeFractionFrAboveOne": 0.00003101568618328743,
+          "maxGradient": 0.302,
+          "limitedDonors": 1304,
+          "minFactor": 0,
+          "minDepth": 0,
+          "gateBeforeOpen": 0
+        }
+      },
+      "elapsedMs": 8576.967718
+    }
+  ]
+}

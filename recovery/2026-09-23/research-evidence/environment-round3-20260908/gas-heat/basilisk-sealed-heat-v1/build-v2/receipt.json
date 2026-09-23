@@ -1,0 +1,74 @@
+{
+  "scope": "Compile only. Native gas binary not executed.",
+  "invocationId": "ce5d8719e98e49bc9bc9797e603a3e5b",
+  "commands": [
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-events",
+        "-source",
+        "sealed-heat.c"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 5.092624525015708,
+      "log": "command-1.log"
+    },
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "sealed-heat.c",
+        "-o",
+        "sealed-heat",
+        "-lm"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 21.679355125990696,
+      "log": "command-2.log"
+    }
+  ],
+  "exitCode": 0,
+  "wallSeconds": 26.772411090962123,
+  "upstreamUnchanged": true,
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 8654,
+      "sha256": "6638edbacd873060ffd97ae7cb54bb0c12ddc7d4cbd9e8c0e38e797d83dd111a"
+    },
+    "_sealed-heat.c": {
+      "bytes": 1747912,
+      "sha256": "87381d4b1a6cd1dd6f3b12c5f333f16adfa83f3bc31c00edbb92605f597bf403"
+    },
+    "command-1.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "command-2.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "compile-v2.py": {
+      "bytes": 2566,
+      "sha256": "0c8ee1c12b689340fff24ce1aec9870304a73a5d7c349b007861d5d6cc1d1e4e"
+    },
+    "sealed-heat": {
+      "bytes": 695608,
+      "sha256": "776a4d220893fcad7d87c7a86366c488e114318ebfaf768b00c6d11aa746d798"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "sealed-heat.c": {
+      "bytes": 6581,
+      "sha256": "4dfa8c6a6d264746667be7dd1d6996139e7015e93ba8e4db45301db26a324b4a"
+    },
+    "source-checkpoint-v3.json": {
+      "bytes": 3343,
+      "sha256": "06e3e38c280d45c1ae629486ca5f8d8aee99b47e7b9f26c79501b5b9391bd182"
+    }
+  }
+}

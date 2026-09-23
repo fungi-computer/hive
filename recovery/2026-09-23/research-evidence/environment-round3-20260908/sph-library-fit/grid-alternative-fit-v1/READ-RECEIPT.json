@@ -1,0 +1,37 @@
+{
+  "checkedUtc": "2026-09-08T22:27:21.902005+00:00",
+  "scope": "Source-only Basilisk fit. No installation/build/numerical execution.",
+  "tools": {
+    "gcc": "/usr/bin/gcc",
+    "make": "/usr/bin/make",
+    "awk": "/usr/bin/awk",
+    "ar": "/usr/bin/ar",
+    "qcc": null,
+    "bison": null,
+    "flex": null,
+    "darcs": null
+  },
+  "sourceFilesWithActualBodies": 53,
+  "retainedFetchFailures": [
+    "qcc.lex",
+    "test/momentum.c",
+    "test/restart.c",
+    "test/momentum2.c",
+    "test/vof.c",
+    "test/vof-mpi.c",
+    "test/mask2.c",
+    "test/restore-3D.c",
+    "examples/dam.c",
+    "examples/dam3D.c",
+    "grid/metric.h"
+  ],
+  "sourceHashesMatched": true,
+  "independentReview": {
+    "agent": "/root/water_solver_round3/basilisk_restart_review",
+    "scope": "read-only solver/event/dump restart seam",
+    "completed": true,
+    "writesBuildsRuns": false
+  },
+  "firstFixtureStatus": "Proposed 2D unit-depth literal basin and thresholds; no executable caller or run.",
+  "physicalQualification": false
+}

@@ -1,0 +1,45 @@
+{
+  "scope": "Source-only precision/adoption decision plus arithmetic on saved rows. No native run, compiler or threshold change.",
+  "files": [
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/poisson.h",
+      "bytes": 14079,
+      "sha256": "f7df8d2d0d14bbe1832d4b0cc2fc4ec2fa50f586e80af4f5ecf61af671a333e4"
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/vof.h",
+      "bytes": 11656,
+      "sha256": "d807da67e8b13cb10ea1ec0ba2742394bd5ab7119da7c96736dc992894aedad6"
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/grid-alternative-fit-v1/SOURCE-FIT.md",
+      "bytes": 15067,
+      "sha256": "2fea26a7864e62ea52c16c34ac20d73694243330e96489e63d92d301ef25c895"
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/PROPOSAL.md",
+      "bytes": 9123,
+      "sha256": "0c22ba15cdfc15433d76a5b119ae92d4fdd03f163c6a8201ba8c52cce3b6d422"
+    },
+    {
+      "path": "/home/levi/src/hive/src/materials.ts",
+      "bytes": 58773,
+      "sha256": "59f2a6947262277e5d64da76fee1541b9d799d2c0a9d47918f9a38c124c6fedf"
+    },
+    {
+      "path": "/home/levi/src/hive/src/water-delivery.ts",
+      "bytes": 3825,
+      "sha256": "7c5eeb1237e93ea70b9071ffa493fbf5cfeb76742b7229dd0def1bd03dafc813"
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/precision-policy-audit-v1/DECISION.md",
+      "bytes": 8965,
+      "sha256": "cadea888800c34e75f1f2a092f25375c4239308618b1ee331e9ba85dd7a113ae"
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/precision-policy-audit-v1/existing-row-quantities.json",
+      "bytes": 1281,
+      "sha256": "3192c8249e615e7ccd2af1939dfe713200e77d5c4827dae8a537a5c4214e5e18"
+    }
+  ]
+}

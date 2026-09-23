@@ -1,0 +1,205 @@
+{
+  "scope": "Read-only derivation from the one frozen physical packet; no rerun or criteria/source change.",
+  "run": {
+    "unit": "run-u3296.scope",
+    "invocationId": "b57ab3133a7a4b3a83c045c60b0e1971",
+    "exitCode": 1
+  },
+  "movingWaterQualified": false,
+  "refinementQualified": false,
+  "refinementDisposition": "Not evaluated honestly: fine ended early. The frozen comparator boolean compares unequal intervals and must not be used as refinement evidence.",
+  "returnDisposition": "Fine returnedAmplitude boolean is only error at its partial final sample; it is not a completed return.",
+  "cases": [
+    {
+      "case": "coarse",
+      "nativeExitCode": 0,
+      "timedOut": false,
+      "completePeriod": true,
+      "steps": 1611,
+      "coveredVelocitySeconds": 1.171908997384657,
+      "coveredNominalFractionSeconds": 1.1715430114570382,
+      "nativeStateControlsThroughCapturedRows": true,
+      "maxWaterDriftM3PerM": 1.764377532964545e-11,
+      "maxAirDriftM3PerM": 1.7642998173528213e-11,
+      "fractionBounds": [
+        -6.637481046900895e-17,
+        1
+      ],
+      "maxCellSpeedMps": 0.3965007168797069,
+      "maxFaceSpeedMps": 0.3860386240170991,
+      "maxWallNormalSpeedMps": 1.734723475976807e-17,
+      "maxFaceDivergencePerSecond": 1.2576352816557628e-06,
+      "maxProjectionResidualRatio": 0.9999944952625026,
+      "projectionIterationsRange": [
+        5,
+        38
+      ],
+      "initialEnergyJPerM": 0.009791776789166706,
+      "peakEnergySample": {
+        "step": 1049,
+        "fractionTime": 0.7601748288136938,
+        "velocityTime": 0.7605408147413125,
+        "amplitudeM": -0.0011511459764409783,
+        "expectedAmplitudeM": -0.0011891142569686315,
+        "signedModeError": 0.01898414026382659,
+        "profileL2": 0.07197565274219976,
+        "higherModeResidueL2": 0.0707131888130678,
+        "kineticErrorOverE0": 1.1671007262151418,
+        "potentialErrorOverE0": -0.011940189435234925,
+        "staggeredEnergyErrorOverE0": 1.155160536779907,
+        "roundoffEnergyBoundOverE0": 7.055434125408153e-14
+      },
+      "peakEnergyNative": {
+        "step": 1049,
+        "velocityTimeSeconds": 0.7605408147413125,
+        "kineticEnergyJPerMetre": 0.01778846273346173,
+        "potentialAboveFlatJPerMetre": 0.0033466630572859812,
+        "cellSpeedMps": 0.38238450997532125,
+        "roundoffEnergyBoundJPerMetre": 6.913075219972967e-16
+      },
+      "finalEnergyNative": {
+        "kineticEnergyJPerMetre": 0.00651455490875227,
+        "potentialAboveFlatJPerMetre": 0.00977290186158633
+      },
+      "accuracyOverRecordedInterval": {
+        "initialRepresentation": true,
+        "fullProfile": false,
+        "signedModeRms": true,
+        "period": true,
+        "firstCrossing": true,
+        "returnedAmplitude": true,
+        "staggeredEnergyDiagnostic": false,
+        "boundedRoundoffEnergyUncertainty": true
+      },
+      "comparisonMaximaOverRecordedInterval": {
+        "profileL2": 0.1315957145896412,
+        "higherModeResidueL2": 0.1313088934753422,
+        "staggeredEnergyErrorOverE0": 1.155160536779907,
+        "kineticErrorOverE0": 1.1671007262151418,
+        "potentialErrorOverE0": 0.05305391724581256,
+        "roundoffEnergyBoundOverE0": 9.220856867587746e-14
+      },
+      "period": {
+        "timeWeightedModeRms": 0.011717537537635755,
+        "integratedFractionTimeSeconds": 1.1715430114570382,
+        "crossings": [
+          {
+            "direction": "down",
+            "fractionTime": 0.2917423667612354
+          },
+          {
+            "direction": "up",
+            "fractionTime": 0.8745210218190194
+          }
+        ],
+        "measuredPeriodSeconds": 1.165557310115568,
+        "periodRelativeError": 0.005419949230924925,
+        "firstCrossingPhaseError": 0.0010537359024333504,
+        "oneDownAndUpCrossing": true
+      },
+      "captureWallSeconds": 13.246050654968712,
+      "terminal": {
+        "kind": "terminal",
+        "case": "coarse",
+        "exitCode": 0,
+        "completedInterval": true,
+        "steps": 1611,
+        "completedSeconds": 1.171908997384657,
+        "vofInvocationCount": 1611,
+        "vofTransportSeconds": 1.171908997384657,
+        "wallSecondsIncludingObservation": 13.215014177025296,
+        "projectionSeconds": 11.020507037057541,
+        "vofSeconds": 1.5650365632609464,
+        "observationSeconds": 0.2648181824479252
+      }
+    },
+    {
+      "case": "fine",
+      "nativeExitCode": null,
+      "timedOut": true,
+      "completePeriod": false,
+      "steps": 532,
+      "coveredVelocitySeconds": 0.38211136558365993,
+      "coveredNominalFractionSeconds": 0.3817453796560413,
+      "nativeStateControlsThroughCapturedRows": true,
+      "maxWaterDriftM3PerM": 5.524136703627391e-12,
+      "maxAirDriftM3PerM": 5.524247725929854e-12,
+      "fractionBounds": [
+        -6.130909674919551e-17,
+        1.0000000000000002
+      ],
+      "maxCellSpeedMps": 0.2042115939623612,
+      "maxFaceSpeedMps": 0.19153673322767323,
+      "maxWallNormalSpeedMps": 2.688821387764051e-17,
+      "maxFaceDivergencePerSecond": 1.4728871761413435e-06,
+      "maxProjectionResidualRatio": 0.9994605157546748,
+      "projectionIterationsRange": [
+        5,
+        32
+      ],
+      "initialEnergyJPerM": 0.009796615983349799,
+      "peakEnergySample": {
+        "step": 310,
+        "fractionTime": 0.21924762779336787,
+        "velocityTime": 0.2196136137209865,
+        "amplitudeM": 0.0007696593619069602,
+        "expectedAmplitudeM": 0.000770172106800276,
+        "signedModeError": -0.0002563724466578981,
+        "profileL2": 0.020425630324717513,
+        "higherModeResidueL2": 0.02042482590988564,
+        "kineticErrorOverE0": 0.03844137209153334,
+        "potentialErrorOverE0": 0.0006516554222089493,
+        "staggeredEnergyErrorOverE0": 0.03909302751374233,
+        "roundoffEnergyBoundOverE0": 1.209179283948183e-15
+      },
+      "peakEnergyNative": {
+        "step": 310,
+        "velocityTimeSeconds": 0.2196136137209865,
+        "kineticEnergyJPerMetre": 0.008735532776238024,
+        "potentialAboveFlatJPerMetre": 0.0014593767278046968,
+        "cellSpeedMps": 0.1920191410211008,
+        "roundoffEnergyBoundJPerMetre": 1.1847814317001036e-17
+      },
+      "finalEnergyNative": {
+        "kineticEnergyJPerMetre": 0.007953512630349126,
+        "potentialAboveFlatJPerMetre": 0.002085365369161832
+      },
+      "accuracyOverRecordedInterval": {
+        "initialRepresentation": true,
+        "fullProfile": true,
+        "signedModeRms": true,
+        "period": false,
+        "firstCrossing": true,
+        "returnedAmplitude": true,
+        "staggeredEnergyDiagnostic": true,
+        "boundedRoundoffEnergyUncertainty": true
+      },
+      "comparisonMaximaOverRecordedInterval": {
+        "profileL2": 0.03626106057329136,
+        "higherModeResidueL2": 0.03626071523415772,
+        "staggeredEnergyErrorOverE0": 0.03909302751374233,
+        "kineticErrorOverE0": 0.03844137209153334,
+        "potentialErrorOverE0": 0.0029154592822162864,
+        "roundoffEnergyBoundOverE0": 8.477228789412349e-14
+      },
+      "period": {
+        "timeWeightedModeRms": 0.00023548103661485972,
+        "integratedFractionTimeSeconds": 0.3817453796560413,
+        "crossings": [
+          {
+            "direction": "down",
+            "fractionTime": 0.2929155672950161
+          }
+        ],
+        "measuredPeriodSeconds": null,
+        "periodRelativeError": null,
+        "firstCrossingPhaseError": 5.2633823347886244e-05,
+        "oneDownAndUpCrossing": false
+      },
+      "captureWallSeconds": 14.39085107401479,
+      "terminal": null
+    }
+  ],
+  "nativeCaptureWallSeconds": 28.19255477603292,
+  "nativePeakRssKiBBatch": 57868
+}

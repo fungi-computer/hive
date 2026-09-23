@@ -1,0 +1,84 @@
+{
+  "name": "fully-wet",
+  "status": "passed",
+  "elapsedMs": 6240.294944000001,
+  "n": 64,
+  "cells": 4096,
+  "faces": 8320,
+  "steps": 160,
+  "simulatedSeconds": 4,
+  "finalExact": true,
+  "initialWetFraction": 1,
+  "timings": {
+    "reference": {
+      "samplesMs": [
+        351.20497399999977,
+        399.8008359999999,
+        365.27430599999934,
+        350.5130799999997,
+        1307.5456080000004
+      ],
+      "p50Ms": 365.27430599999934,
+      "p95Ms": 1307.5456080000004
+    },
+    "workspace": {
+      "samplesMs": [
+        141.8222840000003,
+        145.9109510000003,
+        131.17927000000054,
+        144.79643899999974,
+        588.0266040000006
+      ],
+      "p50Ms": 144.79643899999974,
+      "p95Ms": 588.0266040000006
+    },
+    "active": {
+      "samplesMs": [
+        144.89681199999995,
+        136.7677090000002,
+        174.77360599999975,
+        304.19884999999977,
+        883.1527380000007
+      ],
+      "p50Ms": 174.77360599999975,
+      "p95Ms": 883.1527380000007
+    }
+  },
+  "faceRatio": 1,
+  "elapsedRatio": 0.4784722142487626,
+  "targetPass": true,
+  "referenceTypedArrayAllocationPerStep": {
+    "arrays": 15,
+    "bytes": 728064
+  },
+  "active": {
+    "steps": 160,
+    "faceEvaluations": 1331200,
+    "faceScans": 1331200,
+    "activeCells": 655360,
+    "peakActiveFaces": 8320,
+    "allocatedArrays": 21,
+    "allocatedBytes": 942592,
+    "substepTypedArrays": 0,
+    "substepTypedBytes": 0
+  },
+  "workspace": {
+    "steps": 160,
+    "faceEvaluations": 1331200,
+    "faceScans": 1331200,
+    "activeCells": 655360,
+    "peakActiveFaces": 8320,
+    "allocatedArrays": 21,
+    "allocatedBytes": 942592,
+    "substepTypedArrays": 0,
+    "substepTypedBytes": 0
+  },
+  "processMemory": {
+    "rss": 331530240,
+    "heapTotal": 227266560,
+    "heapUsed": 92594704,
+    "external": 31021393,
+    "arrayBuffers": 14579451
+  },
+  "processPeakRssKiB": 394100
+}

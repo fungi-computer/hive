@@ -1,0 +1,40 @@
+{
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "changes": [
+    {
+      "path": "dependencies/CompactNSearch/include/CompactNSearch.h",
+      "before": "b4ed92dbab53b3c64fa19d659cf2b2140419d0555799991fc60e767f83adec34",
+      "after": "84ef4006601bd40aafc1e422cbd01036e52e32a501a1dd29c0491378d35616e8"
+    },
+    {
+      "path": "dependencies/CompactNSearch/include/CompactNSearch.h",
+      "before": "84ef4006601bd40aafc1e422cbd01036e52e32a501a1dd29c0491378d35616e8",
+      "after": "5e5511c3e496a73cfea2f8f4d357808132334ea314131483eef40d7d20ce4b95"
+    },
+    {
+      "path": "upstream/SPlisHSPlasH/NeighborhoodSearch.h",
+      "before": "098aa375585acbbfacc848598b93a82572aa6300317b471db8920113352785b3",
+      "after": "ccb8e6e528074ea8ad03ccd95f557c0c1bb6db9421bb65c2c8263aaf4a29e87c"
+    },
+    {
+      "path": "upstream/SPlisHSPlasH/Simulation.cpp",
+      "before": "2e633f278c437938a55e57475c61a89e701d7dc77ee21e496db59c2ddaa1739a",
+      "after": "a356619cb903c99c790128c20461ff22a7e000df7cddebacbfb6feec6ed5332a"
+    },
+    {
+      "path": "upstream/CMake/NeighborhoodSearch.cmake",
+      "before": "9805d7e4a8b1bc2a323b78f5d237504d35ad4e72c4e8dac5989f0704b43c11a4",
+      "after": "0cc2a1c52fe3fc1d8ffecc133f5ead6ac55a26604a6c4162104a9541af5d0898"
+    },
+    {
+      "path": "upstream/CMake/SetUpExternalProjects.cmake",
+      "before": "118410e3832a04b01827efd9e99036b08b2ddf6ce873a9683491bb5f212207c4",
+      "after": "f9f83b24b1036d0f900d46890c4b7c827997eef51d0be566d06a21a6f2360d33"
+    },
+    {
+      "path": "upstream/CMake/SetUpExternalProjects.cmake",
+      "before": "f9f83b24b1036d0f900d46890c4b7c827997eef51d0be566d06a21a6f2360d33",
+      "after": "8e2f1e72cf3ef32b4786b914ec87c6a53e83fa7af1950131ae0bdc46d098b176"
+    }
+  ]
+}

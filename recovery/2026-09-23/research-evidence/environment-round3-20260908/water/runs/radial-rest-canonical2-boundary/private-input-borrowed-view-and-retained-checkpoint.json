@@ -1,0 +1,10 @@
+{
+  "name": "private-input-borrowed-view-and-retained-checkpoint",
+  "status": "passed",
+  "elapsedMs": 102.53608300000002,
+  "inputIndependent": true,
+  "checkpointGeometryAndHistoryIndependent": true,
+  "viewsReadOnly": true,
+  "retainedAcrossLaterSteps": true,
+  "canonicalFieldOrderIndependent": true
+}

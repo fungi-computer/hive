@@ -1,0 +1,61 @@
+{
+  "scope": "Observation-only capture compiled and source-reviewed; single reproduction authorized",
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 2260,
+      "sha256": "bdbaad0cccca9fbefb27c4f495127eed475bf09acab345bd619af067b315e7ae"
+    },
+    "capture.h": {
+      "bytes": 3989,
+      "sha256": "6535e7f5747faefa7ce0b217e8199d34cd337a0c829a4dd7559d6325778f38ce"
+    },
+    "capture.patch": {
+      "bytes": 2091,
+      "sha256": "625d2f65d1329972367af1ed650a9c2a289112fe3d7fe750a3c13b4207bc42f9"
+    },
+    "coarse-thermal.h": {
+      "bytes": 9337,
+      "sha256": "2f44c47b933e5137853d5ef6e1d4203a442d21fe99023cde9fa352314a974454"
+    },
+    "compile-v1.py": {
+      "bytes": 2199,
+      "sha256": "8b0aeb5ac538c13685f8b0604a9a79c1a5d1100d30b88e6a7b33204a5b17ab73"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "sealed-heat.c": {
+      "bytes": 6607,
+      "sha256": "9ce5135616089f81d138f97c634a47d6c30fe75e9a811815fb718cb77b1b2dee"
+    },
+    "thermal-overlay.h": {
+      "bytes": 9050,
+      "sha256": "4a8ed85806adef7e32b46bd0b2d8ff5fbedc93c69c24511b08392cbbc1642596"
+    },
+    "SOURCE-PIN.json": {
+      "bytes": 2306,
+      "sha256": "b1940a74f7a5bbbf3ffec48c4465dede3e09cf402efd48e8c8eee4e945db8c2d"
+    },
+    "GENERATED-REVIEW.md": {
+      "bytes": 1215,
+      "sha256": "9d5c9a61bfd70e6589229b0963017c0309896dd8a042f3cbae96fe853a985aa6"
+    },
+    "run-capture-v1.py": {
+      "bytes": 5328,
+      "sha256": "07120f0e4c3be8730a3d4cc8ce41e63a9feb0a10448e73fa47128c6d269eca35"
+    },
+    "build-v1/receipt.json": {
+      "bytes": 2736,
+      "sha256": "70fd8350a90185a7156cf661e4b37a7103388896bcf631cce4b6128d85056c6c"
+    },
+    "build-v1/_sealed-heat.c": {
+      "bytes": 1895906,
+      "sha256": "319dd049c96c9ff75911e739c2734b36a991c0c6486a8e01abbbc6b6dfb3ca83"
+    },
+    "build-v1/sealed-heat": {
+      "bytes": 774056,
+      "sha256": "d4e2e59ee33defb5ab7d0bfba860cb54c0ddf7440b22aafb93a503e33b7a47d5"
+    }
+  }
+}

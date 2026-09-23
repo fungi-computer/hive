@@ -1,0 +1,194 @@
+{
+  "scope": "stable neighbor order on every ordinary query; small owner law plus two fresh continuation processes using the same native binary; one fixed tank, fixed dt, Z-sort disabled; no game/WASM/portable-save claim",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "captureRule": "first completed step <=500 with max(abs(density/divergence warm field)) >1e-15",
+  "targetStep": 750,
+  "tolerances": {
+    "x": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "y": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "z": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "vx": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "vy": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "vz": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "mass": {
+      "absolute": 0,
+      "relative": 0
+    },
+    "pressureWarm": {
+      "absolute": 1e-12,
+      "relative": 1e-09
+    },
+    "divergenceWarm": {
+      "absolute": 1e-12,
+      "relative": 1e-09
+    }
+  },
+  "sourceSha256": {
+    "reference.cpp": "4bd5463c2823eb8a7ec7e610472ffea3d262dfc00732983bc807d75b5297ba9f",
+    "reference-checkpoint.h": "3e1ca7ee7331fbbf01473dbdf86923d7d5edf094f8e6e940d76548af527eece1",
+    "reference": "5eee94a5051fbb52eb500e8f9f810d1b972ff7c8ee5972eb7fc353275cc5b0e0",
+    "compile-reference.py": "0c1885037117e56475cf2423820ed786f58a021f279b7430d320ff836f520d1b",
+    "run-restart.py": "44c859dfd11221f39f1e5a3b6db881874010f2661a1c7aa65b823de257014ab9",
+    "neighbor-order-law.h": "8c95a157f4ba6b180d97a30857f463dbab6788b9fe489b98a0f4ec0afa8a7188",
+    "stable-neighbor-order.patch": "374013b8a0033ca754f620107382e58aa5a9010b06010ab34ab7faeeeea38b14",
+    "build/lib/libSPlisHSPlasH.a": "68cb48d6331e3a86c695ee69edd8ccc6e8023fad30b4faa2bf017897e11d4d87"
+  },
+  "results": [
+    {
+      "mode": "neighbor-order-law",
+      "exit": 0,
+      "pidBoundary": "subprocess completed before next was launched",
+      "result": {
+        "mode": "neighbor-order-law",
+        "pass": true,
+        "cycles": 2,
+        "nonIndexIds": true,
+        "buffersRetained": true,
+        "lists": 8,
+        "entries": 24,
+        "comparisons": 30
+      }
+    },
+    {
+      "mode": "restart-write",
+      "exit": 0,
+      "pidBoundary": "subprocess completed before next was launched",
+      "result": {
+        "mode": "restart-write",
+        "pass": true,
+        "checkpointStep": 172,
+        "finalStep": 750,
+        "dt": 0.001,
+        "checkpointMaxPressureWarm": 0,
+        "checkpointMaxDivergenceWarm": 8.860720779317323e-06,
+        "stepLoopIncludingCheckpointIoMs": 1866.849187,
+        "capHits": 0,
+        "massKg": 125.97119999999997,
+        "massErrorKg": 0,
+        "maxCenterPenetrationM": 0,
+        "maxSpeedMS": 6.213094115260234,
+        "pointSets": 2,
+        "particles": 512,
+        "sortMs": 132.69198700000007,
+        "queryIncludingSortMs": 608.5470269999995,
+        "sortLists": 768000,
+        "sortEntries": 7636973,
+        "sortComparisons": 32629332
+      }
+    },
+    {
+      "mode": "restart-read",
+      "exit": 0,
+      "pidBoundary": "subprocess completed before next was launched",
+      "result": {
+        "mode": "restart-read",
+        "pass": true,
+        "checkpointStep": 172,
+        "finalStep": 750,
+        "dt": 0.001,
+        "checkpointMaxPressureWarm": 0,
+        "checkpointMaxDivergenceWarm": 8.860720779317323e-06,
+        "stepLoopIncludingCheckpointIoMs": 1498.736738,
+        "capHits": 0,
+        "massKg": 125.97119999999997,
+        "massErrorKg": 0,
+        "maxCenterPenetrationM": 0,
+        "maxSpeedMS": 6.213094115260234,
+        "pointSets": 2,
+        "particles": 512,
+        "sortMs": 103.72252299999998,
+        "queryIncludingSortMs": 513.6976349999997,
+        "sortLists": 591872,
+        "sortEntries": 5867213,
+        "sortComparisons": 23985252
+      }
+    }
+  ],
+  "comparison": {
+    "immediateRestoreByteExact": true,
+    "finalFileByteExact": true,
+    "finalMetadataExact": true,
+    "identityObjectStateExact": true,
+    "finalWithinDeclaredTolerance": true,
+    "byIdFields": {
+      "x": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "y": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "z": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "vx": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "vy": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "vz": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "mass": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "pressureWarm": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "divergenceWarm": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      }
+    }
+  },
+  "pass": true,
+  "wallSeconds": 3.4119441919610836,
+  "maxChildRssKiB": 21752,
+  "evidenceSha256": {
+    "checkpoint.bin": "9296c4f6f106ce009daa76e72c3ef8424cc96b51e5ac4d60595730c3409895c0",
+    "neighbor-order-law.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "neighbor-order-law.stdout": "3debd77fe69ab07417c9e1e6e78ede6151960eb2add9c35fa8a8df489cfb3150",
+    "restart-read.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "restart-read.stdout": "ce4810a9589636bede1c8005b96bff90bcb739cdabd045240c3660603da2dc74",
+    "restart-write.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "restart-write.stdout": "f603cd029d18a121c5fc97a51d36f4fc2ca7a6de5a9cbc62fdd12f2c49513dd3",
+    "restarted-final.bin": "2466156b7554d2d4d11bfcbfe8fab9a2bfd421a76fd7e520bf606edec676fa42",
+    "restored.bin": "9296c4f6f106ce009daa76e72c3ef8424cc96b51e5ac4d60595730c3409895c0",
+    "uninterrupted-final.bin": "2466156b7554d2d4d11bfcbfe8fab9a2bfd421a76fd7e520bf606edec676fa42"
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "scope": "Maintained gravity source-fit, isolated compile checkpoint, and existing-data reporting correction. No new native physics run.",
+  "compile": {
+    "unit": "run-u3364.scope",
+    "invocationId": "e63e878b4add411b957fca7d42e38aa9",
+    "exitCode": 0
+  },
+  "reporting": {
+    "unit": "run-u3341.scope",
+    "invocationId": "40eef50f2db04e9fafa3f27ef1e03c98",
+    "exitCode": 1,
+    "expectedOverallPhysicalFailurePreserved": true
+  },
+  "oldSourcesAndRawRechecked": true,
+  "files": [
+    {
+      "path": "reduced-gravity-fit-v1/SOURCE-FIT.md",
+      "bytes": 8185,
+      "sha256": "5e47f5916b52ad7c1492d9359fa17fb3ba283eac671cc83acf6cd481f0dd5e7b"
+    },
+    {
+      "path": "reduced-gravity-fit-v1/caller-only.proposed.patch",
+      "bytes": 1168,
+      "sha256": "1ffef939905fd3d4956ac593a29123090bb411765636bc2ad746d0c5b3b89fea"
+    },
+    {
+      "path": "reduced-gravity-fit-v1/source-inventory.json",
+      "bytes": 2059,
+      "sha256": "6ce51322553262c9f4371c1be7368a6ec01bebf5f13ac19f85e0711a7af15707"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/COMPILE-CHECKPOINT.md",
+      "bytes": 5835,
+      "sha256": "74607867396e9496d7fd3cae34ef3f36f9efd657aa7443926f3fe8a1faf169fa"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/FIRST-SHAPE.md",
+      "bytes": 3870,
+      "sha256": "536816c7d6738b50367e4ee6ed8e2380584f36eb607b2c3fad59f81beea20b91"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/SOURCE-INVENTORY.json",
+      "bytes": 6961,
+      "sha256": "dddb432660415629bf69925617ff55068c8bbe8344d78cb99fa1dfabbf386da3"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/_wave.c",
+      "bytes": 2000579,
+      "sha256": "1d26018e4ea1f41b4a9620be54453a58a5a9564abb775003fa842815b0160ea5"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/command-1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/command-2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/compile-wave.py",
+      "bytes": 2698,
+      "sha256": "ec579ce85cc0e978bd23692e92a735c92a75349c427a388b6945aa1af47808ab"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/receipt.json",
+      "bytes": 2370,
+      "sha256": "503a067117945e1bbd8d9e840e2eaa3e0afcb44695f5333019435f40abf6fc8e"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/source-pins.json",
+      "bytes": 1324,
+      "sha256": "3fd124f92e965a93decee238ac7bdec60fa7e2768d27dab9311bfee264432401"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/wave",
+      "bytes": 441024,
+      "sha256": "b36aa5ceea5e791257369c137eed1abab29cfccc9205e375c499598c248a3b5f"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/wave-observation.h",
+      "bytes": 9221,
+      "sha256": "8e018f7eaa26a536f7d8e5b3ba30ebff0ab903f950ace30a536bbb2cd7d9d3ea"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/wave-reduced-observation.h",
+      "bytes": 7214,
+      "sha256": "e0661b2e6abab24ba3a3f0ae940b7d24f21e8261faab7d2c5aedfcbb073254e0"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/build-v1/wave.c",
+      "bytes": 6615,
+      "sha256": "5795db60c2296d4a0c6a561ddc913fe5ba41ea6edc33138542c72ff0df0c596f"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/caller-observer.patch",
+      "bytes": 10528,
+      "sha256": "bc5fc8d1e52228f20414fe09148f62ff5204688a32c12b2a683b2f7cb278be3c"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/compile-wave.py",
+      "bytes": 2698,
+      "sha256": "ec579ce85cc0e978bd23692e92a735c92a75349c427a388b6945aa1af47808ab"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/source-pins.json",
+      "bytes": 1324,
+      "sha256": "3fd124f92e965a93decee238ac7bdec60fa7e2768d27dab9311bfee264432401"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/wave-observation.h",
+      "bytes": 9221,
+      "sha256": "8e018f7eaa26a536f7d8e5b3ba30ebff0ab903f950ace30a536bbb2cd7d9d3ea"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/wave-reduced-observation.h",
+      "bytes": 7214,
+      "sha256": "e0661b2e6abab24ba3a3f0ae940b7d24f21e8261faab7d2c5aedfcbb073254e0"
+    },
+    {
+      "path": "reduced-gravity-candidate-v1/wave.c",
+      "bytes": 6615,
+      "sha256": "5795db60c2296d4a0c6a561ddc913fe5ba41ea6edc33138542c72ff0df0c596f"
+    },
+    {
+      "path": "reporting-v2/APPLIED-COPY.md",
+      "bytes": 1259,
+      "sha256": "378b807b8e23885a81336be42378649144bc2a4e1aa78b37fba114770b1a7a5c"
+    },
+    {
+      "path": "reporting-v2/REPORTING.md",
+      "bytes": 1459,
+      "sha256": "99458c68055af92daaa5907a121a162468301748c49d044e893216cb3a4d39fb"
+    },
+    {
+      "path": "reporting-v2/reporting-only.patch",
+      "bytes": 4192,
+      "sha256": "d6ee8601db3dd90285c68218f477471c794749db34f88b156c2df46d470323cf"
+    },
+    {
+      "path": "reporting-v2/result/comparison.json",
+      "bytes": 1327720,
+      "sha256": "bbfdc0648789e94b9b679dd2410e54d3fd7bed904a2a70b4399fde4645c0fb23"
+    },
+    {
+      "path": "reporting-v2/result/receipt.json",
+      "bytes": 696,
+      "sha256": "0124eeecaa1681a537d0b1735cdd353cafd7685b592b114f9ded3aa863f4c062"
+    },
+    {
+      "path": "reporting-v2/result/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reporting-v2/result/stdout.log",
+      "bytes": 5996,
+      "sha256": "0c25d3fe87507588aef30d637809b2f7762ce50d5061f5afea714f2d9a04ace8"
+    },
+    {
+      "path": "reporting-v2/run-reporting.py",
+      "bytes": 2368,
+      "sha256": "04f7395e3c58dc788764a4a2ab58debffe81d3cea3185599ff25da29361953e0"
+    },
+    {
+      "path": "reporting-v2/source/compare-wave.mjs",
+      "bytes": 13375,
+      "sha256": "e6e1fe204b72af072d6f15a62a80980cb1258517c31cdfb3e925cd04d050f2f8"
+    },
+    {
+      "path": "reporting-v2/source/oracle/oracle.mjs",
+      "bytes": 3302,
+      "sha256": "1b9ae075cc53816831945a0f9f8f023f6bf395da53352ac4dfe8ceeb02076c84"
+    },
+    {
+      "path": "reporting-v2/source-pins.json",
+      "bytes": 393,
+      "sha256": "a2af2c256e63196b4701a6242d6c331b21675f1e857a834ce5701459ca51752f"
+    }
+  ]
+}

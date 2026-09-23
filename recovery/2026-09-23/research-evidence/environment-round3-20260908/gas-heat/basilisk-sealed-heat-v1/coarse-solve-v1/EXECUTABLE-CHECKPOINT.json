@@ -1,0 +1,75 @@
+{
+  "scope": "Source before first compile; fixed thresholds before any numerical run",
+  "files": {
+    "algebra.c": {
+      "bytes": 6620,
+      "sha256": "a49309735613f5ca78e79412e0f70f2c31ce42922b82a5f542361e6de83e569f"
+    },
+    "coarse-thermal.h": {
+      "bytes": 8870,
+      "sha256": "288b73d931162158be76f94a8bf970080055a0f584233b50d10f2e42ee091711"
+    },
+    "thermal-overlay.h": {
+      "bytes": 9050,
+      "sha256": "4a8ed85806adef7e32b46bd0b2d8ff5fbedc93c69c24511b08392cbbc1642596"
+    },
+    "sealed-heat.c": {
+      "bytes": 6607,
+      "sha256": "9ce5135616089f81d138f97c634a47d6c30fe75e9a811815fb718cb77b1b2dee"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "CONTRACT.md": {
+      "bytes": 7434,
+      "sha256": "f90cf5affbebc7a06f5d0f57f4c2a8a9aea56e9f7f85a0bd4919461a99501ef4"
+    },
+    "QUALIFICATION.md": {
+      "bytes": 2398,
+      "sha256": "006d4953cf02492efa0dc4ff89d4554e34b3a190930429c6ad9dfa6f71966bb8"
+    },
+    "compile-v1.py": {
+      "bytes": 2250,
+      "sha256": "f9ed97070154deeb99bef39378586daa72c970cfd9ff77f92b9b77e1ed05d66c"
+    },
+    "overlay.patch": {
+      "bytes": 1073,
+      "sha256": "c8d9b9e475d02319ad3f404de7fa88af5724bfbdb3604c4ccd4d14c6773fc025"
+    }
+  },
+  "upstream": {
+    "compressible/thermal.h": {
+      "bytes": 8959,
+      "sha256": "1b685f1279634a6adb4f88da70e3d48c4f7cbc29bcc831db79711bba727f0f47"
+    },
+    "compressible/NASG.h": {
+      "bytes": 3324,
+      "sha256": "c45057c628ddcfe52422fb1964bea00162ed95bc412c78662d9e0f8068415f8b"
+    },
+    "compressible/two-phase.h": {
+      "bytes": 13581,
+      "sha256": "6111af5eb899222c320a316cedbb569670ae0a4c31318399c13f49bba4e2f231"
+    },
+    "common.h": {
+      "bytes": 12559,
+      "sha256": "3eb996a0166ffe44ebd3b43f58fb9971f343d3a5348ed5d20d6bb5680f66fd9b"
+    },
+    "poisson.h": {
+      "bytes": 14079,
+      "sha256": "f7df8d2d0d14bbe1832d4b0cc2fc4ec2fa50f586e80af4f5ecf61af671a333e4"
+    },
+    "all-mach.h": {
+      "bytes": 7148,
+      "sha256": "ea6dd43da175fd056ed7775f7ca2dad11b2b363f0997bbdd841ee6abcdfde785"
+    },
+    "grid/events.h": {
+      "bytes": 7584,
+      "sha256": "0e0083811806ae9d37512d24e5b73c2c3c26af10bcf5d106f29c86f4084019a1"
+    },
+    "qcc": {
+      "bytes": 1654088,
+      "sha256": "b7429c88f8e39253015d549bfdbd18ce6253833992ff08e3bf738cb1a3521828"
+    }
+  }
+}

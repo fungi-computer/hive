@@ -1,0 +1,51 @@
+{
+  "repository": "InteractiveComputerGraphics/SPlisHSPlasH",
+  "commit": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/CMakeLists.txt",
+      "sha256": "1e3eade07078b83c357991791f2b308a1abbea099bc0df6e472031795f4bbf2b"
+    },
+    {
+      "path": "SPlisHSPlasH/CMakeLists.txt",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/SPlisHSPlasH/CMakeLists.txt",
+      "sha256": "f5e3c6bd76e1e1674d2339507837744b011c0b2c9465de0f4d1fbd0826f7c0a4"
+    },
+    {
+      "path": "SPlisHSPlasH/DFSPH/TimeStepDFSPH.cpp",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/SPlisHSPlasH/DFSPH/TimeStepDFSPH.cpp",
+      "sha256": "5dcc295c24fbf083c200f264e2284516a540b5b1b61747cdea80a56ac74e9889"
+    },
+    {
+      "path": "SPlisHSPlasH/TimeStep.cpp",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/SPlisHSPlasH/TimeStep.cpp",
+      "sha256": "07be5993b2038fb5360b696412a4a8fb4706c2e2bfa4b976567db20a6c55773c"
+    },
+    {
+      "path": "SPlisHSPlasH/Simulation.h",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/SPlisHSPlasH/Simulation.h",
+      "sha256": "2d11a8dcd2dc96ee297944ad46640f7142c52d465cf5a5689e47ec5b9094d36c"
+    },
+    {
+      "path": "SPlisHSPlasH/Simulation.cpp",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/SPlisHSPlasH/Simulation.cpp",
+      "sha256": "2e633f278c437938a55e57475c61a89e701d7dc77ee21e496db59c2ddaa1739a"
+    },
+    {
+      "path": "Tests/CMakeLists.txt",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/Tests/CMakeLists.txt",
+      "sha256": "8865da4cfe08c39ebd1e4f6a10d84822899e744dd61d818b6746a9ad51ee1d25"
+    },
+    {
+      "path": "CMake/Common.cmake",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/CMake/Common.cmake",
+      "sha256": "5573b0ca000294cd0feeed14a03025b524bbdff8dbdb158898008a93b9af3e02"
+    },
+    {
+      "path": "CMake/SetUpExternalProjects.cmake",
+      "url": "https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/f3f677140761db7637b5443beb54f19f1f835ed4/CMake/SetUpExternalProjects.cmake",
+      "sha256": "118410e3832a04b01827efd9e99036b08b2ddf6ce873a9683491bb5f212207c4"
+    }
+  ]
+}

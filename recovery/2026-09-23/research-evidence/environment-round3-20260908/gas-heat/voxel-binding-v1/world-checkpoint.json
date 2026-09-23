@@ -1,0 +1,48 @@
+{
+  "schema": 2,
+  "identity": {
+    "worldId": "volume-v2-fixed-world",
+    "spaceId": "surface",
+    "base": {
+      "heightIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:volume-v2-fixed-cave-pocket-v1",
+      "heightSeed": "volume-v2-fixed-cave-pocket-v1",
+      "codecSchema": 2,
+      "heightSource": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+      "voxelRecipe": "height-sea-cave-density-v2",
+      "units": {
+        "horizontalMetres": 1,
+        "verticalMetres": 0.54,
+        "voxelsPerStorey": 4
+      },
+      "bounds": {
+        "minX": -2048,
+        "maxX": 2048,
+        "minZ": -2048,
+        "maxZ": 2048,
+        "minY": -64,
+        "maxY": 64
+      },
+      "brickSide": 16,
+      "residentBrickCap": 8,
+      "cave": {
+        "id": "global-trilinear-two-octave-cave-v1",
+        "macro": {
+          "horizontalMetres": 32,
+          "verticalMetres": 18,
+          "weight": 0.78,
+          "salt": "cave-macro"
+        },
+        "detail": {
+          "horizontalMetres": 11,
+          "verticalMetres": 7,
+          "weight": 0.22,
+          "salt": "cave-detail"
+        },
+        "voidThreshold": 0.42,
+        "protectedSolidLayers": 3
+      }
+    }
+  },
+  "revision": 0,
+  "changes": []
+}

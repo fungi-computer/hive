@@ -1,0 +1,23 @@
+{
+  "source": {
+    "candidate.mjs": "be1c41fbf70ecb0e870cfee81b86a3ab58767c0b1a4d972facb5a4fe945b3088",
+    "admission.mjs": "56cea0e661a41e292fe1c1c91ba12f973f18c057a412cc8681f88322ef75223c",
+    "fixtures.mjs": "d7f53ed6e01fd3c27fabe0f4d5695fc0658a6efb691649f740c9636a7b72c416",
+    "boundary-proof.mjs": "98afef8cf7f79f38cb8275fb86ed2232df118f7e5f9a0f7eed15169810ada2ce",
+    "canonical-packet-check.mjs": "7d2ee161e75338bfa2e6b9d291c401ba1c0f524c2423436bebe85c3716934caf",
+    "circle-area.mjs": "dcda19d5113cb621123f5ca8a6b1069c601edca71eaf8b50fd4ca169ef0ce1a6",
+    "method-probe.mjs": "85067d5848e5617d91a5f75e9d83604739a9784e6fbb08337a8052c097bc0549",
+    "radial-rest.mjs": "99a6621388063eb20142917811efc4d292a449c6f653950889c7831562fc2dec",
+    "diagnose-checkpoint-order.mjs": "c56fbfd8a02f9df69f888d98242f4b5e46a187b579584ebaf4628af317ec6672",
+    "reference/solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "BOUNDARY-PREDECLARED.md": "82ed9774b475d9855854ad836513b10359ada8a9b43654b98133091d36843f68",
+    "METHOD-PROBE-PREDECLARED.md": "68272a7e21e9e1c8aadaf8c3cf0ab1eb7f22b7afbc05d16ba9c4b21728fbe6b0",
+    "RADIAL-REST-PREDECLARED.md": "01e99df2e36838b316202bc379cd6882b45d3419b47717896923ca6500da1003",
+    "NEXT-QUALIFICATION-054.md": "c2250167d41380c4ab8efed003ac57bca3acc1c68174f17318e35419f1f962a5",
+    "METHOD-QUALIFICATION-RESULTS.md": "c50d1b58316386ce6cc91ca6d779e083f095ca7c8aeaeeacd23c24632f20794d",
+    "SPH-METHOD-COMPARISON.md": "c48a262babfe58ae559cce0b6f122e5494ac09975453587dfdeb4ca50bdd0f79"
+  },
+  "inventory_sha256": "01dd0dda8a2da674dc488e979d879b02670a5337acdc2211af249421099db1cb",
+  "evidence_lives_at": "../runs/; per-file hashes in method-handoff-inventory.json",
+  "reproduction": "Use a new run stamp with canonical-packet-check.mjs; original historical front failure is expected. No automatic rerun authorized."
+}

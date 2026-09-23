@@ -1,0 +1,135 @@
+{
+  "sourcePins": {
+    "../voxel-world.mjs": "44e28bd39c1f97193ca3471ce851bfe040b238401d566fdb223f1e4c76059201",
+    "../section-geometry.mjs": "0791cb2e670a92ba22b44589426f111ca38b7927d3b148c7d6c1cd9c26919d4f",
+    "../../gas-heat/binding-checkpoint/solver.mjs": "09176c849556cdb01d5b6a63eada6eef9514948fda48f5e225a222a4c865c8d5"
+  },
+  "proofSha256": "6869ea1f3912f9c5767ddb553e295fa2be893f0571ae6ac9dbf7416bbfa21827",
+  "wallMs": 179.744642,
+  "rssBytes": 67805184,
+  "rows": [
+    {
+      "name": "cold describe and independent section geometry",
+      "status": "pass",
+      "worldUntouched": true,
+      "describeIndependent": true,
+      "wallMs": 48.58240699999999
+    },
+    {
+      "name": "exact centers for both horizontal axes and negative origins",
+      "status": "pass",
+      "output": [
+        {
+          "axis": "x",
+          "column": 0,
+          "row": 0,
+          "center": {
+            "x": -17.5,
+            "y": -1.8900000000000001,
+            "z": -8.5
+          }
+        },
+        {
+          "axis": "x",
+          "column": 2,
+          "row": 1,
+          "center": {
+            "x": -15.5,
+            "y": -1.35,
+            "z": -8.5
+          }
+        },
+        {
+          "axis": "x",
+          "column": 7,
+          "row": 7,
+          "center": {
+            "x": -10.5,
+            "y": 1.8900000000000001,
+            "z": -8.5
+          }
+        },
+        {
+          "axis": "z",
+          "column": 0,
+          "row": 0,
+          "center": {
+            "x": -10.5,
+            "y": -2.43,
+            "z": -19.5
+          }
+        },
+        {
+          "axis": "z",
+          "column": 2,
+          "row": 1,
+          "center": {
+            "x": -10.5,
+            "y": -1.8900000000000001,
+            "z": -17.5
+          }
+        },
+        {
+          "axis": "z",
+          "column": 7,
+          "row": 7,
+          "center": {
+            "x": -10.5,
+            "y": 1.35,
+            "z": -12.5
+          }
+        }
+      ],
+      "volumeM3": 0.54,
+      "wallMs": 22.846769999999992
+    },
+    {
+      "name": "generated solid mask, underground carve and stale state rejection",
+      "status": "pass",
+      "surface": 20,
+      "air": 48,
+      "solid": 32,
+      "sampledCells": 80,
+      "carvedCell": {
+        "x": -18,
+        "y": 17,
+        "z": -9
+      },
+      "carvedIndex": 8,
+      "beforeFaces": 82,
+      "afterFaces": 82,
+      "staleRejected": true,
+      "stateRejected": true,
+      "noPostDigQuantityInitialization": true,
+      "wallMs": 47.914972000000006
+    },
+    {
+      "name": "same shape different domain rejection and exact continuation",
+      "status": "pass",
+      "record": [
+        {
+          "label": "origin",
+          "reason": "state/geometry identity"
+        },
+        {
+          "label": "axis",
+          "reason": "state/geometry identity"
+        },
+        {
+          "label": "world",
+          "reason": "state/geometry identity"
+        }
+      ],
+      "exactSameDomainContinuation": true,
+      "preservedMetricSourceReproducesGap": true,
+      "newDomainFence": true,
+      "wallMs": 59.286332000000016
+    }
+  ],
+  "limits": [
+    "2D section with one-voxel extrusion",
+    "coarse global revision invalidates unrelated sections",
+    "no gas displacement or post-dig quantity creation",
+    "no 3D flow or world performance claim"
+  ]
+}

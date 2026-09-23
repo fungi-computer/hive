@@ -1,0 +1,14 @@
+{
+  "HANDOFF.md": {
+    "bytes": 1957,
+    "sha256": "a328d7b42ac4cb246e966667fc9ae7897e4a331070412854a9619ebd15c6346b"
+  },
+  "SOURCE-FIT.md": {
+    "bytes": 13065,
+    "sha256": "12408c0e12b6c35370db9ccc278c12e938b84ef021cfdda4a00c038363bc9419"
+  },
+  "source-inventory.json": {
+    "bytes": 3599,
+    "sha256": "2e0e7ea5fd128d464bea35c8880492cbfdb70da998376914f59ca5a6288543f8"
+  }
+}

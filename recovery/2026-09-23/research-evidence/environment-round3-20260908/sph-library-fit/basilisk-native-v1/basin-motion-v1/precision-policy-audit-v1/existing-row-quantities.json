@@ -1,0 +1,23 @@
+{
+  "scope": "Arithmetic from already captured rows plus native source identities; no solver execution or new experiment.",
+  "rawSha256": "f621ddd06083c788de87f26a986af46b58a5bfe63851f3792f8eca51e518ecad",
+  "waterDriftM3PerM": -1.0045497766952849e-10,
+  "absoluteMicrolitresPerM": 0.10045497766952849,
+  "absoluteMilligramsPerM": 0.10045497766952849,
+  "relativeInitialWater": 1.8602773642505073e-10,
+  "partsPerBillion": 0.18602773642505072,
+  "lastStepWaterDeltaM3PerM": -6.015188347419098e-13,
+  "lastStepDivergenceBoundM3PerM": 6.097097869366213e-11,
+  "capturedHistoryConservativeDomainDivergenceBoundM3PerM": 1.3777975785647536e-08,
+  "lastProjectionResidualTimesDt": 7.74416755666516e-08,
+  "lastObservedFaceDivergence": 7.744167557655751e-08,
+  "maxAbsObservedDivMinusResidualTimesDt": 5.145174583154159e-17,
+  "boundAssumptions": "Fixed full cells and unit depth; frozen cc between directional sweeps; same uf across sweeps; closed boundary flux; full domain volume upper-bounds cc-weighted volume. Rounding is separate. Signed cc*div integral was not recorded.",
+  "illustrativeProposedOneLitreGameQuantum": {
+    "quantumM3": 0.001,
+    "relativeBudget": 1e-06,
+    "absoluteBudgetM3": 1e-09,
+    "capFractionQuantum": 0.01,
+    "budgetFor540LitresM3": 5.41e-07
+  }
+}

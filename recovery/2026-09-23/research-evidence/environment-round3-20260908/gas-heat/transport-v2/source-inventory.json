@@ -1,0 +1,50 @@
+[
+  {
+    "path": "geometry.mjs",
+    "sha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14"
+  },
+  {
+    "path": "solver.mjs",
+    "sha256": "14ef3fa8aa65bc0ba58009a9bbdbfb47d345dbe5cdc1e7020bcaacf8f0b2db6b"
+  },
+  {
+    "path": "transport.mjs",
+    "sha256": "51faac0c0a9e1eae18f46e964f6ce4ecc598c4f67d59c7f81924c13e6e32dfae"
+  },
+  {
+    "path": "physics.mjs",
+    "sha256": "50f82527649ee66e9a356e7dbbe23b956b1b5792f8d3a56c141063e51c65486b"
+  },
+  {
+    "path": "qualify.mjs",
+    "sha256": "e52c2308aed8a8bc740d2dae4e48efaca8e0e98a50d6b645f2466dc3dc40a8d8"
+  },
+  {
+    "path": "CONTRACT.md",
+    "sha256": "0f7834fae3df2799ab9a4f4d730206b120f729cb4f5d3f5f60803800e17d36d1"
+  },
+  {
+    "path": "RESULTS.md",
+    "sha256": "8afe31da9da87f005d3237b8e5af91fa5352dce701d22393d8cb4318210aea3a"
+  },
+  {
+    "path": "qualification-v1.json",
+    "sha256": "70c14d6c181f553d379506bff90f898ef5b236b096e07a6190f82d357bf1baae"
+  },
+  {
+    "path": "checkpoint/geometry.mjs",
+    "sha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14"
+  },
+  {
+    "path": "checkpoint/solver.mjs",
+    "sha256": "14ef3fa8aa65bc0ba58009a9bbdbfb47d345dbe5cdc1e7020bcaacf8f0b2db6b"
+  },
+  {
+    "path": "checkpoint/transport.mjs",
+    "sha256": "51faac0c0a9e1eae18f46e964f6ce4ecc598c4f67d59c7f81924c13e6e32dfae"
+  },
+  {
+    "path": "checkpoint/physics.mjs",
+    "sha256": "50f82527649ee66e9a356e7dbbe23b956b1b5792f8d3a56c141063e51c65486b"
+  }
+]

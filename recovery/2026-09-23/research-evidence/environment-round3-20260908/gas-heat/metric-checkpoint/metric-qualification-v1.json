@@ -1,0 +1,122 @@
+{
+  "sourceSha256": "a72a3a2810eaaf5e87564631084d042f94aa36975bec84c4fa97ff49962a43eb",
+  "qualificationSha256": "7e5bacdbfbabf8e341a09be9bbcdfb61c212473f1b600c3c1caf1deee1ec2f72",
+  "squareOracleSha256": "67ce0968afe17328774d911a7f282e51ee5b77b1f4ba4fc4bde22f4f7272edea",
+  "wallMs": 5940.744884,
+  "rssBytes": 89808896,
+  "rows": [
+    {
+      "name": "square constructor and pinned numerical compatibility",
+      "status": "pass",
+      "velocityError": 0,
+      "heatError": 0,
+      "smokeError": 0,
+      "receiptError": 0,
+      "steps": 20,
+      "oldSteps": 20,
+      "exactSquareConstructors": true,
+      "wallMs": 163.12169600000001
+    },
+    {
+      "name": "rectangular metric areas and conservative receipt units",
+      "status": "pass",
+      "volume": 0.54,
+      "uArea": 0.54,
+      "vArea": 1,
+      "uReceipt": 0.010800000000000002,
+      "vReceipt": 0.010000000000000002,
+      "massError": 2.842170943040401e-14,
+      "heatError": 1.3869794202037156e-11,
+      "wallMs": 2.493089999999995
+    },
+    {
+      "name": "rectangular Taylor-Green same physical domain",
+      "status": "pass",
+      "domain": [
+        8,
+        4.32
+      ],
+      "results": [
+        {
+          "n": 8,
+          "hx": 1,
+          "hz": 0.54,
+          "lx": 8,
+          "lz": 4.32,
+          "velocityRmsError": 0.007544058825517193,
+          "pressureRmsError": 0.0027235208793068544,
+          "divergence": 1.723891862592808e-12,
+          "momentumCourant": 0.0009162778372573152,
+          "steps": 250,
+          "iterations": 7028
+        },
+        {
+          "n": 16,
+          "hx": 0.5,
+          "hz": 0.27,
+          "lx": 8,
+          "lz": 4.32,
+          "velocityRmsError": 0.004154085063022492,
+          "pressureRmsError": 0.0007644697204105302,
+          "divergence": 8.474720925022439e-12,
+          "momentumCourant": 0.0022779532936383104,
+          "steps": 250,
+          "iterations": 13554
+        },
+        {
+          "n": 32,
+          "hx": 0.25,
+          "hz": 0.135,
+          "lx": 8,
+          "lz": 4.32,
+          "velocityRmsError": 0.002149845325136115,
+          "pressureRmsError": 0.00022578259340304366,
+          "divergence": 8.637882076278913e-12,
+          "momentumCourant": 0.006019378505323596,
+          "steps": 250,
+          "iterations": 26857
+        }
+      ],
+      "wallMs": 5737.861596000001
+    },
+    {
+      "name": "rectangular hydrostatic rest and exact metric restart",
+      "status": "pass",
+      "restMaxVelocity": 6.893901682153425e-12,
+      "restDivergence": 8.554351444968883e-12,
+      "exactRestart": true,
+      "failures": [
+        {
+          "name": "hz",
+          "message": "state/geometry identity"
+        },
+        {
+          "name": "hx",
+          "message": "state/geometry identity"
+        },
+        {
+          "name": "depth",
+          "message": "state/geometry identity"
+        }
+      ],
+      "wallMs": 30.219810000000507
+    },
+    {
+      "name": "summed advection viscosity adversarial bound",
+      "status": "pass",
+      "oldSeparateDt": 0.049019607843137254,
+      "oldCombined": 1.180392156862745,
+      "newRate": 24.08,
+      "newMaxCourant": 0.45,
+      "initialAmplitude": 0.010000000000000009,
+      "newAmplitude": 0.00007120614420974558,
+      "oldAmplitude": 0.012974069520772569,
+      "steps": 3,
+      "wallMaxCourant": 0.45,
+      "wallSteps": 3,
+      "doubledRows": 4,
+      "minimumWallBound": 21.182565801614448,
+      "wallMs": 5.787379000000328
+    }
+  ]
+}

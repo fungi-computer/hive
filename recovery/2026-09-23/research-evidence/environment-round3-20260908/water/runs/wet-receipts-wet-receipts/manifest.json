@@ -1,0 +1,116 @@
+{
+  "suite": "wet-receipts",
+  "stamp": "wet-receipts",
+  "hashes": {
+    "candidate.mjs": "ee49c25ead481a569b8acfef312411502077d3a293e4d10f7774e5402272d8f6",
+    "fixtures.mjs": "d7f53ed6e01fd3c27fabe0f4d5695fc0658a6efb691649f740c9636a7b72c416",
+    "compare.mjs": "ee1b41b67cc6574ce1b10e034de1825c744b2cd9e6a4491c33ca113eb1c9c52b",
+    "PREDECLARED.md": "f24b2dd03a91435239a05ff34e42cca3a6f0cf20e22ded1ba25d51a646b1255f",
+    "reference": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e"
+  },
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "x64",
+  "timestamp": "2026-09-08T18:01:39.862Z",
+  "outcomes": [
+    {
+      "name": "wet-diversion-edited-32",
+      "status": "passed",
+      "elapsedMs": 3091.715588,
+      "steps": 2400,
+      "maxBalance": 2.1316282072803006e-13,
+      "minDepth": 0,
+      "gateBeforeOpen": 0,
+      "maxWithdrawn": 0.00075,
+      "wetEdit": {
+        "time": 39.999999999999865,
+        "pondBefore": 5.733860751954086,
+        "pondAfter": 5.733860751954086,
+        "everyCellVolumePreserved": true
+      },
+      "historyLossDifference": 0.10754964289568125,
+      "metrics": {
+        "time": 119.99999999999532,
+        "reservoir": 38.71911618630932,
+        "reach": 29.21637274011581,
+        "diversion": 7.33235198606003,
+        "pond": 29.737773885098235,
+        "user": 5.227669877866006,
+        "collected": 4.966715324550597,
+        "total": 110.23328467544947,
+        "balanceError": -4.263256414560601e-14
+      },
+      "dense": {
+        "steps": 2400,
+        "faceEvaluations": 5068800,
+        "faceScans": 5068800,
+        "activeCells": 395047,
+        "peakActiveFaces": 2112,
+        "allocatedArrays": 21,
+        "allocatedBytes": 237824,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "active": {
+        "steps": 2400,
+        "faceEvaluations": 930479,
+        "faceScans": 5068800,
+        "activeCells": 395047,
+        "peakActiveFaces": 427,
+        "allocatedArrays": 21,
+        "allocatedBytes": 237824,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "restartExact": true,
+      "retainedSnapshotTime": 59.99999999999873
+    },
+    {
+      "name": "closed-diversion-32",
+      "status": "passed",
+      "elapsedMs": 4054.6859120000004,
+      "steps": 2400,
+      "maxBalance": 1.8474111129762605e-13,
+      "minDepth": 0,
+      "gateBeforeOpen": 0,
+      "maxWithdrawn": 0.00075,
+      "wetEdit": null,
+      "historyLossDifference": 0.0685046506127065,
+      "metrics": {
+        "time": 119.99999999999532,
+        "reservoir": 45.59569976487193,
+        "reach": 55.779681284871444,
+        "diversion": 0,
+        "pond": 0,
+        "user": 8.458686574402225,
+        "collected": 5.365932375854403,
+        "total": 109.83406762414562,
+        "balanceError": -8.526512829121202e-14
+      },
+      "dense": {
+        "steps": 2400,
+        "faceEvaluations": 5068800,
+        "faceScans": 5068800,
+        "activeCells": 213726,
+        "peakActiveFaces": 2112,
+        "allocatedArrays": 21,
+        "allocatedBytes": 237824,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "active": {
+        "steps": 2400,
+        "faceEvaluations": 510315,
+        "faceScans": 5068800,
+        "activeCells": 213726,
+        "peakActiveFaces": 220,
+        "allocatedArrays": 21,
+        "allocatedBytes": 237824,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "restartExact": true,
+      "retainedSnapshotTime": 59.99999999999873
+    }
+  ]
+}

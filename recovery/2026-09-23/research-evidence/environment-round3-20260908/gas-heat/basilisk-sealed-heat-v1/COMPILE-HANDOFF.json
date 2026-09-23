@@ -1,0 +1,48 @@
+{
+  "scope": "Compiled and generated-source reviewed; native gas has not run",
+  "scopeId": "run-u3390.scope",
+  "invocationId": "ce5d8719e98e49bc9bc9797e603a3e5b",
+  "exitCode": 0,
+  "files": {
+    "sealed-heat.c": {
+      "bytes": 6581,
+      "sha256": "4dfa8c6a6d264746667be7dd1d6996139e7015e93ba8e4db45301db26a324b4a"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "CONTRACT.md": {
+      "bytes": 8654,
+      "sha256": "6638edbacd873060ffd97ae7cb54bb0c12ddc7d4cbd9e8c0e38e797d83dd111a"
+    },
+    "source-checkpoint-v3.json": {
+      "bytes": 3343,
+      "sha256": "06e3e38c280d45c1ae629486ca5f8d8aee99b47e7b9f26c79501b5b9391bd182"
+    },
+    "COMPILE-REVIEW.md": {
+      "bytes": 5636,
+      "sha256": "d31d896a1d76118703403dee3b73701a4b81f995304bbdee56f5dcfbf6b09e8d"
+    },
+    "generated-event-order.json": {
+      "bytes": 9241,
+      "sha256": "6d1df33586d64b20a7b2ddae4d46fe8c2a37bd3a2ec24b58fd8278c384abd35b"
+    },
+    "build-v1/receipt.json": {
+      "bytes": 1414,
+      "sha256": "eedb20315c3bbd6e33421fcbd010ea97a6f1b8f4426aab484fb13338d8ff31fe"
+    },
+    "build-v2/receipt.json": {
+      "bytes": 2184,
+      "sha256": "25075b2afbac89da6863abedd6fa0d8e2186732706b811aaeb13745c8917b4a3"
+    },
+    "build-v2/_sealed-heat.c": {
+      "bytes": 1747912,
+      "sha256": "87381d4b1a6cd1dd6f3b12c5f333f16adfa83f3bc31c00edbb92605f597bf403"
+    },
+    "build-v2/sealed-heat": {
+      "bytes": 695608,
+      "sha256": "776a4d220893fcad7d87c7a86366c488e114318ebfaf768b00c6d11aa746d798"
+    }
+  }
+}

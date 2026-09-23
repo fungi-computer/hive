@@ -1,0 +1,13 @@
+{
+  "status": "continuous oracle checked; gas solver unqualified",
+  "scope": "analytic averages versus independent tensor quadrature and PDE finite differences",
+  "unit": "run-u3094.scope",
+  "invocation": "fd645c37c87449b1ba0fed0b97c6bfa6",
+  "exit": 0,
+  "sha256": {
+    "oracle.mjs": "73f4a578c202dc3db63f08657aef5211a07c26f6d1572a8bd6b0537f84859d6b",
+    "CONTRACT.md": "b004b511fe7801bfb02f7b63f7474178869058674e354d50f5373ce0c0a0ce1c",
+    "check.mjs": "5e47d490c73d9aaa609c5fb89a717391241ede06d0c696c0f2afd75670f1cbf2",
+    "run-v1/proof.json": "70d7ee30acbb71c5e697142cc800e8e5b1611990ec41ba441c08f59f15ff074d"
+  }
+}

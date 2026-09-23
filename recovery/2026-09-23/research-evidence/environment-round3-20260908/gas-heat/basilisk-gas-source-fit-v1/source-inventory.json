@@ -1,0 +1,109 @@
+{
+  "scope": "source only; no qcc, compile or numerical run",
+  "archive": {
+    "bytes": 9617283,
+    "sha256": "a629017cabad6626d71c782510f1d70b078eae44cc1c594c3e6b6fbb808164ae"
+  },
+  "src": {
+    "all-mach.h": {
+      "bytes": 7148,
+      "sha256": "ea6dd43da175fd056ed7775f7ca2dad11b2b363f0997bbdd841ee6abcdfde785"
+    },
+    "compressible/two-phase.h": {
+      "bytes": 13581,
+      "sha256": "6111af5eb899222c320a316cedbb569670ae0a4c31318399c13f49bba4e2f231"
+    },
+    "compressible/thermal.h": {
+      "bytes": 8959,
+      "sha256": "1b685f1279634a6adb4f88da70e3d48c4f7cbc29bcc831db79711bba727f0f47"
+    },
+    "compressible/NASG.h": {
+      "bytes": 3324,
+      "sha256": "c45057c628ddcfe52422fb1964bea00162ed95bc412c78662d9e0f8068415f8b"
+    },
+    "compressible/Mie-Gruneisen.h": {
+      "bytes": 2054,
+      "sha256": "f37dba2fa71e1e75dcaa3b5eccd41f169cbb64bf85a0947236bcf10545f0f47e"
+    },
+    "test/shockwave.c": {
+      "bytes": 4804,
+      "sha256": "6a08d047fd11daa2614c0de585fa40eddb8e5328200a78141905551278d16acf"
+    },
+    "test/gaussianaxi.c": {
+      "bytes": 1796,
+      "sha256": "b91e0679a9d73dee2f309797ea5b6b81665b1510e281669f7f3c633a7400f26f"
+    },
+    "test/discontinuity-advection.c": {
+      "bytes": 3200,
+      "sha256": "479f99cd3a04470fb68ef199f008cc1acdb8552a5fff4669531d146b23b3a5a4"
+    },
+    "test/reflectionperfect.c": {
+      "bytes": 2590,
+      "sha256": "11c23763c50ae3b73dc40d3db3b7cfd005c82eea6c21351c96d679c6b1a0670f"
+    },
+    "test/reflectiongaussian3.c": {
+      "bytes": 2366,
+      "sha256": "1bcdbbdcccce056411bdf5238fedd9aba39c01a79c3e711bf5424b069b0a0d50"
+    },
+    "test/oscillation.c": {
+      "bytes": 7572,
+      "sha256": "bc37a4254d6859727866ada087ec3248be0e6aa52c13e0e24aa1bb5aecc76493"
+    },
+    "test/shrinking.c": {
+      "bytes": 4678,
+      "sha256": "ba44e7d11fda777b7a291fbb87135512ba9d4a366b97f5089dbe3c971f7b4f8f"
+    },
+    "test/Makefile": {
+      "bytes": 18846,
+      "sha256": "97844d0c02c5f6a4a95cdce06737f2ce62f2ae0cdd4286544653246d5abd3ab4"
+    },
+    "vof.h": {
+      "bytes": 11656,
+      "sha256": "d807da67e8b13cb10ea1ec0ba2742394bd5ab7119da7c96736dc992894aedad6"
+    },
+    "poisson.h": {
+      "bytes": 14079,
+      "sha256": "f7df8d2d0d14bbe1832d4b0cc2fc4ec2fa50f586e80af4f5ecf61af671a333e4"
+    },
+    "run.h": {
+      "bytes": 953,
+      "sha256": "3c8d8f5c40fddd013684c67c6824518589039e2035e605e17e249675eedd6ef7"
+    },
+    "output.h": {
+      "bytes": 35773,
+      "sha256": "6b4550f142fb992ecc4e945d766849ee5696c360345763194a6dbcb69c7015a2"
+    },
+    "grid/events.h": {
+      "bytes": 7584,
+      "sha256": "0e0083811806ae9d37512d24e5b73c2c3c26af10bcf5d106f29c86f4084019a1"
+    },
+    "grid/cartesian-common.h": {
+      "bytes": 30316,
+      "sha256": "ec94500a5bfa6be44ee3a555bd30a27371b80fb6b951b8e137def1e1fa09c86c"
+    },
+    "COPYING": {
+      "bytes": 35031,
+      "sha256": "5f6bc79a5d29d49eaa17cc29bedd9c25d572adb648c52f3186b508aec12aaea4"
+    },
+    "qcc": {
+      "bytes": 1654088,
+      "sha256": "b7429c88f8e39253015d549bfdbd18ce6253833992ff08e3bf738cb1a3521828"
+    }
+  },
+  "existing_compile_caller": {
+    "bytes": 1897,
+    "sha256": "1327f5ed6180e6888807dcd610e6d36c6eb6a17f4be12ac98738f87aedfa9022"
+  },
+  "owned": {
+    "SOURCE-FIT.md": {
+      "bytes": 13065,
+      "sha256": "12408c0e12b6c35370db9ccc278c12e938b84ef021cfdda4a00c038363bc9419"
+    },
+    "HANDOFF.md": {
+      "bytes": 1957,
+      "sha256": "a328d7b42ac4cb246e966667fc9ae7897e4a331070412854a9619ebd15c6346b"
+    }
+  },
+  "root_archive_header_pins_match": true,
+  "frozen_input_pins_unchanged_after_read": true
+}

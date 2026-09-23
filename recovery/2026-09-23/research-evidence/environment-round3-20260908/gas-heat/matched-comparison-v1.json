@@ -1,0 +1,25 @@
+{
+  "files": {
+    "local": "house-local180-v1.json",
+    "sealed": "house-sealed180-v1.json",
+    "high": "house-high180-v1.json",
+    "exterior4": "house-local180-exterior4-v1.json"
+  },
+  "newApertureAreaM2": 2,
+  "duration": 180,
+  "localUpstairsReductionVsSealed": 0.013380609834863999,
+  "highUpstairsIncreaseVsSealed": 0.9886044254004718,
+  "localLowerReductionVsSealed": 0.37317800425341796,
+  "highLowerReductionVsSealed": 0.41237618956471933,
+  "exteriorUpstairsRelativeDifference": 0.000018497928100113847,
+  "exteriorIndoorStockRelativeDifference": 0.025367513273539765,
+  "localIndoorKg": 0.00012725159123867485,
+  "exterior4IndoorKg": 0.00013056366678898648,
+  "exteriorBoundaryCriterionPassed": true,
+  "unresolved": [
+    "900s 80% export/25% exposure criterion",
+    "spatial and timestep room convergence",
+    "matched 3D/narrow-throat validation"
+  ],
+  "interpretation": "Small local-versus-sealed advantage is not a validated gameplay guarantee; doubling exterior does not measure remaining spatial/time uncertainty."
+}

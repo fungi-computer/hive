@@ -1,0 +1,8 @@
+{
+  "entry": [
+    "qualify.mjs"
+  ],
+  "ignorePatterns": [
+    "run-v*/**"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "scope": "run-u2991.scope",
+  "invocationId": "80ed5fcfc7074b1f8c1be7064f4baa43",
+  "exitCode": 0,
+  "command": "run-proof.sh timeout 10s node .botanical/research/environment-round3-20260908/worldgen/connected-caves-v1/qualify.mjs",
+  "proofElapsedMs": 676.8637809999999
+}

@@ -1,0 +1,5934 @@
+{
+  "status": "pass",
+  "checks": 2108,
+  "sourcePins": {
+    "qualify.mjs": "1c0d670437c221de57d8c14ca3bfb948b7d4f88c96193ac69d85f854b00e8cf7",
+    "CONTRACT.md": "90c9905117af3736ec0ef12955b742fe3e46aecb83e72c43131c80f24de370ab",
+    "finite-gas.mjs": "a4547f5099a01e7b269946d6b2f9aa177a5a31fa4076be9d89d50e35d8091832",
+    "momentum.mjs": "137166a58f7f32d27f4417ef2860c95015189c77c456f0aaaa5f597f25dc2b5d",
+    "projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+    "geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+    "energy-diagnostics.mjs": "c49deded2255d951f6e0f755c5b53fb71b4184ab3dacdffd4e1f82d7205254dd",
+    "baseline-inventory.json": "c0854b756e5f0a7fa2ddeb18c230d4fa4bc5e9368ed9bb32949c0f67223d9971",
+    "../transport-v2/checkpoint/geometry.mjs": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14",
+    "../finite-thermo-v1/checkpoint/definitions.mjs": "536a5cd870d3bed14ceda3b21a01110a0b32dcd24b19d93f556d7f5cfca13ff3",
+    "../finite-thermo-v1/checkpoint/thermodynamics.mjs": "b2a58ea2488b91c8ca49db32bff6e5bdf2734977cd89b14da198d0289cd6db4c",
+    "../linear-buoyancy-oracle-v1/oracle.mjs": "3994179249750d872d478e16f9642019b345104211c91a611e849a53b4b7f9c8"
+  },
+  "baselinePins": {
+    "../finite-momentum-v1/finite-gas.mjs": "8d24cb07f9e9b19a1f2766d34c84e30e60ad26c3e22eef150b24da9887e2ae5a",
+    "../finite-momentum-v1/momentum.mjs": "4c7af4ed79d2c64079c5d981257efee0ce31f7d7799ac2fd4a42e7820dae1674",
+    "../finite-momentum-v1/projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+    "../finite-momentum-v1/geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+    "../finite-momentum-v1/handoff-inventory.json": "d645331384767f52eb55bfcf8928bba3fa47cf0b7a6fa620bca490764ddcd70c",
+    "../finite-buoyancy-v1/qualify.mjs": "0f043edb0e023b6d2f53e27864231dcbbece05f18d6a3b0b053f9d56a0ffbda4",
+    "../finite-buoyancy-v1/moving-8-32.json": "ab797f31684c081da7bfeccf264fc2a090524b21185ba9305712a7b0ef32a944",
+    "../finite-buoyancy-v1/case-moving-8-32.json": "81b61e4c5c27509444469394d7ddbbdbe2ac669eadddace904c87f98c511a20d",
+    "../finite-buoyancy-v1/handoff-inventory.json": "7bb2e3f85759f18a871fbe7919bff87a9614e6e6c8170cc6ae96810fe8f73856"
+  },
+  "integrals": {
+    "donorDissipationJ": 0.09247089716084612,
+    "forwardRemainderJ": 0.001656846227234477,
+    "gravityGapJ": 0.02274420055181904,
+    "gravityTimeRemainderJ": 60.362030254317446,
+    "wallKChangeJ": -7.544690243128574,
+    "projectionKChangeJ": -52.780314742313664,
+    "timeSplitRemainderJ": 0.0000016034604987974922,
+    "reconstructedMechanicalJ": -0.06972509314852829,
+    "mechanicalChangeJ": -0.0697250931484632,
+    "jensenJ": -0.038680511641938434,
+    "observedMechanicalJ": -0.06972509314857689
+  },
+  "residuals": {
+    "physical.mass": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "physical.U": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.first.donor.pairing": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.first.donor.finite": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.first.donor.combined": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.first.body": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 4.772288045744618e-10
+    },
+    "0.first.wall": {
+      "actual": 2.0539125955565396e-15,
+      "expected": 0,
+      "error": 2.0539125955565396e-15,
+      "tolerance": 1.4715360057180777e-10
+    },
+    "0.first.gravity": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.first.potential": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.first.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.first.projection.gradient": {
+      "actual": -3.382266214071975e-20,
+      "expected": 0,
+      "error": 3.382266214071975e-20,
+      "tolerance": 1.0000000000000044e-10
+    },
+    "0.first.projection.finite": {
+      "actual": -8.215650382226158e-15,
+      "expected": 0,
+      "error": 8.215650382226158e-15,
+      "tolerance": 4.297954639906135e-10
+    },
+    "0.first.projection.combined": {
+      "actual": -8.215650382226158e-15,
+      "expected": 0,
+      "error": 8.215650382226158e-15,
+      "tolerance": 4.297954639906135e-10
+    },
+    "0.second.donor.pairing": {
+      "actual": 2.8587361969832636e-21,
+      "expected": 0,
+      "error": 2.8587361969832636e-21,
+      "tolerance": 1.0000008181101866e-10
+    },
+    "0.second.donor.finite": {
+      "actual": 2.895918482505405e-19,
+      "expected": 0,
+      "error": 2.895918482505405e-19,
+      "tolerance": 1.0000008181101866e-10
+    },
+    "0.second.donor.combined": {
+      "actual": 2.9245058444752377e-19,
+      "expected": 0,
+      "error": 2.9245058444752377e-19,
+      "tolerance": 1.0000008181101866e-10
+    },
+    "0.second.body": {
+      "actual": -4.6629367034256575e-15,
+      "expected": 0,
+      "error": 4.6629367034256575e-15,
+      "tolerance": 4.777883722671664e-10
+    },
+    "0.second.wall": {
+      "actual": 1.1102230246251565e-16,
+      "expected": 0,
+      "error": 1.1102230246251565e-16,
+      "tolerance": 1.4715360598862736e-10
+    },
+    "0.second.gravity": {
+      "actual": 2.8329016920920075e-18,
+      "expected": 0,
+      "error": 2.8329016920920075e-18,
+      "tolerance": 1.005594800240823e-10
+    },
+    "0.second.potential": {
+      "actual": -2.8171909249863347e-15,
+      "expected": 0,
+      "error": 2.8171909249863347e-15,
+      "tolerance": 1.0055948002408287e-10
+    },
+    "0.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0055948002408229e-10
+    },
+    "0.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.second.projection.gradient": {
+      "actual": -2.4758675501742627e-18,
+      "expected": 0,
+      "error": 2.4758675501742627e-18,
+      "tolerance": 1.0000000000000016e-10
+    },
+    "0.second.projection.finite": {
+      "actual": 2.4424906541753444e-15,
+      "expected": 0,
+      "error": 2.4424906541753444e-15,
+      "tolerance": 4.297956285026583e-10
+    },
+    "0.second.projection.combined": {
+      "actual": 2.220446049250313e-15,
+      "expected": 0,
+      "error": 2.220446049250313e-15,
+      "tolerance": 4.297956285026583e-10
+    },
+    "0.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "0.final.gradient": {
+      "actual": -9.455686409132927e-21,
+      "expected": 0,
+      "error": 9.455686409132927e-21,
+      "tolerance": 1e-10
+    },
+    "0.final.finite": {
+      "actual": -1.73657836542945e-18,
+      "expected": 0,
+      "error": 1.73657836542945e-18,
+      "tolerance": 1.0000000000001798e-10
+    },
+    "0.final.combined": {
+      "actual": -1.7460340518448094e-18,
+      "expected": 0,
+      "error": 1.7460340518448094e-18,
+      "tolerance": 1.0000000000001798e-10
+    },
+    "0.Jensen": {
+      "actual": 2.6020852139652106e-18,
+      "expected": 0,
+      "error": 2.6020852139652106e-18,
+      "tolerance": 1.0027969890924158e-10
+    },
+    "0.mechanical": {
+      "actual": -1.6353279103842845e-14,
+      "expected": 0,
+      "error": 1.6353279103842845e-14,
+      "tolerance": 1.0000004090551261e-10
+    },
+    "1.first.donor.pairing": {
+      "actual": 1.937587866844212e-20,
+      "expected": 0,
+      "error": 1.937587866844212e-20,
+      "tolerance": 1.0000008179258003e-10
+    },
+    "1.first.donor.finite": {
+      "actual": -3.713292351908734e-19,
+      "expected": 0,
+      "error": 3.713292351908734e-19,
+      "tolerance": 1.0000008179258003e-10
+    },
+    "1.first.donor.combined": {
+      "actual": -3.5195335652243126e-19,
+      "expected": 0,
+      "error": 3.5195335652243126e-19,
+      "tolerance": 1.0000008179258003e-10
+    },
+    "1.first.body": {
+      "actual": 2.6645352591003757e-15,
+      "expected": 0,
+      "error": 2.6645352591003757e-15,
+      "tolerance": 4.777882874488782e-10
+    },
+    "1.first.wall": {
+      "actual": 1.6653345369377348e-16,
+      "expected": 0,
+      "error": 1.6653345369377348e-16,
+      "tolerance": 1.471536049363169e-10
+    },
+    "1.first.gravity": {
+      "actual": 2.289530056428374e-18,
+      "expected": 0,
+      "error": 2.289530056428374e-18,
+      "tolerance": 1.0055939517103654e-10
+    },
+    "1.first.potential": {
+      "actual": 1.291414891690934e-14,
+      "expected": 0,
+      "error": 1.291414891690934e-14,
+      "tolerance": 1.0055937567051646e-10
+    },
+    "1.first.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0055939517103654e-10
+    },
+    "1.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "1.first.projection.gradient": {
+      "actual": -1.4887289956453523e-18,
+      "expected": 0,
+      "error": 1.4887289956453523e-18,
+      "tolerance": 1.0000000000000026e-10
+    },
+    "1.first.projection.finite": {
+      "actual": 4.218847493575595e-15,
+      "expected": 0,
+      "error": 4.218847493575595e-15,
+      "tolerance": 4.297956735231302e-10
+    },
+    "1.first.projection.combined": {
+      "actual": 4.218847493575595e-15,
+      "expected": 0,
+      "error": 4.218847493575595e-15,
+      "tolerance": 4.297956735231302e-10
+    },
+    "1.second.donor.pairing": {
+      "actual": -2.159934015498466e-20,
+      "expected": 0,
+      "error": 2.159934015498466e-20,
+      "tolerance": 1.0000065418824969e-10
+    },
+    "1.second.donor.finite": {
+      "actual": 2.084662399553488e-17,
+      "expected": 0,
+      "error": 2.084662399553488e-17,
+      "tolerance": 1.0000065418824969e-10
+    },
+    "1.second.donor.combined": {
+      "actual": 2.0825024655379895e-17,
+      "expected": 0,
+      "error": 2.0825024655379895e-17,
+      "tolerance": 1.0000065418824969e-10
+    },
+    "1.second.body": {
+      "actual": -7.993605777301127e-15,
+      "expected": 0,
+      "error": 7.993605777301127e-15,
+      "tolerance": 4.783476846179001e-10
+    },
+    "1.second.wall": {
+      "actual": -9.43689570931383e-16,
+      "expected": 0,
+      "error": 9.43689570931383e-16,
+      "tolerance": 1.4715361485850422e-10
+    },
+    "1.second.gravity": {
+      "actual": -3.609207388250574e-18,
+      "expected": 0,
+      "error": 3.609207388250574e-18,
+      "tolerance": 1.0111852943778655e-10
+    },
+    "1.second.potential": {
+      "actual": -1.4291519356834925e-14,
+      "expected": 0,
+      "error": 1.4291519356834925e-14,
+      "tolerance": 1.0111840440432616e-10
+    },
+    "1.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0111852943778655e-10
+    },
+    "1.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "1.second.projection.gradient": {
+      "actual": -6.819983242893175e-20,
+      "expected": 0,
+      "error": 6.819983242893175e-20,
+      "tolerance": 1.0000000000000039e-10
+    },
+    "1.second.projection.finite": {
+      "actual": 6.439293542825908e-15,
+      "expected": 0,
+      "error": 6.439293542825908e-15,
+      "tolerance": 4.2979626115519654e-10
+    },
+    "1.second.projection.combined": {
+      "actual": 6.439293542825908e-15,
+      "expected": 0,
+      "error": 6.439293542825908e-15,
+      "tolerance": 4.2979626115519654e-10
+    },
+    "1.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "1.final.gradient": {
+      "actual": -1.1419071592012178e-19,
+      "expected": 0,
+      "error": 1.1419071592012178e-19,
+      "tolerance": 1e-10
+    },
+    "1.final.finite": {
+      "actual": 2.735448711094122e-18,
+      "expected": 0,
+      "error": 2.735448711094122e-18,
+      "tolerance": 1.0000000000016145e-10
+    },
+    "1.final.combined": {
+      "actual": 2.6212579951555672e-18,
+      "expected": 0,
+      "error": 2.6212579951555672e-18,
+      "tolerance": 1.0000000000016145e-10
+    },
+    "1.Jensen": {
+      "actual": 9.324138683375338e-18,
+      "expected": 0,
+      "error": 9.324138683375338e-18,
+      "tolerance": 1.002794468610127e-10
+    },
+    "1.mechanical": {
+      "actual": -5.354899263267966e-14,
+      "expected": 0,
+      "error": 5.354899263267966e-14,
+      "tolerance": 1.0000036799042557e-10
+    },
+    "2.first.donor.pairing": {
+      "actual": 1.4399560103323106e-20,
+      "expected": 0,
+      "error": 1.4399560103323106e-20,
+      "tolerance": 1.0000065388751674e-10
+    },
+    "2.first.donor.finite": {
+      "actual": -2.3273429637700104e-18,
+      "expected": 0,
+      "error": 2.3273429637700104e-18,
+      "tolerance": 1.0000065388751674e-10
+    },
+    "2.first.donor.combined": {
+      "actual": -2.3129434036666873e-18,
+      "expected": 0,
+      "error": 2.3129434036666873e-18,
+      "tolerance": 1.0000065388751674e-10
+    },
+    "2.first.body": {
+      "actual": -1.5543122344752192e-15,
+      "expected": 0,
+      "error": 1.5543122344752192e-15,
+      "tolerance": 4.783474301577702e-10
+    },
+    "2.first.wall": {
+      "actual": 4.996003610813204e-16,
+      "expected": 0,
+      "error": 4.996003610813204e-16,
+      "tolerance": 1.4715361379014752e-10
+    },
+    "2.first.gravity": {
+      "actual": -4.398642095091582e-18,
+      "expected": 0,
+      "error": 4.398642095091582e-18,
+      "tolerance": 1.0111827493542653e-10
+    },
+    "2.first.potential": {
+      "actual": 6.957108500404985e-15,
+      "expected": 0,
+      "error": 6.957108500404985e-15,
+      "tolerance": 1.0111811873855599e-10
+    },
+    "2.first.external": {
+      "actual": -1.734723475976807e-18,
+      "expected": 0,
+      "error": 1.734723475976807e-18,
+      "tolerance": 1.0111827493542653e-10
+    },
+    "2.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "2.first.projection.gradient": {
+      "actual": -1.1612482271857632e-18,
+      "expected": 0,
+      "error": 1.1612482271857632e-18,
+      "tolerance": 1.0000000000000016e-10
+    },
+    "2.first.projection.finite": {
+      "actual": 3.3306690738754696e-15,
+      "expected": 0,
+      "error": 3.3306690738754696e-15,
+      "tolerance": 4.297963062460273e-10
+    },
+    "2.first.projection.combined": {
+      "actual": 3.3306690738754696e-15,
+      "expected": 0,
+      "error": 3.3306690738754696e-15,
+      "tolerance": 4.297963062460273e-10
+    },
+    "2.second.donor.pairing": {
+      "actual": -1.1858461261560205e-20,
+      "expected": 0,
+      "error": 1.1858461261560205e-20,
+      "tolerance": 1.0000220550982731e-10
+    },
+    "2.second.donor.finite": {
+      "actual": -1.6985922268204908e-18,
+      "expected": 0,
+      "error": 1.6985922268204908e-18,
+      "tolerance": 1.0000220550982731e-10
+    },
+    "2.second.donor.combined": {
+      "actual": -1.710450688082051e-18,
+      "expected": 0,
+      "error": 1.710450688082051e-18,
+      "tolerance": 1.0000220550982731e-10
+    },
+    "2.second.body": {
+      "actual": 4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.789061414669912e-10
+    },
+    "2.second.wall": {
+      "actual": 1.8041124150158794e-15,
+      "expected": 0,
+      "error": 1.8041124150158794e-15,
+      "tolerance": 1.4715362822342299e-10
+    },
+    "2.second.gravity": {
+      "actual": -1.5839516113655416e-19,
+      "expected": 0,
+      "error": 1.5839516113655416e-19,
+      "tolerance": 1.01676547713237e-10
+    },
+    "2.second.potential": {
+      "actual": 1.9996157507584655e-14,
+      "expected": 0,
+      "error": 1.9996157507584655e-14,
+      "tolerance": 1.0167606349902316e-10
+    },
+    "2.second.external": {
+      "actual": -1.734723475976807e-18,
+      "expected": 0,
+      "error": 1.734723475976807e-18,
+      "tolerance": 1.01676547713237e-10
+    },
+    "2.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "2.second.projection.gradient": {
+      "actual": 7.76719514647435e-18,
+      "expected": 0,
+      "error": 7.76719514647435e-18,
+      "tolerance": 1.000000000000001e-10
+    },
+    "2.second.projection.finite": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 4.297973185592736e-10
+    },
+    "2.second.projection.combined": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 4.297973185592736e-10
+    },
+    "2.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "2.final.gradient": {
+      "actual": -7.833065791231374e-20,
+      "expected": 0,
+      "error": 7.833065791231374e-20,
+      "tolerance": 1e-10
+    },
+    "2.final.finite": {
+      "actual": 5.6715510805781856e-18,
+      "expected": 0,
+      "error": 5.6715510805781856e-18,
+      "tolerance": 1.000000000004467e-10
+    },
+    "2.final.combined": {
+      "actual": 5.593220422854265e-18,
+      "expected": 0,
+      "error": 5.593220422854265e-18,
+      "tolerance": 1.000000000004467e-10
+    },
+    "2.Jensen": {
+      "actual": 2.168404344971009e-18,
+      "expected": 0,
+      "error": 2.168404344971009e-18,
+      "tolerance": 1.0027894373917744e-10
+    },
+    "2.mechanical": {
+      "actual": 3.831768175053662e-14,
+      "expected": 0,
+      "error": 3.831768175053662e-14,
+      "tolerance": 1.0000142969867202e-10
+    },
+    "3.first.donor.pairing": {
+      "actual": 1.3721933745519665e-19,
+      "expected": 0,
+      "error": 1.3721933745519665e-19,
+      "tolerance": 1.0000220433307907e-10
+    },
+    "3.first.donor.finite": {
+      "actual": 2.5905543162262214e-18,
+      "expected": 0,
+      "error": 2.5905543162262214e-18,
+      "tolerance": 1.0000220433307907e-10
+    },
+    "3.first.donor.combined": {
+      "actual": 2.727773653681418e-18,
+      "expected": 0,
+      "error": 2.727773653681418e-18,
+      "tolerance": 1.0000220433307907e-10
+    },
+    "3.first.body": {
+      "actual": 6.439293542825908e-15,
+      "expected": 0,
+      "error": 6.439293542825908e-15,
+      "tolerance": 4.789057168474893e-10
+    },
+    "3.first.wall": {
+      "actual": -5.551115123125783e-17,
+      "expected": 0,
+      "error": 5.551115123125783e-17,
+      "tolerance": 1.4715362710762143e-10
+    },
+    "3.first.gravity": {
+      "actual": 5.742883382384156e-19,
+      "expected": 0,
+      "error": 5.742883382384156e-19,
+      "tolerance": 1.0167612307327628e-10
+    },
+    "3.first.potential": {
+      "actual": -3.1927585575353135e-14,
+      "expected": 0,
+      "error": 3.1927585575353135e-14,
+      "tolerance": 1.0167559618510041e-10
+    },
+    "3.first.external": {
+      "actual": 1.734723475976807e-18,
+      "expected": 0,
+      "error": 1.734723475976807e-18,
+      "tolerance": 1.016761230732763e-10
+    },
+    "3.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "3.first.projection.gradient": {
+      "actual": 3.5150006273489505e-18,
+      "expected": 0,
+      "error": 3.5150006273489505e-18,
+      "tolerance": 1.0000000000000031e-10
+    },
+    "3.first.projection.finite": {
+      "actual": -7.105427357601002e-15,
+      "expected": 0,
+      "error": 7.105427357601002e-15,
+      "tolerance": 4.2979736381753777e-10
+    },
+    "3.first.projection.combined": {
+      "actual": -7.105427357601002e-15,
+      "expected": 0,
+      "error": 7.105427357601002e-15,
+      "tolerance": 4.2979736381753777e-10
+    },
+    "3.second.donor.pairing": {
+      "actual": -5.183841637196318e-19,
+      "expected": 0,
+      "error": 5.183841637196318e-19,
+      "tolerance": 1.0000521970150556e-10
+    },
+    "3.second.donor.finite": {
+      "actual": -1.4490073514671108e-17,
+      "expected": 0,
+      "error": 1.4490073514671108e-17,
+      "tolerance": 1.0000521970150556e-10
+    },
+    "3.second.donor.combined": {
+      "actual": -1.500845767839074e-17,
+      "expected": 0,
+      "error": 1.500845767839074e-17,
+      "tolerance": 1.0000521970150556e-10
+    },
+    "3.second.body": {
+      "actual": 5.551115123125783e-15,
+      "expected": 0,
+      "error": 5.551115123125783e-15,
+      "tolerance": 4.794632266251802e-10
+    },
+    "3.second.wall": {
+      "actual": -7.494005416219807e-16,
+      "expected": 0,
+      "error": 7.494005416219807e-16,
+      "tolerance": 1.4715364602902295e-10
+    },
+    "3.second.gravity": {
+      "actual": -2.4801124695605914e-18,
+      "expected": 0,
+      "error": 2.4801124695605914e-18,
+      "tolerance": 1.022330174824931e-10
+    },
+    "3.second.potential": {
+      "actual": -4.180683577104105e-16,
+      "expected": 0,
+      "error": 4.180683577104105e-16,
+      "tolerance": 1.022318238448861e-10
+    },
+    "3.second.external": {
+      "actual": 1.734723475976807e-18,
+      "expected": 0,
+      "error": 1.734723475976807e-18,
+      "tolerance": 1.022330174824931e-10
+    },
+    "3.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "3.second.projection.gradient": {
+      "actual": -6.79553112376475e-19,
+      "expected": 0,
+      "error": 6.79553112376475e-19,
+      "tolerance": 1.0000000000000031e-10
+    },
+    "3.second.projection.finite": {
+      "actual": -2.6645352591003757e-15,
+      "expected": 0,
+      "error": 2.6645352591003757e-15,
+      "tolerance": 4.297988040567786e-10
+    },
+    "3.second.projection.combined": {
+      "actual": -2.6645352591003757e-15,
+      "expected": 0,
+      "error": 2.6645352591003757e-15,
+      "tolerance": 4.297988040567786e-10
+    },
+    "3.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "3.final.gradient": {
+      "actual": -1.1123106516080317e-19,
+      "expected": 0,
+      "error": 1.1123106516080317e-19,
+      "tolerance": 1e-10
+    },
+    "3.final.finite": {
+      "actual": 4.2286844682088975e-17,
+      "expected": 0,
+      "error": 4.2286844682088975e-17,
+      "tolerance": 1.0000000000087031e-10
+    },
+    "3.final.combined": {
+      "actual": 4.217561361706947e-17,
+      "expected": 0,
+      "error": 4.217561361706947e-17,
+      "tolerance": 1.0000000000087031e-10
+    },
+    "3.Jensen": {
+      "actual": -1.734723475976807e-17,
+      "expected": 0,
+      "error": 1.734723475976807e-17,
+      "tolerance": 1.0027819088194346e-10
+    },
+    "3.mechanical": {
+      "actual": 1.3944195190879194e-16,
+      "expected": 0,
+      "error": 1.3944195190879194e-16,
+      "tolerance": 1.0000371201729232e-10
+    },
+    "4.first.donor.pairing": {
+      "actual": -4.404571325722362e-20,
+      "expected": 0,
+      "error": 4.404571325722362e-20,
+      "tolerance": 1.0000521671390463e-10
+    },
+    "4.first.donor.finite": {
+      "actual": -1.5142527112073335e-17,
+      "expected": 0,
+      "error": 1.5142527112073335e-17,
+      "tolerance": 1.0000521671390463e-10
+    },
+    "4.first.donor.combined": {
+      "actual": -1.5186572825330558e-17,
+      "expected": 0,
+      "error": 1.5186572825330558e-17,
+      "tolerance": 1.0000521671390463e-10
+    },
+    "4.first.body": {
+      "actual": -6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.794626309312353e-10
+    },
+    "4.first.wall": {
+      "actual": 1.6653345369377348e-15,
+      "expected": 0,
+      "error": 1.6653345369377348e-15,
+      "tolerance": 1.471536448347564e-10
+    },
+    "4.first.gravity": {
+      "actual": 2.622414004699314e-18,
+      "expected": 0,
+      "error": 2.622414004699314e-18,
+      "tolerance": 1.0223242182344808e-10
+    },
+    "4.first.potential": {
+      "actual": -4.583139423530724e-15,
+      "expected": 0,
+      "error": 4.583139423530724e-15,
+      "tolerance": 1.0223117423906843e-10
+    },
+    "4.first.external": {
+      "actual": 3.469446951953614e-18,
+      "expected": 0,
+      "error": 3.469446951953614e-18,
+      "tolerance": 1.0223242182344808e-10
+    },
+    "4.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "4.first.projection.gradient": {
+      "actual": 8.314155980940225e-19,
+      "expected": 0,
+      "error": 8.314155980940225e-19,
+      "tolerance": 1.000000000000004e-10
+    },
+    "4.first.projection.finite": {
+      "actual": 2.220446049250313e-15,
+      "expected": 0,
+      "error": 2.220446049250313e-15,
+      "tolerance": 4.2979884956652965e-10
+    },
+    "4.first.projection.combined": {
+      "actual": 2.220446049250313e-15,
+      "expected": 0,
+      "error": 2.220446049250313e-15,
+      "tolerance": 4.2979884956652965e-10
+    },
+    "4.second.donor.pairing": {
+      "actual": 4.2690460541616737e-19,
+      "expected": 0,
+      "error": 4.2690460541616737e-19,
+      "tolerance": 1.0001017396792436e-10
+    },
+    "4.second.donor.finite": {
+      "actual": 7.28458657852743e-17,
+      "expected": 0,
+      "error": 7.28458657852743e-17,
+      "tolerance": 1.0001017396792436e-10
+    },
+    "4.second.donor.combined": {
+      "actual": 7.327277039069046e-17,
+      "expected": 0,
+      "error": 7.327277039069046e-17,
+      "tolerance": 1.0001017396792436e-10
+    },
+    "4.second.body": {
+      "actual": -8.881784197001252e-16,
+      "expected": 0,
+      "error": 8.881784197001252e-16,
+      "tolerance": 4.800184223973494e-10
+    },
+    "4.second.wall": {
+      "actual": 2.7755575615628914e-16,
+      "expected": 0,
+      "error": 2.7755575615628914e-16,
+      "tolerance": 1.4715366819455172e-10
+    },
+    "4.second.gravity": {
+      "actual": 3.891269359686256e-18,
+      "expected": 0,
+      "error": 3.891269359686256e-18,
+      "tolerance": 1.0278741908620821e-10
+    },
+    "4.second.potential": {
+      "actual": -1.4991480279391567e-14,
+      "expected": 0,
+      "error": 1.4991480279391567e-14,
+      "tolerance": 1.0278505087004533e-10
+    },
+    "4.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0278741908620821e-10
+    },
+    "4.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "4.second.projection.gradient": {
+      "actual": 3.614035896327561e-18,
+      "expected": 0,
+      "error": 3.614035896327561e-18,
+      "tolerance": 1.0000000000000021e-10
+    },
+    "4.second.projection.finite": {
+      "actual": -6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.2980072259195324e-10
+    },
+    "4.second.projection.combined": {
+      "actual": -6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.2980072259195324e-10
+    },
+    "4.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "4.final.gradient": {
+      "actual": 3.247403493598497e-19,
+      "expected": 0,
+      "error": 3.247403493598497e-19,
+      "tolerance": 1e-10
+    },
+    "4.final.finite": {
+      "actual": 1.0295454600577694e-16,
+      "expected": 0,
+      "error": 1.0295454600577694e-16,
+      "tolerance": 1.0000000000142733e-10
+    },
+    "4.final.combined": {
+      "actual": 1.0327928635526274e-16,
+      "expected": 0,
+      "error": 1.0327928635526274e-16,
+      "tolerance": 1.0000000000142733e-10
+    },
+    "4.Jensen": {
+      "actual": -7.589415207398531e-17,
+      "expected": 0,
+      "error": 7.589415207398531e-17,
+      "tolerance": 1.0027719028716612e-10
+    },
+    "4.mechanical": {
+      "actual": 4.5702834962704775e-14,
+      "expected": 0,
+      "error": 4.5702834962704775e-14,
+      "tolerance": 1.000076953409145e-10
+    },
+    "5.first.donor.pairing": {
+      "actual": -9.486769009248164e-20,
+      "expected": 0,
+      "error": 9.486769009248164e-20,
+      "tolerance": 1.0001016790196268e-10
+    },
+    "5.first.donor.finite": {
+      "actual": -9.274319911186984e-17,
+      "expected": 0,
+      "error": 9.274319911186984e-17,
+      "tolerance": 1.0001016790196269e-10
+    },
+    "5.first.donor.combined": {
+      "actual": -9.283806680196233e-17,
+      "expected": 0,
+      "error": 9.283806680196233e-17,
+      "tolerance": 1.0001016790196269e-10
+    },
+    "5.first.body": {
+      "actual": 2.4424906541753444e-15,
+      "expected": 0,
+      "error": 2.4424906541753444e-15,
+      "tolerance": 4.800176543391414e-10
+    },
+    "5.first.wall": {
+      "actual": -1.4710455076283324e-15,
+      "expected": 0,
+      "error": 1.4710455076283324e-15,
+      "tolerance": 1.471536668914318e-10
+    },
+    "5.first.gravity": {
+      "actual": -1.7416691461442924e-17,
+      "expected": 0,
+      "error": 1.7416691461442924e-17,
+      "tolerance": 1.0278665115847429e-10
+    },
+    "5.first.potential": {
+      "actual": -6.626643678231403e-15,
+      "expected": 0,
+      "error": 6.626643678231403e-15,
+      "tolerance": 1.0278421804611072e-10
+    },
+    "5.first.external": {
+      "actual": 5.204170427930421e-18,
+      "expected": 0,
+      "error": 5.204170427930421e-18,
+      "tolerance": 1.0278665115847429e-10
+    },
+    "5.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "5.first.projection.gradient": {
+      "actual": 5.659388209312851e-19,
+      "expected": 0,
+      "error": 5.659388209312851e-19,
+      "tolerance": 1.0000000000000055e-10
+    },
+    "5.first.projection.finite": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.2980076842291577e-10
+    },
+    "5.first.projection.combined": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.2980076842291577e-10
+    },
+    "5.second.donor.pairing": {
+      "actual": 5.285485590866834e-19,
+      "expected": 0,
+      "error": 5.285485590866834e-19,
+      "tolerance": 1.0001753662305933e-10
+    },
+    "5.second.donor.finite": {
+      "actual": -7.638289008455104e-17,
+      "expected": 0,
+      "error": 7.638289008455104e-17,
+      "tolerance": 1.0001753662305934e-10
+    },
+    "5.second.donor.combined": {
+      "actual": -7.585434152546436e-17,
+      "expected": 0,
+      "error": 7.585434152546436e-17,
+      "tolerance": 1.0001753662305934e-10
+    },
+    "5.second.body": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 4.805712088765286e-10
+    },
+    "5.second.wall": {
+      "actual": -8.049116928532385e-16,
+      "expected": 0,
+      "error": 8.049116928532385e-16,
+      "tolerance": 1.4715369461601823e-10
+    },
+    "5.second.gravity": {
+      "actual": 2.5014576998313998e-17,
+      "expected": 0,
+      "error": 2.5014576998313998e-17,
+      "tolerance": 1.0333922990490429e-10
+    },
+    "5.second.potential": {
+      "actual": -3.889596977835197e-14,
+      "expected": 0,
+      "error": 3.889596977835197e-14,
+      "tolerance": 1.0333510861801187e-10
+    },
+    "5.second.external": {
+      "actual": 3.469446951953614e-18,
+      "expected": 0,
+      "error": 3.469446951953614e-18,
+      "tolerance": 1.0333922990490429e-10
+    },
+    "5.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "5.second.projection.gradient": {
+      "actual": -2.8742048365504043e-18,
+      "expected": 0,
+      "error": 2.8742048365504043e-18,
+      "tolerance": 1.0000000000000047e-10
+    },
+    "5.second.projection.finite": {
+      "actual": -5.329070518200751e-15,
+      "expected": 0,
+      "error": 5.329070518200751e-15,
+      "tolerance": 4.298030806416824e-10
+    },
+    "5.second.projection.combined": {
+      "actual": -5.329070518200751e-15,
+      "expected": 0,
+      "error": 5.329070518200751e-15,
+      "tolerance": 4.298030806416824e-10
+    },
+    "5.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "5.final.gradient": {
+      "actual": -5.982496832162978e-19,
+      "expected": 0,
+      "error": 5.982496832162978e-19,
+      "tolerance": 1e-10
+    },
+    "5.final.finite": {
+      "actual": 2.6605508104425495e-17,
+      "expected": 0,
+      "error": 2.6605508104425495e-17,
+      "tolerance": 1.0000000000211124e-10
+    },
+    "5.final.combined": {
+      "actual": 2.6007258421486472e-17,
+      "expected": 0,
+      "error": 2.6007258421486472e-17,
+      "tolerance": 1.0000000000211124e-10
+    },
+    "5.Jensen": {
+      "actual": 1.4094628242311558e-17,
+      "expected": 0,
+      "error": 1.4094628242311558e-17,
+      "tolerance": 1.0027594460047278e-10
+    },
+    "5.mechanical": {
+      "actual": -8.995164639188924e-15,
+      "expected": 0,
+      "error": 8.995164639188924e-15,
+      "tolerance": 1.000138522625128e-10
+    },
+    "6.first.donor.pairing": {
+      "actual": -1.2739375526704677e-18,
+      "expected": 0,
+      "error": 1.2739375526704677e-18,
+      "tolerance": 1.0001752600168196e-10
+    },
+    "6.first.donor.finite": {
+      "actual": 1.4293680984916318e-21,
+      "expected": 0,
+      "error": 1.4293680984916318e-21,
+      "tolerance": 1.0001752600168196e-10
+    },
+    "6.first.donor.combined": {
+      "actual": -1.272508184571976e-18,
+      "expected": 0,
+      "error": 1.272508184571976e-18,
+      "tolerance": 1.0001752600168196e-10
+    },
+    "6.first.body": {
+      "actual": -3.9968028886505635e-15,
+      "expected": 0,
+      "error": 3.9968028886505635e-15,
+      "tolerance": 4.805702668070445e-10
+    },
+    "6.first.wall": {
+      "actual": 1.6653345369377348e-16,
+      "expected": 0,
+      "error": 1.6653345369377348e-16,
+      "tolerance": 1.4715369317452434e-10
+    },
+    "6.first.gravity": {
+      "actual": 1.2231155758352097e-17,
+      "expected": 0,
+      "error": 1.2231155758352097e-17,
+      "tolerance": 1.0333828811062133e-10
+    },
+    "6.first.potential": {
+      "actual": -3.659225700225477e-14,
+      "expected": 0,
+      "error": 3.659225700225477e-14,
+      "tolerance": 1.0333409138747811e-10
+    },
+    "6.first.external": {
+      "actual": -1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.0333828811062133e-10
+    },
+    "6.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "6.first.projection.gradient": {
+      "actual": 6.7698350942585635e-18,
+      "expected": 0,
+      "error": 6.7698350942585635e-18,
+      "tolerance": 1.0000000000000011e-10
+    },
+    "6.first.projection.finite": {
+      "actual": 4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.298031268638206e-10
+    },
+    "6.first.projection.combined": {
+      "actual": 4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.298031268638206e-10
+    },
+    "6.second.donor.pairing": {
+      "actual": -1.1655173354219173e-18,
+      "expected": 0,
+      "error": 1.1655173354219173e-18,
+      "tolerance": 1.0002776815722003e-10
+    },
+    "6.second.donor.finite": {
+      "actual": -2.532562867236946e-16,
+      "expected": 0,
+      "error": 2.532562867236946e-16,
+      "tolerance": 1.0002776815722008e-10
+    },
+    "6.second.donor.combined": {
+      "actual": -2.544218040591165e-16,
+      "expected": 0,
+      "error": 2.544218040591165e-16,
+      "tolerance": 1.0002776815722008e-10
+    },
+    "6.second.body": {
+      "actual": 3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.811210632515661e-10
+    },
+    "6.second.wall": {
+      "actual": -3.3306690738754696e-16,
+      "expected": 0,
+      "error": 3.3306690738754696e-16,
+      "tolerance": 1.4715372517021565e-10
+    },
+    "6.second.gravity": {
+      "actual": -1.849919956803392e-17,
+      "expected": 0,
+      "error": 1.849919956803392e-17,
+      "tolerance": 1.0388792371714872e-10
+    },
+    "6.second.potential": {
+      "actual": 1.0113437864944785e-14,
+      "expected": 0,
+      "error": 1.0113437864944785e-14,
+      "tolerance": 1.0388135949728141e-10
+    },
+    "6.second.external": {
+      "actual": -6.938893903907228e-18,
+      "expected": 0,
+      "error": 6.938893903907228e-18,
+      "tolerance": 1.0388792371714872e-10
+    },
+    "6.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "6.second.projection.gradient": {
+      "actual": -1.0191521229869646e-17,
+      "expected": 0,
+      "error": 1.0191521229869646e-17,
+      "tolerance": 1.0000000000000006e-10
+    },
+    "6.second.projection.finite": {
+      "actual": -2.6645352591003757e-15,
+      "expected": 0,
+      "error": 2.6645352591003757e-15,
+      "tolerance": 4.2980588656736505e-10
+    },
+    "6.second.projection.combined": {
+      "actual": -2.6645352591003757e-15,
+      "expected": 0,
+      "error": 2.6645352591003757e-15,
+      "tolerance": 4.2980588656736505e-10
+    },
+    "6.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "6.final.gradient": {
+      "actual": -4.076045582251445e-19,
+      "expected": 0,
+      "error": 4.076045582251445e-19,
+      "tolerance": 1e-10
+    },
+    "6.final.finite": {
+      "actual": 1.2344766564317456e-16,
+      "expected": 0,
+      "error": 1.2344766564317456e-16,
+      "tolerance": 1.0000000000291411e-10
+    },
+    "6.final.combined": {
+      "actual": 1.2304006108399794e-16,
+      "expected": 0,
+      "error": 1.2304006108399794e-16,
+      "tolerance": 1.0000000000291411e-10
+    },
+    "6.Jensen": {
+      "actual": -1.1080546202801855e-16,
+      "expected": 0,
+      "error": 1.1080546202801855e-16,
+      "tolerance": 1.0027445685752124e-10
+    },
+    "6.mechanical": {
+      "actual": -2.8339554010783918e-14,
+      "expected": 0,
+      "error": 2.8339554010783918e-14,
+      "tolerance": 1.0002264707945666e-10
+    },
+    "7.first.donor.pairing": {
+      "actual": -9.486769009248164e-19,
+      "expected": 0,
+      "error": 9.486769009248164e-19,
+      "tolerance": 1.0002775166480116e-10
+    },
+    "7.first.donor.finite": {
+      "actual": -1.238564398001944e-16,
+      "expected": 0,
+      "error": 1.238564398001944e-16,
+      "tolerance": 1.0002775166480118e-10
+    },
+    "7.first.donor.combined": {
+      "actual": -1.2480511670111922e-16,
+      "expected": 0,
+      "error": 1.2480511670111922e-16,
+      "tolerance": 1.0002775166480118e-10
+    },
+    "7.first.body": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 4.811199449749884e-10
+    },
+    "7.first.wall": {
+      "actual": -1.304512053934559e-15,
+      "expected": 0,
+      "error": 1.304512053934559e-15,
+      "tolerance": 1.4715372356131167e-10
+    },
+    "7.first.gravity": {
+      "actual": 1.7062631689490626e-17,
+      "expected": 0,
+      "error": 1.7062631689490626e-17,
+      "tolerance": 1.0388680592164107e-10
+    },
+    "7.first.potential": {
+      "actual": -9.38832345198648e-15,
+      "expected": 0,
+      "error": 9.38832345198648e-15,
+      "tolerance": 1.0388015622173726e-10
+    },
+    "7.first.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0388680592164107e-10
+    },
+    "7.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "7.first.projection.gradient": {
+      "actual": 6.111815385358634e-18,
+      "expected": 0,
+      "error": 6.111815385358634e-18,
+      "tolerance": 1.0000000000000004e-10
+    },
+    "7.first.projection.finite": {
+      "actual": 4.884981308350689e-15,
+      "expected": 0,
+      "error": 4.884981308350689e-15,
+      "tolerance": 4.298059332870942e-10
+    },
+    "7.first.projection.combined": {
+      "actual": 4.884981308350689e-15,
+      "expected": 0,
+      "error": 4.884981308350689e-15,
+      "tolerance": 4.298059332870942e-10
+    },
+    "7.second.donor.pairing": {
+      "actual": 1.4094628242311558e-18,
+      "expected": 0,
+      "error": 1.4094628242311558e-18,
+      "tolerance": 1.0004131440487784e-10
+    },
+    "7.second.donor.finite": {
+      "actual": 1.7804314913930173e-16,
+      "expected": 0,
+      "error": 1.7804314913930173e-16,
+      "tolerance": 1.0004131440487784e-10
+    },
+    "7.second.donor.combined": {
+      "actual": 1.7945261196353288e-16,
+      "expected": 0,
+      "error": 1.7945261196353288e-16,
+      "tolerance": 1.0004131440487784e-10
+    },
+    "7.second.body": {
+      "actual": 5.551115123125783e-15,
+      "expected": 0,
+      "error": 5.551115123125783e-15,
+      "tolerance": 4.816674584911211e-10
+    },
+    "7.second.wall": {
+      "actual": -7.494005416219807e-16,
+      "expected": 0,
+      "error": 7.494005416219807e-16,
+      "tolerance": 1.4715375971728047e-10
+    },
+    "7.second.gravity": {
+      "actual": -1.185168499798217e-17,
+      "expected": 0,
+      "error": 1.185168499798217e-17,
+      "tolerance": 1.0443296944618598e-10
+    },
+    "7.second.potential": {
+      "actual": 2.310651670001107e-15,
+      "expected": 0,
+      "error": 2.310651670001107e-15,
+      "tolerance": 1.0442316341936978e-10
+    },
+    "7.second.external": {
+      "actual": 6.938893903907228e-18,
+      "expected": 0,
+      "error": 6.938893903907228e-18,
+      "tolerance": 1.0443296944618598e-10
+    },
+    "7.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "7.second.projection.gradient": {
+      "actual": 2.922841951232399e-18,
+      "expected": 0,
+      "error": 2.922841951232399e-18,
+      "tolerance": 1.0000000000000026e-10
+    },
+    "7.second.projection.finite": {
+      "actual": 8.881784197001252e-16,
+      "expected": 0,
+      "error": 8.881784197001252e-16,
+      "tolerance": 4.2980914960897634e-10
+    },
+    "7.second.projection.combined": {
+      "actual": 8.881784197001252e-16,
+      "expected": 0,
+      "error": 8.881784197001252e-16,
+      "tolerance": 4.2980914960897634e-10
+    },
+    "7.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "7.final.gradient": {
+      "actual": 9.474842313339178e-20,
+      "expected": 0,
+      "error": 9.474842313339178e-20,
+      "tolerance": 1e-10
+    },
+    "7.final.finite": {
+      "actual": -1.0877043767784545e-16,
+      "expected": 0,
+      "error": 1.0877043767784545e-16,
+      "tolerance": 1.0000000000382674e-10
+    },
+    "7.final.combined": {
+      "actual": -1.0867568925362636e-16,
+      "expected": 0,
+      "error": 1.0867568925362636e-16,
+      "tolerance": 1.0000000000382674e-10
+    },
+    "7.Jensen": {
+      "actual": -2.667137344314341e-17,
+      "expected": 0,
+      "error": 2.667137344314341e-17,
+      "tolerance": 1.00272730664041e-10
+    },
+    "7.mechanical": {
+      "actual": 5.23829027029854e-14,
+      "expected": 0,
+      "error": 5.23829027029854e-14,
+      "tolerance": 1.000345330348395e-10
+    },
+    "8.first.donor.pairing": {
+      "actual": 2.0057740190981832e-18,
+      "expected": 0,
+      "error": 2.0057740190981832e-18,
+      "tolerance": 1.0004128946451081e-10
+    },
+    "8.first.donor.finite": {
+      "actual": 2.2188451569800025e-17,
+      "expected": 0,
+      "error": 2.2188451569800025e-17,
+      "tolerance": 1.0004128946451081e-10
+    },
+    "8.first.donor.combined": {
+      "actual": 2.4194225588898208e-17,
+      "expected": 0,
+      "error": 2.4194225588898208e-17,
+      "tolerance": 1.0004128946451081e-10
+    },
+    "8.first.body": {
+      "actual": -5.995204332975845e-15,
+      "expected": 0,
+      "error": 5.995204332975845e-15,
+      "tolerance": 4.816661617601241e-10
+    },
+    "8.first.wall": {
+      "actual": 2.6367796834847468e-15,
+      "expected": 0,
+      "error": 2.6367796834847468e-15,
+      "tolerance": 1.4715375791371076e-10
+    },
+    "8.first.gravity": {
+      "actual": 3.556860752110258e-17,
+      "expected": 0,
+      "error": 3.556860752110258e-17,
+      "tolerance": 1.0443167347541447e-10
+    },
+    "8.first.potential": {
+      "actual": 1.165387231161219e-14,
+      "expected": 0,
+      "error": 1.165387231161219e-14,
+      "tolerance": 1.0442177250794436e-10
+    },
+    "8.first.external": {
+      "actual": -1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.0443167347541447e-10
+    },
+    "8.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "8.first.projection.gradient": {
+      "actual": -7.454161444882163e-18,
+      "expected": 0,
+      "error": 7.454161444882163e-18,
+      "tolerance": 1.0000000000000016e-10
+    },
+    "8.first.projection.finite": {
+      "actual": 2.220446049250313e-15,
+      "expected": 0,
+      "error": 2.220446049250313e-15,
+      "tolerance": 4.2980919675555614e-10
+    },
+    "8.first.projection.combined": {
+      "actual": 2.220446049250313e-15,
+      "expected": 0,
+      "error": 2.220446049250313e-15,
+      "tolerance": 4.2980919675555614e-10
+    },
+    "8.second.donor.pairing": {
+      "actual": -1.1926223897340549e-18,
+      "expected": 0,
+      "error": 1.1926223897340549e-18,
+      "tolerance": 1.0005860638493803e-10
+    },
+    "8.second.donor.finite": {
+      "actual": -1.4064431517741942e-16,
+      "expected": 0,
+      "error": 1.4064431517741942e-16,
+      "tolerance": 1.0005860638493806e-10
+    },
+    "8.second.donor.combined": {
+      "actual": -1.4183693756715347e-16,
+      "expected": 0,
+      "error": 1.4183693756715347e-16,
+      "tolerance": 1.0005860638493806e-10
+    },
+    "8.second.body": {
+      "actual": 7.327471962526033e-15,
+      "expected": 0,
+      "error": 7.327471962526033e-15,
+      "tolerance": 4.822098639260029e-10
+    },
+    "8.second.wall": {
+      "actual": -7.438494264988549e-15,
+      "expected": 0,
+      "error": 7.438494264988549e-15,
+      "tolerance": 1.4715379810886497e-10
+    },
+    "8.second.gravity": {
+      "actual": -2.530256820038046e-17,
+      "expected": 0,
+      "error": 2.530256820038046e-17,
+      "tolerance": 1.0497383181195932e-10
+    },
+    "8.second.potential": {
+      "actual": 4.250072516143177e-15,
+      "expected": 0,
+      "error": 4.250072516143177e-15,
+      "tolerance": 1.0495987883750871e-10
+    },
+    "8.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0497383181195932e-10
+    },
+    "8.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "8.second.projection.gradient": {
+      "actual": 2.0114016816829803e-18,
+      "expected": 0,
+      "error": 2.0114016816829803e-18,
+      "tolerance": 1.0000000000000002e-10
+    },
+    "8.second.projection.finite": {
+      "actual": 3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.29812880174263e-10
+    },
+    "8.second.projection.combined": {
+      "actual": 3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.29812880174263e-10
+    },
+    "8.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "8.final.gradient": {
+      "actual": 8.370579603514021e-19,
+      "expected": 0,
+      "error": 8.370579603514021e-19,
+      "tolerance": 1e-10
+    },
+    "8.final.finite": {
+      "actual": 6.351595799534019e-17,
+      "expected": 0,
+      "error": 6.351595799534019e-17,
+      "tolerance": 1.0000000000483871e-10
+    },
+    "8.final.combined": {
+      "actual": 6.435301595543184e-17,
+      "expected": 0,
+      "error": 6.435301595543184e-17,
+      "tolerance": 1.0000000000483871e-10
+    },
+    "8.Jensen": {
+      "actual": -1.0321604682062002e-16,
+      "expected": 0,
+      "error": 1.0321604682062002e-16,
+      "tolerance": 1.002707705133043e-10
+    },
+    "8.mechanical": {
+      "actual": -4.691559640779275e-14,
+      "expected": 0,
+      "error": 4.691559640779275e-14,
+      "tolerance": 1.000499479247338e-10
+    },
+    "9.first.donor.pairing": {
+      "actual": -2.9815559743351372e-18,
+      "expected": 0,
+      "error": 2.9815559743351372e-18,
+      "tolerance": 1.0005857051868275e-10
+    },
+    "9.first.donor.finite": {
+      "actual": 1.620615432487444e-16,
+      "expected": 0,
+      "error": 1.620615432487444e-16,
+      "tolerance": 1.0005857051868275e-10
+    },
+    "9.first.donor.combined": {
+      "actual": 1.5907998727440927e-16,
+      "expected": 0,
+      "error": 1.5907998727440927e-16,
+      "tolerance": 1.0005857051868275e-10
+    },
+    "9.first.body": {
+      "actual": -4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.822083861569811e-10
+    },
+    "9.first.wall": {
+      "actual": -1.970645868709653e-15,
+      "expected": 0,
+      "error": 1.970645868709653e-15,
+      "tolerance": 1.471537960846552e-10
+    },
+    "9.first.gravity": {
+      "actual": 1.1492543028346347e-17,
+      "expected": 0,
+      "error": 1.1492543028346347e-17,
+      "tolerance": 1.049723551710732e-10
+    },
+    "9.first.potential": {
+      "actual": -1.124100812432971e-15,
+      "expected": 0,
+      "error": 1.124100812432971e-15,
+      "tolerance": 1.0495829846660172e-10
+    },
+    "9.first.external": {
+      "actual": -6.938893903907228e-18,
+      "expected": 0,
+      "error": 6.938893903907228e-18,
+      "tolerance": 1.049723551710732e-10
+    },
+    "9.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "9.first.projection.gradient": {
+      "actual": 9.894285814891211e-18,
+      "expected": 0,
+      "error": 9.894285814891211e-18,
+      "tolerance": 1.0000000000000016e-10
+    },
+    "9.first.projection.finite": {
+      "actual": 3.9968028886505635e-15,
+      "expected": 0,
+      "error": 3.9968028886505635e-15,
+      "tolerance": 4.298129277115709e-10
+    },
+    "9.first.projection.combined": {
+      "actual": 3.9968028886505635e-15,
+      "expected": 0,
+      "error": 3.9968028886505635e-15,
+      "tolerance": 4.298129277115709e-10
+    },
+    "9.second.donor.pairing": {
+      "actual": -1.6263032587282567e-19,
+      "expected": 0,
+      "error": 1.6263032587282567e-19,
+      "tolerance": 1.0008006064115882e-10
+    },
+    "9.second.donor.finite": {
+      "actual": 3.9718645446175024e-17,
+      "expected": 0,
+      "error": 3.9718645446175024e-17,
+      "tolerance": 1.0008006064115882e-10
+    },
+    "9.second.donor.combined": {
+      "actual": 3.95560151203022e-17,
+      "expected": 0,
+      "error": 3.95560151203022e-17,
+      "tolerance": 1.0008006064115882e-10
+    },
+    "9.second.body": {
+      "actual": 2.220446049250313e-16,
+      "expected": 0,
+      "error": 2.220446049250313e-16,
+      "tolerance": 4.8274774427588e-10
+    },
+    "9.second.wall": {
+      "actual": 6.522560269672795e-15,
+      "expected": 0,
+      "error": 6.522560269672795e-15,
+      "tolerance": 1.471538401933225e-10
+    },
+    "9.second.gravity": {
+      "actual": -1.146543797403421e-17,
+      "expected": 0,
+      "error": 1.146543797403421e-17,
+      "tolerance": 1.0550997044273679e-10
+    },
+    "9.second.potential": {
+      "actual": 3.247402347028583e-14,
+      "expected": 0,
+      "error": 3.247402347028583e-14,
+      "tolerance": 1.0549086224472798e-10
+    },
+    "9.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0550997044273679e-10
+    },
+    "9.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "9.second.projection.gradient": {
+      "actual": -6.356036678159475e-18,
+      "expected": 0,
+      "error": 6.356036678159475e-18,
+      "tolerance": 1.0000000000000004e-10
+    },
+    "9.second.projection.finite": {
+      "actual": 3.3306690738754696e-15,
+      "expected": 0,
+      "error": 3.3306690738754696e-15,
+      "tolerance": 4.29817089886906e-10
+    },
+    "9.second.projection.combined": {
+      "actual": 3.3306690738754696e-15,
+      "expected": 0,
+      "error": 3.3306690738754696e-15,
+      "tolerance": 4.29817089886906e-10
+    },
+    "9.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "9.final.gradient": {
+      "actual": 2.119553472170771e-18,
+      "expected": 0,
+      "error": 2.119553472170771e-18,
+      "tolerance": 1e-10
+    },
+    "9.final.finite": {
+      "actual": -3.3850652450170643e-17,
+      "expected": 0,
+      "error": 3.3850652450170643e-17,
+      "tolerance": 1.0000000000593881e-10
+    },
+    "9.final.combined": {
+      "actual": -3.1731098975258664e-17,
+      "expected": 0,
+      "error": 3.1731098975258664e-17,
+      "tolerance": 1.0000000000593881e-10
+    },
+    "9.Jensen": {
+      "actual": -1.7629127324614302e-16,
+      "expected": 0,
+      "error": 1.7629127324614302e-16,
+      "tolerance": 1.0026858122113768e-10
+    },
+    "9.mechanical": {
+      "actual": 8.036648603548802e-16,
+      "expected": 0,
+      "error": 8.036648603548802e-16,
+      "tolerance": 1.0006931557992079e-10
+    },
+    "10.first.donor.pairing": {
+      "actual": 7.047314121155779e-19,
+      "expected": 0,
+      "error": 7.047314121155779e-19,
+      "tolerance": 1.0008001175437557e-10
+    },
+    "10.first.donor.finite": {
+      "actual": 1.8459981942576045e-16,
+      "expected": 0,
+      "error": 1.8459981942576045e-16,
+      "tolerance": 1.0008001175437557e-10
+    },
+    "10.first.donor.combined": {
+      "actual": 1.8530455083787603e-16,
+      "expected": 0,
+      "error": 1.8530455083787603e-16,
+      "tolerance": 1.0008001175437557e-10
+    },
+    "10.first.body": {
+      "actual": -1.3322676295501878e-15,
+      "expected": 0,
+      "error": 1.3322676295501878e-15,
+      "tolerance": 4.827460825955622e-10
+    },
+    "10.first.wall": {
+      "actual": -4.163336342344337e-15,
+      "expected": 0,
+      "error": 4.163336342344337e-15,
+      "tolerance": 1.4715383792150915e-10
+    },
+    "10.first.gravity": {
+      "actual": -4.336808689942018e-19,
+      "expected": 0,
+      "error": 4.336808689942018e-19,
+      "tolerance": 1.0550831036416717e-10
+    },
+    "10.first.potential": {
+      "actual": -9.048317650695026e-15,
+      "expected": 0,
+      "error": 9.048317650695026e-15,
+      "tolerance": 1.0548909040664967e-10
+    },
+    "10.first.external": {
+      "actual": -6.938893903907228e-18,
+      "expected": 0,
+      "error": 6.938893903907228e-18,
+      "tolerance": 1.0550831036416717e-10
+    },
+    "10.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "10.first.projection.gradient": {
+      "actual": -2.3661552210151392e-18,
+      "expected": 0,
+      "error": 2.3661552210151392e-18,
+      "tolerance": 1.0000000000000008e-10
+    },
+    "10.first.projection.finite": {
+      "actual": -2.886579864025407e-15,
+      "expected": 0,
+      "error": 2.886579864025407e-15,
+      "tolerance": 4.2981713781274095e-10
+    },
+    "10.first.projection.combined": {
+      "actual": -2.886579864025407e-15,
+      "expected": 0,
+      "error": 2.886579864025407e-15,
+      "tolerance": 4.2981713781274095e-10
+    },
+    "10.second.donor.pairing": {
+      "actual": 3.2526065174565133e-18,
+      "expected": 0,
+      "error": 3.2526065174565133e-18,
+      "tolerance": 1.0010607789395891e-10
+    },
+    "10.second.donor.finite": {
+      "actual": 9.859294099450605e-17,
+      "expected": 0,
+      "error": 9.859294099450605e-17,
+      "tolerance": 1.0010607789395891e-10
+    },
+    "10.second.donor.combined": {
+      "actual": 1.0184554751196256e-16,
+      "expected": 0,
+      "error": 1.0184554751196256e-16,
+      "tolerance": 1.0010607789395891e-10
+    },
+    "10.second.body": {
+      "actual": 7.327471962526033e-15,
+      "expected": 0,
+      "error": 7.327471962526033e-15,
+      "tolerance": 4.832805591134544e-10
+    },
+    "10.second.wall": {
+      "actual": -4.440892098500626e-15,
+      "expected": 0,
+      "error": 4.440892098500626e-15,
+      "tolerance": 1.4715388581150028e-10
+    },
+    "10.second.gravity": {
+      "actual": -1.0083080204115191e-17,
+      "expected": 0,
+      "error": 1.0083080204115191e-17,
+      "tolerance": 1.060408394322413e-10
+    },
+    "10.second.potential": {
+      "actual": -5.1486592766991635e-15,
+      "expected": 0,
+      "error": 5.1486592766991635e-15,
+      "tolerance": 1.060154681132076e-10
+    },
+    "10.second.external": {
+      "actual": -6.938893903907228e-18,
+      "expected": 0,
+      "error": 6.938893903907228e-18,
+      "tolerance": 1.060408394322413e-10
+    },
+    "10.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "10.second.projection.gradient": {
+      "actual": 1.94296987600886e-18,
+      "expected": 0,
+      "error": 1.94296987600886e-18,
+      "tolerance": 1.0000000000000003e-10
+    },
+    "10.second.projection.finite": {
+      "actual": 4.6629367034256575e-15,
+      "expected": 0,
+      "error": 4.6629367034256575e-15,
+      "tolerance": 4.298217913457319e-10
+    },
+    "10.second.projection.combined": {
+      "actual": 4.6629367034256575e-15,
+      "expected": 0,
+      "error": 4.6629367034256575e-15,
+      "tolerance": 4.298217913457319e-10
+    },
+    "10.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "10.final.gradient": {
+      "actual": -8.71396182877833e-19,
+      "expected": 0,
+      "error": 8.71396182877833e-19,
+      "tolerance": 1e-10
+    },
+    "10.final.finite": {
+      "actual": 1.672039454507726e-17,
+      "expected": 0,
+      "error": 1.672039454507726e-17,
+      "tolerance": 1.0000000000711484e-10
+    },
+    "10.final.combined": {
+      "actual": 1.58489983628981e-17,
+      "expected": 0,
+      "error": 1.58489983628981e-17,
+      "tolerance": 1.0000000000711484e-10
+    },
+    "10.Jensen": {
+      "actual": -1.5113778284447932e-16,
+      "expected": 0,
+      "error": 1.5113778284447932e-16,
+      "tolerance": 1.0026616792842694e-10
+    },
+    "10.mechanical": {
+      "actual": 3.431011984939003e-14,
+      "expected": 0,
+      "error": 3.431011984939003e-14,
+      "tolerance": 1.0009304482416724e-10
+    },
+    "11.first.donor.pairing": {
+      "actual": -1.1926223897340549e-18,
+      "expected": 0,
+      "error": 1.1926223897340549e-18,
+      "tolerance": 1.0010601241502261e-10
+    },
+    "11.first.donor.finite": {
+      "actual": 1.6374840936320134e-16,
+      "expected": 0,
+      "error": 1.6374840936320134e-16,
+      "tolerance": 1.0010601241502261e-10
+    },
+    "11.first.donor.combined": {
+      "actual": 1.6255578697346729e-16,
+      "expected": 0,
+      "error": 1.6255578697346729e-16,
+      "tolerance": 1.0010601241502261e-10
+    },
+    "11.first.body": {
+      "actual": -3.3306690738754696e-15,
+      "expected": 0,
+      "error": 3.3306690738754696e-15,
+      "tolerance": 4.832787104429194e-10
+    },
+    "11.first.wall": {
+      "actual": -2.1371793224034263e-15,
+      "expected": 0,
+      "error": 2.1371793224034263e-15,
+      "tolerance": 1.4715388326355707e-10
+    },
+    "11.first.gravity": {
+      "actual": -3.74049749507499e-17,
+      "expected": 0,
+      "error": 3.74049749507499e-17,
+      "tolerance": 1.0603899296125329e-10
+    },
+    "11.first.potential": {
+      "actual": -2.0431573100054834e-14,
+      "expected": 0,
+      "error": 2.0431573100054834e-14,
+      "tolerance": 1.0601350270250123e-10
+    },
+    "11.first.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0603899296125328e-10
+    },
+    "11.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "11.first.projection.gradient": {
+      "actual": -1.171028331919487e-18,
+      "expected": 0,
+      "error": 1.171028331919487e-18,
+      "tolerance": 1.0000000000000028e-10
+    },
+    "11.first.projection.finite": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.298218394934558e-10
+    },
+    "11.first.projection.combined": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.298218394934558e-10
+    },
+    "11.second.donor.pairing": {
+      "actual": 2.3852447794681098e-18,
+      "expected": 0,
+      "error": 2.3852447794681098e-18,
+      "tolerance": 1.0013703351424931e-10
+    },
+    "11.second.donor.finite": {
+      "actual": 2.3204128776852656e-16,
+      "expected": 0,
+      "error": 2.3204128776852656e-16,
+      "tolerance": 1.0013703351424931e-10
+    },
+    "11.second.donor.combined": {
+      "actual": 2.3442653254799467e-16,
+      "expected": 0,
+      "error": 2.3442653254799467e-16,
+      "tolerance": 1.0013703351424931e-10
+    },
+    "11.second.body": {
+      "actual": -1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.838077627448513e-10
+    },
+    "11.second.wall": {
+      "actual": 9.992007221626409e-16,
+      "expected": 0,
+      "error": 9.992007221626409e-16,
+      "tolerance": 1.4715393479789866e-10
+    },
+    "11.second.gravity": {
+      "actual": -2.539743589047294e-17,
+      "expected": 0,
+      "error": 2.539743589047294e-17,
+      "tolerance": 1.0656588732182526e-10
+    },
+    "11.second.potential": {
+      "actual": -1.186550857568136e-14,
+      "expected": 0,
+      "error": 1.186550857568136e-14,
+      "tolerance": 1.0653304925531302e-10
+    },
+    "11.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0656588732182526e-10
+    },
+    "11.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "11.second.projection.gradient": {
+      "actual": -1.338929165637335e-17,
+      "expected": 0,
+      "error": 1.338929165637335e-17,
+      "tolerance": 1.0000000000000031e-10
+    },
+    "11.second.projection.finite": {
+      "actual": -4.6629367034256575e-15,
+      "expected": 0,
+      "error": 4.6629367034256575e-15,
+      "tolerance": 4.298269971991043e-10
+    },
+    "11.second.projection.combined": {
+      "actual": -4.6629367034256575e-15,
+      "expected": 0,
+      "error": 4.6629367034256575e-15,
+      "tolerance": 4.298269971991043e-10
+    },
+    "11.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "11.final.gradient": {
+      "actual": 1.042414412206334e-18,
+      "expected": 0,
+      "error": 1.042414412206334e-18,
+      "tolerance": 1e-10
+    },
+    "11.final.finite": {
+      "actual": 3.506249727398457e-16,
+      "expected": 0,
+      "error": 3.506249727398457e-16,
+      "tolerance": 1.0000000000835411e-10
+    },
+    "11.final.combined": {
+      "actual": 3.516673871501147e-16,
+      "expected": 0,
+      "error": 3.516673871501147e-16,
+      "tolerance": 1.0000000000835411e-10
+    },
+    "11.Jensen": {
+      "actual": -1.463672932855431e-16,
+      "expected": 0,
+      "error": 1.463672932855431e-16,
+      "tolerance": 1.002635365521712e-10
+    },
+    "11.mechanical": {
+      "actual": -3.8626979219358315e-14,
+      "expected": 0,
+      "error": 3.8626979219358315e-14,
+      "tolerance": 1.0012152296464368e-10
+    },
+    "12.first.donor.pairing": {
+      "actual": -1.5178830414797062e-18,
+      "expected": 0,
+      "error": 1.5178830414797062e-18,
+      "tolerance": 1.0013694804393333e-10
+    },
+    "12.first.donor.finite": {
+      "actual": -3.500092603985275e-16,
+      "expected": 0,
+      "error": 3.500092603985275e-16,
+      "tolerance": 1.001369480439334e-10
+    },
+    "12.first.donor.combined": {
+      "actual": -3.515271434400072e-16,
+      "expected": 0,
+      "error": 3.515271434400072e-16,
+      "tolerance": 1.001369480439334e-10
+    },
+    "12.first.body": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 4.838057241205764e-10
+    },
+    "12.first.wall": {
+      "actual": -1.304512053934559e-15,
+      "expected": 0,
+      "error": 1.304512053934559e-15,
+      "tolerance": 1.471539319516139e-10
+    },
+    "12.first.gravity": {
+      "actual": 1.7211709488207383e-17,
+      "expected": 0,
+      "error": 1.7211709488207383e-17,
+      "tolerance": 1.0656385163838915e-10
+    },
+    "12.first.potential": {
+      "actual": 4.4547698863084406e-14,
+      "expected": 0,
+      "error": 4.4547698863084406e-14,
+      "tolerance": 1.065308883914643e-10
+    },
+    "12.first.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0656385163838915e-10
+    },
+    "12.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "12.first.projection.gradient": {
+      "actual": -6.903163358976042e-18,
+      "expected": 0,
+      "error": 6.903163358976042e-18,
+      "tolerance": 1.0000000000000025e-10
+    },
+    "12.first.projection.finite": {
+      "actual": 8.881784197001252e-15,
+      "expected": 0,
+      "error": 8.881784197001252e-15,
+      "tolerance": 4.2982704540615087e-10
+    },
+    "12.first.projection.combined": {
+      "actual": 8.881784197001252e-15,
+      "expected": 0,
+      "error": 8.881784197001252e-15,
+      "tolerance": 4.2982704540615087e-10
+    },
+    "12.second.donor.pairing": {
+      "actual": 4.336808689942018e-19,
+      "expected": 0,
+      "error": 4.336808689942018e-19,
+      "tolerance": 1.0017328311841176e-10
+    },
+    "12.second.donor.finite": {
+      "actual": 2.2910716563923766e-16,
+      "expected": 0,
+      "error": 2.2910716563923766e-16,
+      "tolerance": 1.0017328311841176e-10
+    },
+    "12.second.donor.combined": {
+      "actual": 2.2954084650823187e-16,
+      "expected": 0,
+      "error": 2.2954084650823187e-16,
+      "tolerance": 1.0017328311841176e-10
+    },
+    "12.second.body": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.843288048074156e-10
+    },
+    "12.second.wall": {
+      "actual": -9.71445146547012e-16,
+      "expected": 0,
+      "error": 9.71445146547012e-16,
+      "tolerance": 1.4715398700500502e-10
+    },
+    "12.second.gravity": {
+      "actual": 1.734723475976807e-17,
+      "expected": 0,
+      "error": 1.734723475976807e-17,
+      "tolerance": 1.0708455780655355e-10
+    },
+    "12.second.potential": {
+      "actual": -1.309369279667294e-14,
+      "expected": 0,
+      "error": 1.309369279667294e-14,
+      "tolerance": 1.0704295790442303e-10
+    },
+    "12.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0708455780655355e-10
+    },
+    "12.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "12.second.projection.gradient": {
+      "actual": 6.8354399252869455e-18,
+      "expected": 0,
+      "error": 6.8354399252869455e-18,
+      "tolerance": 1.0000000000000026e-10
+    },
+    "12.second.projection.finite": {
+      "actual": -1.0880185641326534e-14,
+      "expected": 0,
+      "error": 1.0880185641326534e-14,
+      "tolerance": 4.2983272067474474e-10
+    },
+    "12.second.projection.combined": {
+      "actual": -1.0880185641326534e-14,
+      "expected": 0,
+      "error": 1.0880185641326534e-14,
+      "tolerance": 4.2983272067474474e-10
+    },
+    "12.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "12.final.gradient": {
+      "actual": 1.6708236814323811e-18,
+      "expected": 0,
+      "error": 1.6708236814323811e-18,
+      "tolerance": 1e-10
+    },
+    "12.final.finite": {
+      "actual": 2.5279904066812087e-16,
+      "expected": 0,
+      "error": 2.5279904066812087e-16,
+      "tolerance": 1.0000000000964342e-10
+    },
+    "12.final.combined": {
+      "actual": 2.544698643513051e-16,
+      "expected": 0,
+      "error": 2.544698643513051e-16,
+      "tolerance": 1.0000000000964342e-10
+    },
+    "12.Jensen": {
+      "actual": 3.189722791452354e-16,
+      "expected": 0,
+      "error": 3.189722791452354e-16,
+      "tolerance": 1.0026069354364828e-10
+    },
+    "12.mechanical": {
+      "actual": 6.139847744807136e-14,
+      "expected": 0,
+      "error": 6.139847744807136e-14,
+      "tolerance": 1.0015511558117255e-10
+    },
+    "13.first.donor.pairing": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0017317396401902e-10
+    },
+    "13.first.donor.finite": {
+      "actual": -6.15535454637911e-16,
+      "expected": 0,
+      "error": 6.15535454637911e-16,
+      "tolerance": 1.0017317396401915e-10
+    },
+    "13.first.donor.combined": {
+      "actual": -6.15535454637911e-16,
+      "expected": 0,
+      "error": 6.15535454637911e-16,
+      "tolerance": 1.0017317396401915e-10
+    },
+    "13.first.body": {
+      "actual": 4.6629367034256575e-15,
+      "expected": 0,
+      "error": 4.6629367034256575e-15,
+      "tolerance": 4.84326573150069e-10
+    },
+    "13.first.wall": {
+      "actual": 1.2212453270876722e-15,
+      "expected": 0,
+      "error": 1.2212453270876722e-15,
+      "tolerance": 1.4715398384048414e-10
+    },
+    "13.first.gravity": {
+      "actual": -1.3525422101756668e-17,
+      "expected": 0,
+      "error": 1.3525422101756668e-17,
+      "tolerance": 1.0708232999570187e-10
+    },
+    "13.first.potential": {
+      "actual": -2.598615767013257e-14,
+      "expected": 0,
+      "error": 2.598615767013257e-14,
+      "tolerance": 1.0704059970295249e-10
+    },
+    "13.first.external": {
+      "actual": 1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.0708232999570187e-10
+    },
+    "13.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "13.first.projection.gradient": {
+      "actual": 1.4467059505053436e-17,
+      "expected": 0,
+      "error": 1.4467059505053436e-17,
+      "tolerance": 1.0000000000000016e-10
+    },
+    "13.first.projection.finite": {
+      "actual": -3.1086244689504383e-15,
+      "expected": 0,
+      "error": 3.1086244689504383e-15,
+      "tolerance": 4.2983276873078e-10
+    },
+    "13.first.projection.combined": {
+      "actual": -3.1086244689504383e-15,
+      "expected": 0,
+      "error": 3.1086244689504383e-15,
+      "tolerance": 4.2983276873078e-10
+    },
+    "13.second.donor.pairing": {
+      "actual": -3.903127820947816e-18,
+      "expected": 0,
+      "error": 3.903127820947816e-18,
+      "tolerance": 1.0021515889270907e-10
+    },
+    "13.second.donor.finite": {
+      "actual": -4.914993379737803e-17,
+      "expected": 0,
+      "error": 4.914993379737803e-17,
+      "tolerance": 1.0021515889270909e-10
+    },
+    "13.second.donor.combined": {
+      "actual": -5.305306161832585e-17,
+      "expected": 0,
+      "error": 5.305306161832585e-17,
+      "tolerance": 1.0021515889270909e-10
+    },
+    "13.second.body": {
+      "actual": -6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.848431299249791e-10
+    },
+    "13.second.wall": {
+      "actual": 5.384581669432009e-15,
+      "expected": 0,
+      "error": 5.384581669432009e-15,
+      "tolerance": 1.4715404230790288e-10
+    },
+    "13.second.gravity": {
+      "actual": 1.6750923564901044e-17,
+      "expected": 0,
+      "error": 1.6750923564901044e-17,
+      "tolerance": 1.0759628950740703e-10
+    },
+    "13.second.potential": {
+      "actual": -2.2148949341271873e-14,
+      "expected": 0,
+      "error": 2.2148949341271873e-14,
+      "tolerance": 1.0754454585750183e-10
+    },
+    "13.second.external": {
+      "actual": -5.551115123125783e-17,
+      "expected": 0,
+      "error": 5.551115123125783e-17,
+      "tolerance": 1.0759628950740703e-10
+    },
+    "13.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "13.second.projection.gradient": {
+      "actual": 1.1362867775723578e-17,
+      "expected": 0,
+      "error": 1.1362867775723578e-17,
+      "tolerance": 1.000000000000009e-10
+    },
+    "13.second.projection.finite": {
+      "actual": -3.9968028886505635e-15,
+      "expected": 0,
+      "error": 3.9968028886505635e-15,
+      "tolerance": 4.2983897511217466e-10
+    },
+    "13.second.projection.combined": {
+      "actual": -3.9968028886505635e-15,
+      "expected": 0,
+      "error": 3.9968028886505635e-15,
+      "tolerance": 4.2983897511217466e-10
+    },
+    "13.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "13.final.gradient": {
+      "actual": 8.675116815794348e-19,
+      "expected": 0,
+      "error": 8.675116815794348e-19,
+      "tolerance": 1e-10
+    },
+    "13.final.finite": {
+      "actual": -1.1237669634363438e-15,
+      "expected": 0,
+      "error": 1.1237669634363438e-15,
+      "tolerance": 1.0000000001096952e-10
+    },
+    "13.final.combined": {
+      "actual": -1.1228994517524824e-15,
+      "expected": 0,
+      "error": 1.1228994517524824e-15,
+      "tolerance": 1.0000000001096952e-10
+    },
+    "13.Jensen": {
+      "actual": 7.88865500700453e-16,
+      "expected": 0,
+      "error": 7.88865500700453e-16,
+      "tolerance": 1.0025764570563887e-10
+    },
+    "13.mechanical": {
+      "actual": -2.8373787694380148e-14,
+      "expected": 0,
+      "error": 2.8373787694380148e-14,
+      "tolerance": 1.0019416642836972e-10
+    },
+    "14.first.donor.pairing": {
+      "actual": 3.686287386450715e-18,
+      "expected": 0,
+      "error": 3.686287386450715e-18,
+      "tolerance": 1.002150220596124e-10
+    },
+    "14.first.donor.finite": {
+      "actual": 4.7683211545912485e-16,
+      "expected": 0,
+      "error": 4.7683211545912485e-16,
+      "tolerance": 1.002150220596124e-10
+    },
+    "14.first.donor.combined": {
+      "actual": 4.805184028455756e-16,
+      "expected": 0,
+      "error": 4.805184028455756e-16,
+      "tolerance": 1.002150220596124e-10
+    },
+    "14.first.body": {
+      "actual": 6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.848407021952884e-10
+    },
+    "14.first.wall": {
+      "actual": -2.581268532253489e-15,
+      "expected": 0,
+      "error": 2.581268532253489e-15,
+      "tolerance": 1.4715403880576643e-10
+    },
+    "14.first.gravity": {
+      "actual": -1.9949319973733282e-17,
+      "expected": 0,
+      "error": 1.9949319973733282e-17,
+      "tolerance": 1.0759386671569277e-10
+    },
+    "14.first.potential": {
+      "actual": -2.4424906541753444e-14,
+      "expected": 0,
+      "error": 2.4424906541753444e-14,
+      "tolerance": 1.0754198858603559e-10
+    },
+    "14.first.external": {
+      "actual": 1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.0759386671569277e-10
+    },
+    "14.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "14.first.projection.gradient": {
+      "actual": 1.8366621829222656e-17,
+      "expected": 0,
+      "error": 1.8366621829222656e-17,
+      "tolerance": 1.000000000000003e-10
+    },
+    "14.first.projection.finite": {
+      "actual": 6.217248937900877e-15,
+      "expected": 0,
+      "error": 6.217248937900877e-15,
+      "tolerance": 4.2983902275756763e-10
+    },
+    "14.first.projection.combined": {
+      "actual": 6.217248937900877e-15,
+      "expected": 0,
+      "error": 6.217248937900877e-15,
+      "tolerance": 4.2983902275756763e-10
+    },
+    "14.second.donor.pairing": {
+      "actual": -3.0357660829594124e-18,
+      "expected": 0,
+      "error": 3.0357660829594124e-18,
+      "tolerance": 1.0026297160836677e-10
+    },
+    "14.second.donor.finite": {
+      "actual": 5.741985527460067e-16,
+      "expected": 0,
+      "error": 5.741985527460067e-16,
+      "tolerance": 1.0026297160836677e-10
+    },
+    "14.second.donor.combined": {
+      "actual": 5.711627866630473e-16,
+      "expected": 0,
+      "error": 5.711627866630473e-16,
+      "tolerance": 1.0026297160836676e-10
+    },
+    "14.second.body": {
+      "actual": 4.884981308350689e-15,
+      "expected": 0,
+      "error": 4.884981308350689e-15,
+      "tolerance": 4.853501780851298e-10
+    },
+    "14.second.wall": {
+      "actual": -4.6074255521944e-15,
+      "expected": 0,
+      "error": 4.6074255521944e-15,
+      "tolerance": 1.4715410060744804e-10
+    },
+    "14.second.gravity": {
+      "actual": -3.1496073110703904e-17,
+      "expected": 0,
+      "error": 3.1496073110703904e-17,
+      "tolerance": 1.0810051646986804e-10
+    },
+    "14.second.potential": {
+      "actual": 9.575673587391975e-15,
+      "expected": 0,
+      "error": 9.575673587391975e-15,
+      "tolerance": 1.080371653354424e-10
+    },
+    "14.second.external": {
+      "actual": -1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.0810051646986802e-10
+    },
+    "14.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "14.second.projection.gradient": {
+      "actual": 1.0006920674368889e-18,
+      "expected": 0,
+      "error": 1.0006920674368889e-18,
+      "tolerance": 1.0000000000000016e-10
+    },
+    "14.second.projection.finite": {
+      "actual": 1.1102230246251565e-15,
+      "expected": 0,
+      "error": 1.1102230246251565e-15,
+      "tolerance": 4.298457739425103e-10
+    },
+    "14.second.projection.combined": {
+      "actual": 1.1102230246251565e-15,
+      "expected": 0,
+      "error": 1.1102230246251565e-15,
+      "tolerance": 4.298457739425103e-10
+    },
+    "14.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "14.final.gradient": {
+      "actual": 2.671251548690229e-18,
+      "expected": 0,
+      "error": 2.671251548690229e-18,
+      "tolerance": 1e-10
+    },
+    "14.final.finite": {
+      "actual": 2.423942735297743e-16,
+      "expected": 0,
+      "error": 2.423942735297743e-16,
+      "tolerance": 1.000000000123182e-10
+    },
+    "14.final.combined": {
+      "actual": 2.4506552507916996e-16,
+      "expected": 0,
+      "error": 2.4506552507916996e-16,
+      "tolerance": 1.000000000123182e-10
+    },
+    "14.Jensen": {
+      "actual": -2.0166160408230382e-16,
+      "expected": 0,
+      "error": 2.0166160408230382e-16,
+      "tolerance": 1.0025440013583948e-10
+    },
+    "14.mechanical": {
+      "actual": -2.7441156985608117e-15,
+      "expected": 0,
+      "error": 2.7441156985608117e-15,
+      "tolerance": 1.0023899683399013e-10
+    },
+    "15.first.donor.pairing": {
+      "actual": -1.951563910473908e-18,
+      "expected": 0,
+      "error": 1.951563910473908e-18,
+      "tolerance": 1.0026280334104593e-10
+    },
+    "15.first.donor.finite": {
+      "actual": 1.5392282717505146e-17,
+      "expected": 0,
+      "error": 1.5392282717505146e-17,
+      "tolerance": 1.0026280334104593e-10
+    },
+    "15.first.donor.combined": {
+      "actual": 1.3440718807031238e-17,
+      "expected": 0,
+      "error": 1.3440718807031238e-17,
+      "tolerance": 1.0026280334104593e-10
+    },
+    "15.first.body": {
+      "actual": 1.1102230246251565e-15,
+      "expected": 0,
+      "error": 1.1102230246251565e-15,
+      "tolerance": 4.853475512362586e-10
+    },
+    "15.first.wall": {
+      "actual": -2.3314683517128287e-15,
+      "expected": 0,
+      "error": 2.3314683517128287e-15,
+      "tolerance": 1.4715409675123513e-10
+    },
+    "15.first.gravity": {
+      "actual": 3.5453411040275995e-17,
+      "expected": 0,
+      "error": 3.5453411040275995e-17,
+      "tolerance": 1.0809789585909327e-10
+    },
+    "15.first.potential": {
+      "actual": 1.7139067942650854e-15,
+      "expected": 0,
+      "error": 1.7139067942650854e-15,
+      "tolerance": 1.0803440736862092e-10
+    },
+    "15.first.external": {
+      "actual": -2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.0809789585909327e-10
+    },
+    "15.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "15.first.projection.gradient": {
+      "actual": -7.318015570231508e-18,
+      "expected": 0,
+      "error": 7.318015570231508e-18,
+      "tolerance": 1.0000000000000006e-10
+    },
+    "15.first.projection.finite": {
+      "actual": -2.4424906541753444e-15,
+      "expected": 0,
+      "error": 2.4424906541753444e-15,
+      "tolerance": 4.298458208983503e-10
+    },
+    "15.first.projection.combined": {
+      "actual": -2.4424906541753444e-15,
+      "expected": 0,
+      "error": 2.4424906541753444e-15,
+      "tolerance": 4.298458208983503e-10
+    },
+    "15.second.donor.pairing": {
+      "actual": -4.9873299934333204e-18,
+      "expected": 0,
+      "error": 4.9873299934333204e-18,
+      "tolerance": 1.0031700309666631e-10
+    },
+    "15.second.donor.finite": {
+      "actual": 4.1268122816587316e-16,
+      "expected": 0,
+      "error": 4.1268122816587316e-16,
+      "tolerance": 1.0031700309666631e-10
+    },
+    "15.second.donor.combined": {
+      "actual": 4.0769389817243984e-16,
+      "expected": 0,
+      "error": 4.0769389817243984e-16,
+      "tolerance": 1.0031700309666631e-10
+    },
+    "15.second.body": {
+      "actual": -2.886579864025407e-15,
+      "expected": 0,
+      "error": 2.886579864025407e-15,
+      "tolerance": 4.85849384706559e-10
+    },
+    "15.second.wall": {
+      "actual": 5.079270337660091e-15,
+      "expected": 0,
+      "error": 5.079270337660091e-15,
+      "tolerance": 1.4715416184229198e-10
+    },
+    "15.second.gravity": {
+      "actual": -1.6154612370034016e-17,
+      "expected": 0,
+      "error": 1.6154612370034016e-17,
+      "tolerance": 1.0859666836015216e-10
+    },
+    "15.second.potential": {
+      "actual": 1.2760625889285393e-14,
+      "expected": 0,
+      "error": 1.2760625889285393e-14,
+      "tolerance": 1.08520169538738e-10
+    },
+    "15.second.external": {
+      "actual": 2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.0859666836015216e-10
+    },
+    "15.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "15.second.projection.gradient": {
+      "actual": -9.596354790566762e-19,
+      "expected": 0,
+      "error": 9.596354790566762e-19,
+      "tolerance": 1.000000000000002e-10
+    },
+    "15.second.projection.finite": {
+      "actual": -4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.298531299817268e-10
+    },
+    "15.second.projection.combined": {
+      "actual": -4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.298531299817268e-10
+    },
+    "15.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "15.final.gradient": {
+      "actual": -1.8247225403614275e-18,
+      "expected": 0,
+      "error": 1.8247225403614275e-18,
+      "tolerance": 1e-10
+    },
+    "15.final.finite": {
+      "actual": -1.2613671434017094e-15,
+      "expected": 0,
+      "error": 1.2613671434017094e-15,
+      "tolerance": 1.0000000001367688e-10
+    },
+    "15.final.combined": {
+      "actual": -1.2631918659377895e-15,
+      "expected": 0,
+      "error": 1.2631918659377895e-15,
+      "tolerance": 1.0000000001367688e-10
+    },
+    "15.Jensen": {
+      "actual": 3.673276960380889e-16,
+      "expected": 0,
+      "error": 3.673276960380889e-16,
+      "tolerance": 1.0025096428500614e-10
+    },
+    "15.mechanical": {
+      "actual": 2.547311320211243e-14,
+      "expected": 0,
+      "error": 2.547311320211243e-14,
+      "tolerance": 1.0028990321885612e-10
+    },
+    "16.first.donor.pairing": {
+      "actual": -1.734723475976807e-18,
+      "expected": 0,
+      "error": 1.734723475976807e-18,
+      "tolerance": 1.003167991263717e-10
+    },
+    "16.first.donor.finite": {
+      "actual": 7.921113309543315e-17,
+      "expected": 0,
+      "error": 7.921113309543315e-17,
+      "tolerance": 1.003167991263717e-10
+    },
+    "16.first.donor.combined": {
+      "actual": 7.747640961945634e-17,
+      "expected": 0,
+      "error": 7.747640961945634e-17,
+      "tolerance": 1.003167991263717e-10
+    },
+    "16.first.body": {
+      "actual": 1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.858465560033969e-10
+    },
+    "16.first.wall": {
+      "actual": -1.6653345369377348e-16,
+      "expected": 0,
+      "error": 1.6653345369377348e-16,
+      "tolerance": 1.4715415761546913e-10
+    },
+    "16.first.gravity": {
+      "actual": -3.4098158324669114e-17,
+      "expected": 0,
+      "error": 3.4098158324669114e-17,
+      "tolerance": 1.0859384742623102e-10
+    },
+    "16.first.potential": {
+      "actual": -1.029037965949442e-14,
+      "expected": 0,
+      "error": 1.029037965949442e-14,
+      "tolerance": 1.0851720967721122e-10
+    },
+    "16.first.external": {
+      "actual": -6.938893903907228e-17,
+      "expected": 0,
+      "error": 6.938893903907228e-17,
+      "tolerance": 1.0859384742623101e-10
+    },
+    "16.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "16.first.projection.gradient": {
+      "actual": -1.5814072783878116e-17,
+      "expected": 0,
+      "error": 1.5814072783878116e-17,
+      "tolerance": 1.0000000000000069e-10
+    },
+    "16.first.projection.finite": {
+      "actual": -9.992007221626409e-15,
+      "expected": 0,
+      "error": 9.992007221626409e-15,
+      "tolerance": 4.2985317589794757e-10
+    },
+    "16.first.projection.combined": {
+      "actual": -9.992007221626409e-15,
+      "expected": 0,
+      "error": 9.992007221626409e-15,
+      "tolerance": 4.2985317589794757e-10
+    },
+    "16.second.donor.pairing": {
+      "actual": -6.5052130349130266e-18,
+      "expected": 0,
+      "error": 6.5052130349130266e-18,
+      "tolerance": 1.0037751441889639e-10
+    },
+    "16.second.donor.finite": {
+      "actual": -1.3071751255207265e-16,
+      "expected": 0,
+      "error": 1.3071751255207265e-16,
+      "tolerance": 1.0037751441889642e-10
+    },
+    "16.second.donor.combined": {
+      "actual": -1.3722272558698567e-16,
+      "expected": 0,
+      "error": 1.3722272558698567e-16,
+      "tolerance": 1.0037751441889642e-10
+    },
+    "16.second.body": {
+      "actual": 6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.863401817943997e-10
+    },
+    "16.second.wall": {
+      "actual": -3.3306690738754696e-16,
+      "expected": 0,
+      "error": 3.3306690738754696e-16,
+      "tolerance": 1.4715422599090724e-10
+    },
+    "16.second.gravity": {
+      "actual": -5.5294310796760726e-18,
+      "expected": 0,
+      "error": 5.5294310796760726e-18,
+      "tolerance": 1.0908417174886648e-10
+    },
+    "16.second.potential": {
+      "actual": 2.6645352591003757e-15,
+      "expected": 0,
+      "error": 2.6645352591003757e-15,
+      "tolerance": 1.0899291428218074e-10
+    },
+    "16.second.external": {
+      "actual": -4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.0908417174886648e-10
+    },
+    "16.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "16.second.projection.gradient": {
+      "actual": 1.6519970218267484e-17,
+      "expected": 0,
+      "error": 1.6519970218267484e-17,
+      "tolerance": 1.0000000000000037e-10
+    },
+    "16.second.projection.finite": {
+      "actual": 6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.2986105577953563e-10
+    },
+    "16.second.projection.combined": {
+      "actual": 6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.2986105577953563e-10
+    },
+    "16.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "16.final.gradient": {
+      "actual": 2.727869506025837e-18,
+      "expected": 0,
+      "error": 2.727869506025837e-18,
+      "tolerance": 1e-10
+    },
+    "16.final.finite": {
+      "actual": 9.700031521827046e-17,
+      "expected": 0,
+      "error": 9.700031521827046e-17,
+      "tolerance": 1.0000000001503131e-10
+    },
+    "16.final.combined": {
+      "actual": 9.972818472150535e-17,
+      "expected": 0,
+      "error": 9.972818472150535e-17,
+      "tolerance": 1.0000000001503131e-10
+    },
+    "16.Jensen": {
+      "actual": 4.499439015814843e-16,
+      "expected": 0,
+      "error": 4.499439015814843e-16,
+      "tolerance": 1.0024734589304806e-10
+    },
+    "16.mechanical": {
+      "actual": 9.397647590669855e-15,
+      "expected": 0,
+      "error": 9.397647590669855e-15,
+      "tolerance": 1.0034715677263404e-10
+    },
+    "17.first.donor.pairing": {
+      "actual": 6.505213034913027e-19,
+      "expected": 0,
+      "error": 6.505213034913027e-19,
+      "tolerance": 1.0037726923632055e-10
+    },
+    "17.first.donor.finite": {
+      "actual": -4.1360280001248584e-16,
+      "expected": 0,
+      "error": 4.1360280001248584e-16,
+      "tolerance": 1.0037726923632063e-10
+    },
+    "17.first.donor.combined": {
+      "actual": -4.1295227870899454e-16,
+      "expected": 0,
+      "error": 4.1295227870899454e-16,
+      "tolerance": 1.0037726923632063e-10
+    },
+    "17.first.body": {
+      "actual": -2.4424906541753444e-15,
+      "expected": 0,
+      "error": 2.4424906541753444e-15,
+      "tolerance": 4.863371485520212e-10
+    },
+    "17.first.wall": {
+      "actual": 2.0261570199409107e-15,
+      "expected": 0,
+      "error": 2.0261570199409107e-15,
+      "tolerance": 1.4715422139087885e-10
+    },
+    "17.first.gravity": {
+      "actual": 4.743384504624082e-17,
+      "expected": 0,
+      "error": 4.743384504624082e-17,
+      "tolerance": 1.0908114806022368e-10
+    },
+    "17.first.potential": {
+      "actual": 2.3869795029440866e-15,
+      "expected": 0,
+      "error": 2.3869795029440866e-15,
+      "tolerance": 1.0898975149164065e-10
+    },
+    "17.first.external": {
+      "actual": 1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.0908114806022368e-10
+    },
+    "17.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "17.first.projection.gradient": {
+      "actual": -1.5955552335689522e-17,
+      "expected": 0,
+      "error": 1.5955552335689522e-17,
+      "tolerance": 1.000000000000001e-10
+    },
+    "17.first.projection.finite": {
+      "actual": 2.220446049250313e-16,
+      "expected": 0,
+      "error": 2.220446049250313e-16,
+      "tolerance": 4.2986110018064393e-10
+    },
+    "17.first.projection.combined": {
+      "actual": 2.220446049250313e-16,
+      "expected": 0,
+      "error": 2.220446049250313e-16,
+      "tolerance": 4.2986110018064393e-10
+    },
+    "17.second.donor.pairing": {
+      "actual": 7.37257477290143e-18,
+      "expected": 0,
+      "error": 7.37257477290143e-18,
+      "tolerance": 1.004447227272521e-10
+    },
+    "17.second.donor.finite": {
+      "actual": -6.57090891030207e-16,
+      "expected": 0,
+      "error": 6.57090891030207e-16,
+      "tolerance": 1.0044472272725223e-10
+    },
+    "17.second.donor.combined": {
+      "actual": -6.497183162573056e-16,
+      "expected": 0,
+      "error": 6.497183162573056e-16,
+      "tolerance": 1.0044472272725223e-10
+    },
+    "17.second.body": {
+      "actual": 6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.86821998056262e-10
+    },
+    "17.second.wall": {
+      "actual": -3.3306690738754696e-16,
+      "expected": 0,
+      "error": 3.3306690738754696e-16,
+      "tolerance": 1.471542931166808e-10
+    },
+    "17.second.gravity": {
+      "actual": -2.200930410145574e-17,
+      "expected": 0,
+      "error": 2.200930410145574e-17,
+      "tolerance": 1.0956245035758541e-10
+    },
+    "17.second.potential": {
+      "actual": -2.3092638912203256e-14,
+      "expected": 0,
+      "error": 2.3092638912203256e-14,
+      "tolerance": 1.0945475858578676e-10
+    },
+    "17.second.external": {
+      "actual": -2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.0956245035758541e-10
+    },
+    "17.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "17.second.projection.gradient": {
+      "actual": -4.937439920418829e-18,
+      "expected": 0,
+      "error": 4.937439920418829e-18,
+      "tolerance": 1.0000000000000022e-10
+    },
+    "17.second.projection.finite": {
+      "actual": -1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.2986956198444965e-10
+    },
+    "17.second.projection.combined": {
+      "actual": -1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.2986956198444965e-10
+    },
+    "17.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "17.final.gradient": {
+      "actual": 2.340585204306953e-19,
+      "expected": 0,
+      "error": 2.340585204306953e-19,
+      "tolerance": 1e-10
+    },
+    "17.final.finite": {
+      "actual": -6.606222001706106e-16,
+      "expected": 0,
+      "error": 6.606222001706106e-16,
+      "tolerance": 1.0000000001636947e-10
+    },
+    "17.final.combined": {
+      "actual": -6.6038814164854575e-16,
+      "expected": 0,
+      "error": 6.6038814164854575e-16,
+      "tolerance": 1.0000000001636947e-10
+    },
+    "17.Jensen": {
+      "actual": 7.125376677574735e-16,
+      "expected": 0,
+      "error": 7.125376677574735e-16,
+      "tolerance": 1.0024355328655404e-10
+    },
+    "17.mechanical": {
+      "actual": 1.205849656238378e-14,
+      "expected": 0,
+      "error": 1.205849656238378e-14,
+      "tolerance": 1.0041099598178632e-10
+    },
+    "18.first.donor.pairing": {
+      "actual": -9.107298248878237e-18,
+      "expected": 0,
+      "error": 9.107298248878237e-18,
+      "tolerance": 1.0044443126868235e-10
+    },
+    "18.first.donor.finite": {
+      "actual": -2.350414784677013e-16,
+      "expected": 0,
+      "error": 2.350414784677013e-16,
+      "tolerance": 1.0044443126868239e-10
+    },
+    "18.first.donor.combined": {
+      "actual": -2.4414877671657953e-16,
+      "expected": 0,
+      "error": 2.4414877671657953e-16,
+      "tolerance": 1.0044443126868239e-10
+    },
+    "18.first.body": {
+      "actual": 4.6629367034256575e-15,
+      "expected": 0,
+      "error": 4.6629367034256575e-15,
+      "tolerance": 4.86818758360739e-10
+    },
+    "18.first.wall": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.4715428812766183e-10
+    },
+    "18.first.gravity": {
+      "actual": -2.7647155398380363e-17,
+      "expected": 0,
+      "error": 2.7647155398380363e-17,
+      "tolerance": 1.0955922227188818e-10
+    },
+    "18.first.potential": {
+      "actual": -3.069766663088558e-14,
+      "expected": 0,
+      "error": 3.069766663088558e-14,
+      "tolerance": 1.0945139270000937e-10
+    },
+    "18.first.external": {
+      "actual": 2.0816681711721685e-17,
+      "expected": 0,
+      "error": 2.0816681711721685e-17,
+      "tolerance": 1.0955922227188818e-10
+    },
+    "18.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "18.first.projection.gradient": {
+      "actual": 1.4222513496783344e-17,
+      "expected": 0,
+      "error": 1.4222513496783344e-17,
+      "tolerance": 1.0000000000000018e-10
+    },
+    "18.first.projection.finite": {
+      "actual": -3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.298696044066039e-10
+    },
+    "18.first.projection.combined": {
+      "actual": -3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.298696044066039e-10
+    },
+    "18.second.donor.pairing": {
+      "actual": -1.734723475976807e-18,
+      "expected": 0,
+      "error": 1.734723475976807e-18,
+      "tolerance": 1.00518821622839e-10
+    },
+    "18.second.donor.finite": {
+      "actual": 1.183996206199217e-15,
+      "expected": 0,
+      "error": 1.183996206199217e-15,
+      "tolerance": 1.00518821622839e-10
+    },
+    "18.second.donor.combined": {
+      "actual": 1.1822614827232403e-15,
+      "expected": 0,
+      "error": 1.1822614827232403e-15,
+      "tolerance": 1.00518821622839e-10
+    },
+    "18.second.body": {
+      "actual": 4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.872942613603639e-10
+    },
+    "18.second.wall": {
+      "actual": 1.304512053934559e-15,
+      "expected": 0,
+      "error": 1.304512053934559e-15,
+      "tolerance": 1.4715436331764185e-10
+    },
+    "18.second.gravity": {
+      "actual": 6.862999751833243e-17,
+      "expected": 0,
+      "error": 6.862999751833243e-17,
+      "tolerance": 1.1003092763659327e-10
+    },
+    "18.second.potential": {
+      "actual": 4.125866315263238e-14,
+      "expected": 0,
+      "error": 4.125866315263238e-14,
+      "tolerance": 1.0990506754509085e-10
+    },
+    "18.second.external": {
+      "actual": -2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.1003092763659327e-10
+    },
+    "18.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "18.second.projection.gradient": {
+      "actual": -2.0188356045445447e-17,
+      "expected": 0,
+      "error": 2.0188356045445447e-17,
+      "tolerance": 1.0000000000000012e-10
+    },
+    "18.second.projection.finite": {
+      "actual": 1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.298786585085294e-10
+    },
+    "18.second.projection.combined": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.298786585085294e-10
+    },
+    "18.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "18.final.gradient": {
+      "actual": -1.40458089028345e-17,
+      "expected": 0,
+      "error": 1.40458089028345e-17,
+      "tolerance": 1e-10
+    },
+    "18.final.finite": {
+      "actual": -7.155053012998224e-17,
+      "expected": 0,
+      "error": 7.155053012998224e-17,
+      "tolerance": 1.0000000001767833e-10
+    },
+    "18.final.combined": {
+      "actual": -8.559633903849562e-17,
+      "expected": 0,
+      "error": 8.559633903849562e-17,
+      "tolerance": 1.0000000001767833e-10
+    },
+    "18.Jensen": {
+      "actual": -3.5691935518222806e-16,
+      "expected": 0,
+      "error": 3.5691935518222806e-16,
+      "tolerance": 1.0023959525275377e-10
+    },
+    "18.mechanical": {
+      "actual": -1.8006429680639258e-15,
+      "expected": 0,
+      "error": 1.8006429680639258e-15,
+      "tolerance": 1.0048162644576103e-10
+    },
+    "19.first.donor.pairing": {
+      "actual": -4.7704895589362195e-18,
+      "expected": 0,
+      "error": 4.7704895589362195e-18,
+      "tolerance": 1.0051847856192746e-10
+    },
+    "19.first.donor.finite": {
+      "actual": 1.1362167717104965e-15,
+      "expected": 0,
+      "error": 1.1362167717104965e-15,
+      "tolerance": 1.0051847856192746e-10
+    },
+    "19.first.donor.combined": {
+      "actual": 1.1314462821515603e-15,
+      "expected": 0,
+      "error": 1.1314462821515603e-15,
+      "tolerance": 1.0051847856192746e-10
+    },
+    "19.first.body": {
+      "actual": -1.2212453270876722e-14,
+      "expected": 0,
+      "error": 1.2212453270876722e-14,
+      "tolerance": 4.872908135112332e-10
+    },
+    "19.first.wall": {
+      "actual": 1.27675647831893e-15,
+      "expected": 0,
+      "error": 1.27675647831893e-15,
+      "tolerance": 1.471543579328604e-10
+    },
+    "19.first.gravity": {
+      "actual": 1.940721888749053e-17,
+      "expected": 0,
+      "error": 1.940721888749053e-17,
+      "tolerance": 1.1002749374711555e-10
+    },
+    "19.first.potential": {
+      "actual": 8.118505867571457e-15,
+      "expected": 0,
+      "error": 8.118505867571457e-15,
+      "tolerance": 1.0990149872349256e-10
+    },
+    "19.first.external": {
+      "actual": -1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.1002749374711555e-10
+    },
+    "19.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "19.first.projection.gradient": {
+      "actual": 2.7131368812342947e-18,
+      "expected": 0,
+      "error": 2.7131368812342947e-18,
+      "tolerance": 1.0000000000000043e-10
+    },
+    "19.first.projection.finite": {
+      "actual": 5.773159728050814e-15,
+      "expected": 0,
+      "error": 5.773159728050814e-15,
+      "tolerance": 4.2987869842635177e-10
+    },
+    "19.first.projection.combined": {
+      "actual": 5.773159728050814e-15,
+      "expected": 0,
+      "error": 5.773159728050814e-15,
+      "tolerance": 4.2987869842635177e-10
+    },
+    "19.second.donor.pairing": {
+      "actual": 9.107298248878237e-18,
+      "expected": 0,
+      "error": 9.107298248878237e-18,
+      "tolerance": 1.0059997298791299e-10
+    },
+    "19.second.donor.finite": {
+      "actual": 1.5533838863650284e-15,
+      "expected": 0,
+      "error": 1.5533838863650284e-15,
+      "tolerance": 1.0059997298791299e-10
+    },
+    "19.second.donor.combined": {
+      "actual": 1.5624911846139067e-15,
+      "expected": 0,
+      "error": 1.5624911846139067e-15,
+      "tolerance": 1.0059997298791299e-10
+    },
+    "19.second.body": {
+      "actual": 1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.877563988770343e-10
+    },
+    "19.second.wall": {
+      "actual": -1.3877787807814457e-16,
+      "expected": 0,
+      "error": 1.3877787807814457e-16,
+      "tolerance": 1.4715443676932481e-10
+    },
+    "19.second.gravity": {
+      "actual": 4.119968255444917e-17,
+      "expected": 0,
+      "error": 4.119968255444917e-17,
+      "tolerance": 1.1048902704194218e-10
+    },
+    "19.second.potential": {
+      "actual": 1.5903944827755367e-14,
+      "expected": 0,
+      "error": 1.5903944827755367e-14,
+      "tolerance": 1.1034321293924768e-10
+    },
+    "19.second.external": {
+      "actual": 4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.1048902704194219e-10
+    },
+    "19.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "19.second.projection.gradient": {
+      "actual": 3.4529686227610203e-18,
+      "expected": 0,
+      "error": 3.4529686227610203e-18,
+      "tolerance": 1.000000000000002e-10
+    },
+    "19.second.projection.finite": {
+      "actual": -1.0880185641326534e-14,
+      "expected": 0,
+      "error": 1.0880185641326534e-14,
+      "tolerance": 4.2988835374646296e-10
+    },
+    "19.second.projection.combined": {
+      "actual": -1.0880185641326534e-14,
+      "expected": 0,
+      "error": 1.0880185641326534e-14,
+      "tolerance": 4.2988835374646296e-10
+    },
+    "19.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "19.final.gradient": {
+      "actual": 2.327135416091885e-18,
+      "expected": 0,
+      "error": 2.327135416091885e-18,
+      "tolerance": 1e-10
+    },
+    "19.final.finite": {
+      "actual": 1.115663602703468e-16,
+      "expected": 0,
+      "error": 1.115663602703468e-16,
+      "tolerance": 1.0000000001894647e-10
+    },
+    "19.final.combined": {
+      "actual": 1.1389349568933124e-16,
+      "expected": 0,
+      "error": 1.1389349568933124e-16,
+      "tolerance": 1.0000000001894647e-10
+    },
+    "19.Jensen": {
+      "actual": -3.7751919645945264e-16,
+      "expected": 0,
+      "error": 3.7751919645945264e-16,
+      "tolerance": 1.0023548065954349e-10
+    },
+    "19.mechanical": {
+      "actual": 3.271861948039856e-14,
+      "expected": 0,
+      "error": 3.271861948039856e-14,
+      "tolerance": 1.0055922577492023e-10
+    },
+    "20.first.donor.pairing": {
+      "actual": 9.974659986866641e-18,
+      "expected": 0,
+      "error": 9.974659986866641e-18,
+      "tolerance": 1.005995727868813e-10
+    },
+    "20.first.donor.finite": {
+      "actual": 9.729833583792258e-16,
+      "expected": 0,
+      "error": 9.729833583792258e-16,
+      "tolerance": 1.005995727868813e-10
+    },
+    "20.first.donor.combined": {
+      "actual": 9.829580183660924e-16,
+      "expected": 0,
+      "error": 9.829580183660924e-16,
+      "tolerance": 1.005995727868813e-10
+    },
+    "20.first.body": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 4.877527416746722e-10
+    },
+    "20.first.wall": {
+      "actual": -1.3322676295501878e-15,
+      "expected": 0,
+      "error": 1.3322676295501878e-15,
+      "tolerance": 1.4715443098481558e-10
+    },
+    "20.first.gravity": {
+      "actual": -4.2717565595928875e-17,
+      "expected": 0,
+      "error": 4.2717565595928875e-17,
+      "tolerance": 1.1048538646184363e-10
+    },
+    "20.first.potential": {
+      "actual": 3.072542220650121e-14,
+      "expected": 0,
+      "error": 3.072542220650121e-14,
+      "tolerance": 1.103394419437284e-10
+    },
+    "20.first.external": {
+      "actual": -2.0816681711721685e-17,
+      "expected": 0,
+      "error": 2.0816681711721685e-17,
+      "tolerance": 1.1048538646184361e-10
+    },
+    "20.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "20.first.projection.gradient": {
+      "actual": -6.566476347912104e-18,
+      "expected": 0,
+      "error": 6.566476347912104e-18,
+      "tolerance": 1.0000000000000028e-10
+    },
+    "20.first.projection.finite": {
+      "actual": -1.5543122344752192e-15,
+      "expected": 0,
+      "error": 1.5543122344752192e-15,
+      "tolerance": 4.2988839058475855e-10
+    },
+    "20.first.projection.combined": {
+      "actual": -1.5543122344752192e-15,
+      "expected": 0,
+      "error": 1.5543122344752192e-15,
+      "tolerance": 4.2988839058475855e-10
+    },
+    "20.second.donor.pairing": {
+      "actual": -4.7704895589362195e-18,
+      "expected": 0,
+      "error": 4.7704895589362195e-18,
+      "tolerance": 1.0068831100810442e-10
+    },
+    "20.second.donor.finite": {
+      "actual": 6.357693776819218e-16,
+      "expected": 0,
+      "error": 6.357693776819218e-16,
+      "tolerance": 1.0068831100810442e-10
+    },
+    "20.second.donor.combined": {
+      "actual": 6.309988881229855e-16,
+      "expected": 0,
+      "error": 6.309988881229855e-16,
+      "tolerance": 1.0068831100810442e-10
+    },
+    "20.second.body": {
+      "actual": -9.547918011776346e-15,
+      "expected": 0,
+      "error": 9.547918011776346e-15,
+      "tolerance": 4.882078386661191e-10
+    },
+    "20.second.wall": {
+      "actual": -3.885780586188048e-16,
+      "expected": 0,
+      "error": 3.885780586188048e-16,
+      "tolerance": 1.4715451372645311e-10
+    },
+    "20.second.gravity": {
+      "actual": -3.74049749507499e-17,
+      "expected": 0,
+      "error": 3.74049749507499e-17,
+      "tolerance": 1.10936173744858e-10
+    },
+    "20.second.potential": {
+      "actual": -1.732641807805635e-14,
+      "expected": 0,
+      "error": 1.732641807805635e-14,
+      "tolerance": 1.1076857522818955e-10
+    },
+    "20.second.external": {
+      "actual": 6.938893903907228e-18,
+      "expected": 0,
+      "error": 6.938893903907228e-18,
+      "tolerance": 1.10936173744858e-10
+    },
+    "20.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "20.second.projection.gradient": {
+      "actual": 1.6020302053617295e-17,
+      "expected": 0,
+      "error": 1.6020302053617295e-17,
+      "tolerance": 1.0000000000000037e-10
+    },
+    "20.second.projection.finite": {
+      "actual": 5.773159728050814e-15,
+      "expected": 0,
+      "error": 5.773159728050814e-15,
+      "tolerance": 4.298986545366034e-10
+    },
+    "20.second.projection.combined": {
+      "actual": 5.773159728050814e-15,
+      "expected": 0,
+      "error": 5.773159728050814e-15,
+      "tolerance": 4.298986545366034e-10
+    },
+    "20.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "20.final.gradient": {
+      "actual": 7.930709769408993e-18,
+      "expected": 0,
+      "error": 7.930709769408993e-18,
+      "tolerance": 1e-10
+    },
+    "20.final.finite": {
+      "actual": -1.16440246665267e-15,
+      "expected": 0,
+      "error": 1.16440246665267e-15,
+      "tolerance": 1.0000000002016298e-10
+    },
+    "20.final.combined": {
+      "actual": -1.1564717568796285e-15,
+      "expected": 0,
+      "error": 1.1564717568796285e-15,
+      "tolerance": 1.0000000002016298e-10
+    },
+    "20.Jensen": {
+      "actual": 1.4656244967659049e-15,
+      "expected": 0,
+      "error": 1.4656244967659049e-15,
+      "tolerance": 1.0023121851860513e-10
+    },
+    "20.mechanical": {
+      "actual": -4.400646513857964e-14,
+      "expected": 0,
+      "error": 4.400646513857964e-14,
+      "tolerance": 1.0064394189750166e-10
+    },
+    "21.first.donor.pairing": {
+      "actual": 1.214306433183765e-17,
+      "expected": 0,
+      "error": 1.214306433183765e-17,
+      "tolerance": 1.0068784867859731e-10
+    },
+    "21.first.donor.finite": {
+      "actual": 8.504278553068956e-16,
+      "expected": 0,
+      "error": 8.504278553068956e-16,
+      "tolerance": 1.0068784867859731e-10
+    },
+    "21.first.donor.combined": {
+      "actual": 8.625709196387332e-16,
+      "expected": 0,
+      "error": 8.625709196387332e-16,
+      "tolerance": 1.0068784867859731e-10
+    },
+    "21.first.body": {
+      "actual": -6.661338147750939e-15,
+      "expected": 0,
+      "error": 6.661338147750939e-15,
+      "tolerance": 4.882039713681436e-10
+    },
+    "21.first.wall": {
+      "actual": -3.608224830031759e-16,
+      "expected": 0,
+      "error": 3.608224830031759e-16,
+      "tolerance": 1.4715450754247518e-10
+    },
+    "21.first.gravity": {
+      "actual": 3.946495907847236e-17,
+      "expected": 0,
+      "error": 3.946495907847236e-17,
+      "tolerance": 1.1093232606121736e-10
+    },
+    "21.first.potential": {
+      "actual": 4.653916141350578e-14,
+      "expected": 0,
+      "error": 4.653916141350578e-14,
+      "tolerance": 1.1076460337944604e-10
+    },
+    "21.first.external": {
+      "actual": -4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.1093232606121736e-10
+    },
+    "21.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "21.first.projection.gradient": {
+      "actual": -5.7747416957587005e-18,
+      "expected": 0,
+      "error": 5.7747416957587005e-18,
+      "tolerance": 1.000000000000003e-10
+    },
+    "21.first.projection.finite": {
+      "actual": 7.327471962526033e-15,
+      "expected": 0,
+      "error": 7.327471962526033e-15,
+      "tolerance": 4.29898687704184e-10
+    },
+    "21.first.projection.combined": {
+      "actual": 7.327471962526033e-15,
+      "expected": 0,
+      "error": 7.327471962526033e-15,
+      "tolerance": 4.29898687704184e-10
+    },
+    "21.second.donor.pairing": {
+      "actual": -6.071532165918825e-18,
+      "expected": 0,
+      "error": 6.071532165918825e-18,
+      "tolerance": 1.0078393607860483e-10
+    },
+    "21.second.donor.finite": {
+      "actual": -7.319719916992762e-16,
+      "expected": 0,
+      "error": 7.319719916992762e-16,
+      "tolerance": 1.0078393607860497e-10
+    },
+    "21.second.donor.combined": {
+      "actual": -7.38043523865195e-16,
+      "expected": 0,
+      "error": 7.38043523865195e-16,
+      "tolerance": 1.0078393607860497e-10
+    },
+    "21.second.body": {
+      "actual": 5.551115123125783e-15,
+      "expected": 0,
+      "error": 5.551115123125783e-15,
+      "tolerance": 4.886480108393404e-10
+    },
+    "21.second.wall": {
+      "actual": -1.3600232051658168e-15,
+      "expected": 0,
+      "error": 1.3600232051658168e-15,
+      "tolerance": 1.4715459453481686e-10
+    },
+    "21.second.gravity": {
+      "actual": -3.1008182133085427e-17,
+      "expected": 0,
+      "error": 3.1008182133085427e-17,
+      "tolerance": 1.1137179591056006e-10
+    },
+    "21.second.potential": {
+      "actual": -1.4710455076283324e-14,
+      "expected": 0,
+      "error": 1.4710455076283324e-14,
+      "tolerance": 1.1118054512679692e-10
+    },
+    "21.second.external": {
+      "actual": 2.0816681711721685e-17,
+      "expected": 0,
+      "error": 2.0816681711721685e-17,
+      "tolerance": 1.1137179591056006e-10
+    },
+    "21.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "21.second.projection.gradient": {
+      "actual": 1.3565130669292598e-17,
+      "expected": 0,
+      "error": 1.3565130669292598e-17,
+      "tolerance": 1.0000000000000004e-10
+    },
+    "21.second.projection.finite": {
+      "actual": -4.218847493575595e-15,
+      "expected": 0,
+      "error": 4.218847493575595e-15,
+      "tolerance": 4.299095656295807e-10
+    },
+    "21.second.projection.combined": {
+      "actual": -4.218847493575595e-15,
+      "expected": 0,
+      "error": 4.218847493575595e-15,
+      "tolerance": 4.299095656295807e-10
+    },
+    "21.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "21.final.gradient": {
+      "actual": 8.812055599305943e-18,
+      "expected": 0,
+      "error": 8.812055599305943e-18,
+      "tolerance": 1e-10
+    },
+    "21.final.finite": {
+      "actual": -9.197714155019065e-16,
+      "expected": 0,
+      "error": 9.197714155019065e-16,
+      "tolerance": 1.0000000002131711e-10
+    },
+    "21.final.combined": {
+      "actual": -9.109593599080853e-16,
+      "expected": 0,
+      "error": 9.109593599080853e-16,
+      "tolerance": 1.0000000002131711e-10
+    },
+    "21.Jensen": {
+      "actual": 1.1960918366860085e-15,
+      "expected": 0,
+      "error": 1.1960918366860085e-15,
+      "tolerance": 1.0022681797336282e-10
+    },
+    "21.mechanical": {
+      "actual": -3.372302437298913e-15,
+      "expected": 0,
+      "error": 3.372302437298913e-15,
+      "tolerance": 1.0073589237860174e-10
+    },
+    "22.first.donor.pairing": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.0078340507513583e-10
+    },
+    "22.first.donor.finite": {
+      "actual": 1.0821828459392502e-15,
+      "expected": 0,
+      "error": 1.0821828459392502e-15,
+      "tolerance": 1.0078340507513583e-10
+    },
+    "22.first.donor.combined": {
+      "actual": 1.0821828459392502e-15,
+      "expected": 0,
+      "error": 1.0821828459392502e-15,
+      "tolerance": 1.0078340507513583e-10
+    },
+    "22.first.body": {
+      "actual": -2.220446049250313e-16,
+      "expected": 0,
+      "error": 2.220446049250313e-16,
+      "tolerance": 4.886439333907653e-10
+    },
+    "22.first.wall": {
+      "actual": 8.049116928532385e-16,
+      "expected": 0,
+      "error": 8.049116928532385e-16,
+      "tolerance": 1.471545879541181e-10
+    },
+    "22.first.gravity": {
+      "actual": 3.0791341698588326e-17,
+      "expected": 0,
+      "error": 3.0791341698588326e-17,
+      "tolerance": 1.1136774141339409e-10
+    },
+    "22.first.potential": {
+      "actual": -3.344546861683284e-15,
+      "expected": 0,
+      "error": 3.344546861683284e-15,
+      "tolerance": 1.1117637452186955e-10
+    },
+    "22.first.external": {
+      "actual": 2.0816681711721685e-17,
+      "expected": 0,
+      "error": 2.0816681711721685e-17,
+      "tolerance": 1.1136774141339409e-10
+    },
+    "22.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "22.first.projection.gradient": {
+      "actual": 5.177179551412168e-17,
+      "expected": 0,
+      "error": 5.177179551412168e-17,
+      "tolerance": 1.000000000000003e-10
+    },
+    "22.first.projection.finite": {
+      "actual": 3.552713678800501e-15,
+      "expected": 0,
+      "error": 3.552713678800501e-15,
+      "tolerance": 4.2990959442943255e-10
+    },
+    "22.first.projection.combined": {
+      "actual": 3.552713678800501e-15,
+      "expected": 0,
+      "error": 3.552713678800501e-15,
+      "tolerance": 4.2990959442943255e-10
+    },
+    "22.second.donor.pairing": {
+      "actual": 6.071532165918825e-18,
+      "expected": 0,
+      "error": 6.071532165918825e-18,
+      "tolerance": 1.0088690444326885e-10
+    },
+    "22.second.donor.finite": {
+      "actual": -1.294266343404571e-15,
+      "expected": 0,
+      "error": 1.294266343404571e-15,
+      "tolerance": 1.008869044432691e-10
+    },
+    "22.second.donor.combined": {
+      "actual": -1.288194811238652e-15,
+      "expected": 0,
+      "error": 1.288194811238652e-15,
+      "tolerance": 1.008869044432691e-10
+    },
+    "22.second.body": {
+      "actual": 3.552713678800501e-15,
+      "expected": 0,
+      "error": 3.552713678800501e-15,
+      "tolerance": 4.890763495880324e-10
+    },
+    "22.second.wall": {
+      "actual": -1.3600232051658168e-15,
+      "expected": 0,
+      "error": 1.3600232051658168e-15,
+      "tolerance": 1.471546796342695e-10
+    },
+    "22.second.gravity": {
+      "actual": -8.977193988179977e-17,
+      "expected": 0,
+      "error": 8.977193988179977e-17,
+      "tolerance": 1.1179532683988884e-10
+    },
+    "22.second.potential": {
+      "actual": 1.3572476476042539e-14,
+      "expected": 0,
+      "error": 1.3572476476042539e-14,
+      "tolerance": 1.1157852598885529e-10
+    },
+    "22.second.external": {
+      "actual": 2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.1179532683988883e-10
+    },
+    "22.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "22.second.projection.gradient": {
+      "actual": 2.3797835789883572e-17,
+      "expected": 0,
+      "error": 2.3797835789883572e-17,
+      "tolerance": 1.0000000000000025e-10
+    },
+    "22.second.projection.finite": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.29921089091727e-10
+    },
+    "22.second.projection.combined": {
+      "actual": 1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.2992108909172704e-10
+    },
+    "22.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "22.final.gradient": {
+      "actual": 1.78005543933036e-18,
+      "expected": 0,
+      "error": 1.78005543933036e-18,
+      "tolerance": 1e-10
+    },
+    "22.final.finite": {
+      "actual": 1.1276148566984034e-15,
+      "expected": 0,
+      "error": 1.1276148566984034e-15,
+      "tolerance": 1.0000000002239967e-10
+    },
+    "22.final.combined": {
+      "actual": 1.1293949121405653e-15,
+      "expected": 0,
+      "error": 1.1293949121405653e-15,
+      "tolerance": 1.0000000002239967e-10
+    },
+    "22.Jensen": {
+      "actual": -2.2985086056692694e-16,
+      "expected": 0,
+      "error": 2.2985086056692694e-16,
+      "tolerance": 1.0022228865632834e-10
+    },
+    "22.mechanical": {
+      "actual": 2.953800398719508e-14,
+      "expected": 0,
+      "error": 2.953800398719508e-14,
+      "tolerance": 1.0083515475920233e-10
+    },
+    "23.first.donor.pairing": {
+      "actual": -1.474514954580286e-17,
+      "expected": 0,
+      "error": 1.474514954580286e-17,
+      "tolerance": 1.0088629878466036e-10
+    },
+    "23.first.donor.finite": {
+      "actual": 1.4046245720364392e-15,
+      "expected": 0,
+      "error": 1.4046245720364392e-15,
+      "tolerance": 1.0088629878466036e-10
+    },
+    "23.first.donor.combined": {
+      "actual": 1.3898794224906363e-15,
+      "expected": 0,
+      "error": 1.3898794224906363e-15,
+      "tolerance": 1.0088629878466035e-10
+    },
+    "23.first.body": {
+      "actual": -4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.89072062838532e-10
+    },
+    "23.first.wall": {
+      "actual": 4.163336342344337e-16,
+      "expected": 0,
+      "error": 4.163336342344337e-16,
+      "tolerance": 1.4715467266022363e-10
+    },
+    "23.first.gravity": {
+      "actual": 7.41594285980085e-17,
+      "expected": 0,
+      "error": 7.41594285980085e-17,
+      "tolerance": 1.1179106673785863e-10
+    },
+    "23.first.potential": {
+      "actual": 1.8880730312531568e-14,
+      "expected": 0,
+      "error": 1.8880730312531568e-14,
+      "tolerance": 1.1157415970089156e-10
+    },
+    "23.first.external": {
+      "actual": -5.551115123125783e-17,
+      "expected": 0,
+      "error": 5.551115123125783e-17,
+      "tolerance": 1.1179106673785863e-10
+    },
+    "23.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "23.first.projection.gradient": {
+      "actual": 1.0782234148523203e-17,
+      "expected": 0,
+      "error": 1.0782234148523203e-17,
+      "tolerance": 1.0000000000000018e-10
+    },
+    "23.first.projection.finite": {
+      "actual": 7.105427357601002e-15,
+      "expected": 0,
+      "error": 7.105427357601002e-15,
+      "tolerance": 4.29921112820427e-10
+    },
+    "23.first.projection.combined": {
+      "actual": 7.105427357601002e-15,
+      "expected": 0,
+      "error": 7.105427357601002e-15,
+      "tolerance": 4.29921112820427e-10
+    },
+    "23.second.donor.pairing": {
+      "actual": 5.204170427930421e-18,
+      "expected": 0,
+      "error": 5.204170427930421e-18,
+      "tolerance": 1.0099724372662442e-10
+    },
+    "23.second.donor.finite": {
+      "actual": 2.274398659858623e-15,
+      "expected": 0,
+      "error": 2.274398659858623e-15,
+      "tolerance": 1.0099724372662442e-10
+    },
+    "23.second.donor.combined": {
+      "actual": 2.2796028302865534e-15,
+      "expected": 0,
+      "error": 2.2796028302865534e-15,
+      "tolerance": 1.0099724372662442e-10
+    },
+    "23.second.body": {
+      "actual": 1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.894922955556609e-10
+    },
+    "23.second.wall": {
+      "actual": -7.494005416219807e-16,
+      "expected": 0,
+      "error": 7.494005416219807e-16,
+      "tolerance": 1.4715476955778958e-10
+    },
+    "23.second.gravity": {
+      "actual": -5.5077470362263625e-17,
+      "expected": 0,
+      "error": 5.5077470362263625e-17,
+      "tolerance": 1.1220620744865504e-10
+    },
+    "23.second.potential": {
+      "actual": -3.1384617127372394e-14,
+      "expected": 0,
+      "error": 3.1384617127372394e-14,
+      "tolerance": 1.1196193648240752e-10
+    },
+    "23.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.1220620744865503e-10
+    },
+    "23.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "23.second.projection.gradient": {
+      "actual": 5.300163822165585e-17,
+      "expected": 0,
+      "error": 5.300163822165585e-17,
+      "tolerance": 1.0000000000000002e-10
+    },
+    "23.second.projection.finite": {
+      "actual": 1.1102230246251565e-15,
+      "expected": 0,
+      "error": 1.1102230246251565e-15,
+      "tolerance": 4.2993322478253047e-10
+    },
+    "23.second.projection.combined": {
+      "actual": 1.1102230246251565e-15,
+      "expected": 0,
+      "error": 1.1102230246251565e-15,
+      "tolerance": 4.2993322478253047e-10
+    },
+    "23.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "23.final.gradient": {
+      "actual": 2.7081670310406238e-18,
+      "expected": 0,
+      "error": 2.7081670310406238e-18,
+      "tolerance": 1e-10
+    },
+    "23.final.finite": {
+      "actual": 2.021564441732291e-15,
+      "expected": 0,
+      "error": 2.021564441732291e-15,
+      "tolerance": 1.0000000002340265e-10
+    },
+    "23.final.combined": {
+      "actual": 2.0242726087756117e-15,
+      "expected": 0,
+      "error": 2.0242726087756117e-15,
+      "tolerance": 1.0000000002340265e-10
+    },
+    "23.Jensen": {
+      "actual": -1.7119552303546115e-15,
+      "expected": 0,
+      "error": 1.7119552303546115e-15,
+      "tolerance": 1.0021764039855157e-10
+    },
+    "23.mechanical": {
+      "actual": 5.136256003845929e-14,
+      "expected": 0,
+      "error": 5.136256003845929e-14,
+      "tolerance": 1.0094177125564239e-10
+    },
+    "24.first.donor.pairing": {
+      "actual": 1.6479873021779667e-17,
+      "expected": 0,
+      "error": 1.6479873021779667e-17,
+      "tolerance": 1.0099655734297216e-10
+    },
+    "24.first.donor.finite": {
+      "actual": 1.4522888100443332e-16,
+      "expected": 0,
+      "error": 1.4522888100443332e-16,
+      "tolerance": 1.0099655734297216e-10
+    },
+    "24.first.donor.combined": {
+      "actual": 1.6170875402621299e-16,
+      "expected": 0,
+      "error": 1.6170875402621299e-16,
+      "tolerance": 1.0099655734297216e-10
+    },
+    "24.first.body": {
+      "actual": 5.551115123125783e-15,
+      "expected": 0,
+      "error": 5.551115123125783e-15,
+      "tolerance": 4.894878009956536e-10
+    },
+    "24.first.wall": {
+      "actual": -2.0539125955565396e-15,
+      "expected": 0,
+      "error": 2.0539125955565396e-15,
+      "tolerance": 1.4715476219812436e-10
+    },
+    "24.first.gravity": {
+      "actual": 4.2934406030425976e-17,
+      "expected": 0,
+      "error": 4.2934406030425976e-17,
+      "tolerance": 1.1220174360048231e-10
+    },
+    "24.first.potential": {
+      "actual": -1.7610912728116546e-14,
+      "expected": 0,
+      "error": 1.7610912728116546e-14,
+      "tolerance": 1.1195737830336157e-10
+    },
+    "24.first.external": {
+      "actual": -2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.1220174360048231e-10
+    },
+    "24.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "24.first.projection.gradient": {
+      "actual": -6.931020986235984e-18,
+      "expected": 0,
+      "error": 6.931020986235984e-18,
+      "tolerance": 1.0000000000000069e-10
+    },
+    "24.first.projection.finite": {
+      "actual": 1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.2993324270172935e-10
+    },
+    "24.first.projection.combined": {
+      "actual": 1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.2993324270172935e-10
+    },
+    "24.second.donor.pairing": {
+      "actual": -6.071532165918825e-18,
+      "expected": 0,
+      "error": 6.071532165918825e-18,
+      "tolerance": 1.0111494666864015e-10
+    },
+    "24.second.donor.finite": {
+      "actual": -1.4423819126932469e-15,
+      "expected": 0,
+      "error": 1.4423819126932469e-15,
+      "tolerance": 1.0111494666864045e-10
+    },
+    "24.second.donor.combined": {
+      "actual": -1.4484534448591657e-15,
+      "expected": 0,
+      "error": 1.4484534448591657e-15,
+      "tolerance": 1.0111494666864045e-10
+    },
+    "24.second.body": {
+      "actual": 3.552713678800501e-15,
+      "expected": 0,
+      "error": 3.552713678800501e-15,
+      "tolerance": 4.898952972559273e-10
+    },
+    "24.second.wall": {
+      "actual": -1.1934897514720433e-15,
+      "expected": 0,
+      "error": 1.1934897514720433e-15,
+      "tolerance": 1.4715486494211234e-10
+    },
+    "24.second.gravity": {
+      "actual": -4.336808689942018e-19,
+      "expected": 0,
+      "error": 4.336808689942018e-19,
+      "tolerance": 1.1260388777661138e-10
+    },
+    "24.second.potential": {
+      "actual": -1.8415824420969784e-14,
+      "expected": 0,
+      "error": 1.8415824420969784e-14,
+      "tolerance": 1.1233021233182399e-10
+    },
+    "24.second.external": {
+      "actual": 1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.126038877766114e-10
+    },
+    "24.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "24.second.projection.gradient": {
+      "actual": -1.7190822858109757e-18,
+      "expected": 0,
+      "error": 1.7190822858109757e-18,
+      "tolerance": 1.000000000000002e-10
+    },
+    "24.second.projection.finite": {
+      "actual": 2.220446049250313e-16,
+      "expected": 0,
+      "error": 2.220446049250313e-16,
+      "tolerance": 4.299459698774765e-10
+    },
+    "24.second.projection.combined": {
+      "actual": 2.220446049250313e-16,
+      "expected": 0,
+      "error": 2.220446049250313e-16,
+      "tolerance": 4.299459698774765e-10
+    },
+    "24.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "24.final.gradient": {
+      "actual": 2.047627841465461e-18,
+      "expected": 0,
+      "error": 2.047627841465461e-18,
+      "tolerance": 1e-10
+    },
+    "24.final.finite": {
+      "actual": 5.945377932527883e-16,
+      "expected": 0,
+      "error": 5.945377932527883e-16,
+      "tolerance": 1.0000000002431853e-10
+    },
+    "24.final.combined": {
+      "actual": 5.965854210857674e-16,
+      "expected": 0,
+      "error": 5.965854210857674e-16,
+      "tolerance": 1.0000000002431853e-10
+    },
+    "24.Jensen": {
+      "actual": -1.7802599672211983e-15,
+      "expected": 0,
+      "error": 1.7802599672211983e-15,
+      "tolerance": 1.0021288305675508e-10
+    },
+    "24.mechanical": {
+      "actual": -3.5057026726015295e-14,
+      "expected": 0,
+      "error": 3.5057026726015295e-14,
+      "tolerance": 1.0105575200581317e-10
+    },
+    "25.first.donor.pairing": {
+      "actual": -4.336808689942018e-18,
+      "expected": 0,
+      "error": 4.336808689942018e-18,
+      "tolerance": 1.011141734530815e-10
+    },
+    "25.first.donor.finite": {
+      "actual": 3.1005471627654213e-16,
+      "expected": 0,
+      "error": 3.1005471627654213e-16,
+      "tolerance": 1.011141734530815e-10
+    },
+    "25.first.donor.combined": {
+      "actual": 3.057179075866001e-16,
+      "expected": 0,
+      "error": 3.057179075866001e-16,
+      "tolerance": 1.011141734530815e-10
+    },
+    "25.first.body": {
+      "actual": -3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.898905971983137e-10
+    },
+    "25.first.wall": {
+      "actual": 5.551115123125783e-16,
+      "expected": 0,
+      "error": 5.551115123125783e-16,
+      "tolerance": 1.4715485720739285e-10
+    },
+    "25.first.gravity": {
+      "actual": -1.3010426069826053e-18,
+      "expected": 0,
+      "error": 1.3010426069826053e-18,
+      "tolerance": 1.1259922287047236e-10
+    },
+    "25.first.potential": {
+      "actual": -1.8117451983101773e-14,
+      "expected": 0,
+      "error": 1.8117451983101773e-14,
+      "tolerance": 1.12325466937682e-10
+    },
+    "25.first.external": {
+      "actual": -2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.1259922287047236e-10
+    },
+    "25.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "25.first.projection.gradient": {
+      "actual": 8.045403428259729e-17,
+      "expected": 0,
+      "error": 8.045403428259729e-17,
+      "tolerance": 1.0000000000000015e-10
+    },
+    "25.first.projection.finite": {
+      "actual": 2.220446049250313e-16,
+      "expected": 0,
+      "error": 2.220446049250313e-16,
+      "tolerance": 4.2994598122094043e-10
+    },
+    "25.first.projection.combined": {
+      "actual": 2.220446049250313e-16,
+      "expected": 0,
+      "error": 2.220446049250313e-16,
+      "tolerance": 4.2994598122094043e-10
+    },
+    "25.second.donor.pairing": {
+      "actual": 5.204170427930421e-18,
+      "expected": 0,
+      "error": 5.204170427930421e-18,
+      "tolerance": 1.0123997101780291e-10
+    },
+    "25.second.donor.finite": {
+      "actual": 1.5104155990167123e-15,
+      "expected": 0,
+      "error": 1.5104155990167123e-15,
+      "tolerance": 1.0123997101780291e-10
+    },
+    "25.second.donor.combined": {
+      "actual": 1.5156197694446427e-15,
+      "expected": 0,
+      "error": 1.5156197694446427e-15,
+      "tolerance": 1.0123997101780291e-10
+    },
+    "25.second.body": {
+      "actual": -6.217248937900877e-15,
+      "expected": 0,
+      "error": 6.217248937900877e-15,
+      "tolerance": 4.902848133239404e-10
+    },
+    "25.second.wall": {
+      "actual": 1.4988010832439613e-15,
+      "expected": 0,
+      "error": 1.4988010832439613e-15,
+      "tolerance": 1.4715496652863424e-10
+    },
+    "25.second.gravity": {
+      "actual": 3.881443777498106e-17,
+      "expected": 0,
+      "error": 3.881443777498106e-17,
+      "tolerance": 1.1298782932263435e-10
+    },
+    "25.second.potential": {
+      "actual": 3.1127878052927827e-14,
+      "expected": 0,
+      "error": 3.1127878052927827e-14,
+      "tolerance": 1.1268280882013127e-10
+    },
+    "25.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.1298782932263435e-10
+    },
+    "25.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "25.second.projection.gradient": {
+      "actual": 3.5617020617555144e-18,
+      "expected": 0,
+      "error": 3.5617020617555144e-18,
+      "tolerance": 1.0000000000000017e-10
+    },
+    "25.second.projection.finite": {
+      "actual": 3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.299593186925728e-10
+    },
+    "25.second.projection.combined": {
+      "actual": 3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.299593186925728e-10
+    },
+    "25.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "25.final.gradient": {
+      "actual": -7.52852836659288e-18,
+      "expected": 0,
+      "error": 7.52852836659288e-18,
+      "tolerance": 1e-10
+    },
+    "25.final.finite": {
+      "actual": -1.6592105625549559e-15,
+      "expected": 0,
+      "error": 1.6592105625549559e-15,
+      "tolerance": 1.0000000002514142e-10
+    },
+    "25.final.combined": {
+      "actual": -1.6667390909103196e-15,
+      "expected": 0,
+      "error": 1.6667390909103196e-15,
+      "tolerance": 1.0000000002514142e-10
+    },
+    "25.Jensen": {
+      "actual": 1.0158974356189177e-15,
+      "expected": 0,
+      "error": 1.0158974356189177e-15,
+      "tolerance": 1.0020802660778053e-10
+    },
+    "25.mechanical": {
+      "actual": -4.103661854770735e-14,
+      "expected": 0,
+      "error": 4.103661854770735e-14,
+      "tolerance": 1.011770722354504e-10
+    },
+    "26.first.donor.pairing": {
+      "actual": 2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.0123910487074176e-10
+    },
+    "26.first.donor.finite": {
+      "actual": -7.028611633680404e-16,
+      "expected": 0,
+      "error": 7.028611633680404e-16,
+      "tolerance": 1.012391048707419e-10
+    },
+    "26.first.donor.combined": {
+      "actual": -6.751055877524115e-16,
+      "expected": 0,
+      "error": 6.751055877524115e-16,
+      "tolerance": 1.012391048707419e-10
+    },
+    "26.first.body": {
+      "actual": 4.440892098500626e-15,
+      "expected": 0,
+      "error": 4.440892098500626e-15,
+      "tolerance": 4.902799109506984e-10
+    },
+    "26.first.wall": {
+      "actual": -1.3877787807814457e-15,
+      "expected": 0,
+      "error": 1.3877787807814457e-15,
+      "tolerance": 1.4715495843215881e-10
+    },
+    "26.first.gravity": {
+      "actual": 9.454242944073599e-17,
+      "expected": 0,
+      "error": 9.454242944073599e-17,
+      "tolerance": 1.1298296691934947e-10
+    },
+    "26.first.potential": {
+      "actual": 7.494005416219807e-15,
+      "expected": 0,
+      "error": 7.494005416219807e-15,
+      "tolerance": 1.126778818056338e-10
+    },
+    "26.first.external": {
+      "actual": -1.3877787807814457e-17,
+      "expected": 0,
+      "error": 1.3877787807814457e-17,
+      "tolerance": 1.1298296691934946e-10
+    },
+    "26.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "26.first.projection.gradient": {
+      "actual": -6.463293080125459e-18,
+      "expected": 0,
+      "error": 6.463293080125459e-18,
+      "tolerance": 1.0000000000000033e-10
+    },
+    "26.first.projection.finite": {
+      "actual": 8.881784197001252e-16,
+      "expected": 0,
+      "error": 8.881784197001252e-16,
+      "tolerance": 4.299593226726419e-10
+    },
+    "26.first.projection.combined": {
+      "actual": 8.881784197001252e-16,
+      "expected": 0,
+      "error": 8.881784197001252e-16,
+      "tolerance": 4.299593226726419e-10
+    },
+    "26.second.donor.pairing": {
+      "actual": 2.42861286636753e-17,
+      "expected": 0,
+      "error": 2.42861286636753e-17,
+      "tolerance": 1.0137223960439323e-10
+    },
+    "26.second.donor.finite": {
+      "actual": -2.034071695800055e-15,
+      "expected": 0,
+      "error": 2.034071695800055e-15,
+      "tolerance": 1.0137223960439363e-10
+    },
+    "26.second.donor.combined": {
+      "actual": -2.0097855671363796e-15,
+      "expected": 0,
+      "error": 2.0097855671363796e-15,
+      "tolerance": 1.0137223960439363e-10
+    },
+    "26.second.body": {
+      "actual": 1.3322676295501878e-15,
+      "expected": 0,
+      "error": 1.3322676295501878e-15,
+      "tolerance": 4.906603147448619e-10
+    },
+    "26.second.wall": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 1.4715507516392013e-10
+    },
+    "26.second.gravity": {
+      "actual": -4.9439619065339e-17,
+      "expected": 0,
+      "error": 4.9439619065339e-17,
+      "tolerance": 1.1335750734437992e-10
+    },
+    "26.second.potential": {
+      "actual": 2.6131874442114622e-14,
+      "expected": 0,
+      "error": 2.6131874442114622e-14,
+      "tolerance": 1.1301920323136823e-10
+    },
+    "26.second.external": {
+      "actual": 4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.1335750734437992e-10
+    },
+    "26.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "26.second.projection.gradient": {
+      "actual": 7.926751874362606e-18,
+      "expected": 0,
+      "error": 7.926751874362606e-18,
+      "tolerance": 1.0000000000000028e-10
+    },
+    "26.second.projection.finite": {
+      "actual": -6.661338147750939e-15,
+      "expected": 0,
+      "error": 6.661338147750939e-15,
+      "tolerance": 4.299732625337589e-10
+    },
+    "26.second.projection.combined": {
+      "actual": -6.661338147750939e-15,
+      "expected": 0,
+      "error": 6.661338147750939e-15,
+      "tolerance": 4.299732625337589e-10
+    },
+    "26.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "26.final.gradient": {
+      "actual": -4.092061341854779e-18,
+      "expected": 0,
+      "error": 4.092061341854779e-18,
+      "tolerance": 1e-10
+    },
+    "26.final.finite": {
+      "actual": 7.330385798102498e-16,
+      "expected": 0,
+      "error": 7.330385798102498e-16,
+      "tolerance": 1.0000000002586515e-10
+    },
+    "26.final.combined": {
+      "actual": 7.289465184573233e-16,
+      "expected": 0,
+      "error": 7.289465184573233e-16,
+      "tolerance": 1.0000000002586515e-10
+    },
+    "26.Jensen": {
+      "actual": 3.165870343657673e-16,
+      "expected": 0,
+      "error": 3.165870343657673e-16,
+      "tolerance": 1.0020308112344749e-10
+    },
+    "26.mechanical": {
+      "actual": 4.344701681757712e-14,
+      "expected": 0,
+      "error": 4.344701681757712e-14,
+      "tolerance": 1.0130567223756749e-10
+    },
+    "27.first.donor.pairing": {
+      "actual": -1.0408340855860843e-17,
+      "expected": 0,
+      "error": 1.0408340855860843e-17,
+      "tolerance": 1.013712744795871e-10
+    },
+    "27.first.donor.finite": {
+      "actual": 5.91296759819282e-16,
+      "expected": 0,
+      "error": 5.91296759819282e-16,
+      "tolerance": 1.013712744795871e-10
+    },
+    "27.first.donor.combined": {
+      "actual": 5.808884189634211e-16,
+      "expected": 0,
+      "error": 5.808884189634211e-16,
+      "tolerance": 1.013712744795871e-10
+    },
+    "27.first.body": {
+      "actual": -3.774758283725532e-15,
+      "expected": 0,
+      "error": 3.774758283725532e-15,
+      "tolerance": 4.906552141458421e-10
+    },
+    "27.first.wall": {
+      "actual": -4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 1.471550667215622e-10
+    },
+    "27.first.gravity": {
+      "actual": -9.410874857174178e-17,
+      "expected": 0,
+      "error": 9.410874857174178e-17,
+      "tolerance": 1.1335245191256041e-10
+    },
+    "27.first.potential": {
+      "actual": 1.058875209736243e-14,
+      "expected": 0,
+      "error": 1.058875209736243e-14,
+      "tolerance": 1.1301410113577716e-10
+    },
+    "27.first.external": {
+      "actual": 5.551115123125783e-17,
+      "expected": 0,
+      "error": 5.551115123125783e-17,
+      "tolerance": 1.133524519125604e-10
+    },
+    "27.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "27.first.projection.gradient": {
+      "actual": -7.423419204493145e-18,
+      "expected": 0,
+      "error": 7.423419204493145e-18,
+      "tolerance": 1.0000000000000022e-10
+    },
+    "27.first.projection.finite": {
+      "actual": 4.218847493575595e-15,
+      "expected": 0,
+      "error": 4.218847493575595e-15,
+      "tolerance": 4.299732583483498e-10
+    },
+    "27.first.projection.combined": {
+      "actual": 4.218847493575595e-15,
+      "expected": 0,
+      "error": 4.218847493575595e-15,
+      "tolerance": 4.299732583483498e-10
+    },
+    "27.second.donor.pairing": {
+      "actual": -3.2959746043559335e-17,
+      "expected": 0,
+      "error": 3.2959746043559335e-17,
+      "tolerance": 1.0151164058574972e-10
+    },
+    "27.second.donor.finite": {
+      "actual": 1.883801274693564e-15,
+      "expected": 0,
+      "error": 1.883801274693564e-15,
+      "tolerance": 1.0151164058574972e-10
+    },
+    "27.second.donor.combined": {
+      "actual": 1.8508415286500046e-15,
+      "expected": 0,
+      "error": 1.8508415286500046e-15,
+      "tolerance": 1.0151164058574971e-10
+    },
+    "27.second.body": {
+      "actual": -3.552713678800501e-15,
+      "expected": 0,
+      "error": 3.552713678800501e-15,
+      "tolerance": 4.910212965190124e-10
+    },
+    "27.second.wall": {
+      "actual": 1.1102230246251565e-16,
+      "expected": 0,
+      "error": 1.1102230246251565e-16,
+      "tolerance": 1.4715519179811675e-10
+    },
+    "27.second.gravity": {
+      "actual": -3.903127820947816e-18,
+      "expected": 0,
+      "error": 3.903127820947816e-18,
+      "tolerance": 1.1371241323088544e-10
+    },
+    "27.second.potential": {
+      "actual": -1.9470536294363683e-14,
+      "expected": 0,
+      "error": 1.9470536294363683e-14,
+      "tolerance": 1.1333889733256229e-10
+    },
+    "27.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.1371241323088544e-10
+    },
+    "27.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "27.second.projection.gradient": {
+      "actual": 3.780732571456658e-17,
+      "expected": 0,
+      "error": 3.780732571456658e-17,
+      "tolerance": 1.0000000000000018e-10
+    },
+    "27.second.projection.finite": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.299877989592045e-10
+    },
+    "27.second.projection.combined": {
+      "actual": 1.7763568394002505e-15,
+      "expected": 0,
+      "error": 1.7763568394002505e-15,
+      "tolerance": 4.299877989592045e-10
+    },
+    "27.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "27.final.gradient": {
+      "actual": -7.617353408043729e-18,
+      "expected": 0,
+      "error": 7.617353408043729e-18,
+      "tolerance": 1e-10
+    },
+    "27.final.finite": {
+      "actual": 1.0573513095606828e-15,
+      "expected": 0,
+      "error": 1.0573513095606828e-15,
+      "tolerance": 1.000000000264876e-10
+    },
+    "27.final.combined": {
+      "actual": 1.0497339561471496e-15,
+      "expected": 0,
+      "error": 1.0497339561471496e-15,
+      "tolerance": 1.000000000264876e-10
+    },
+    "27.Jensen": {
+      "actual": -1.156410037173039e-15,
+      "expected": 0,
+      "error": 1.156410037173039e-15,
+      "tolerance": 1.0019805672848643e-10
+    },
+    "27.mechanical": {
+      "actual": -1.3540384091736968e-14,
+      "expected": 0,
+      "error": 1.3540384091736968e-14,
+      "tolerance": 1.014414575326711e-10
+    },
+    "28.first.donor.pairing": {
+      "actual": 2.2551405187698492e-17,
+      "expected": 0,
+      "error": 2.2551405187698492e-17,
+      "tolerance": 1.0151057052302157e-10
+    },
+    "28.first.donor.finite": {
+      "actual": 2.3828324296343295e-15,
+      "expected": 0,
+      "error": 2.3828324296343295e-15,
+      "tolerance": 1.0151057052302157e-10
+    },
+    "28.first.donor.combined": {
+      "actual": 2.405383834822028e-15,
+      "expected": 0,
+      "error": 2.405383834822028e-15,
+      "tolerance": 1.0151057052302157e-10
+    },
+    "28.first.body": {
+      "actual": -7.549516567451064e-15,
+      "expected": 0,
+      "error": 7.549516567451064e-15,
+      "tolerance": 4.910159988551186e-10
+    },
+    "28.first.wall": {
+      "actual": -1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 1.4715518302710475e-10
+    },
+    "28.first.gravity": {
+      "actual": -6.5052130349130266e-18,
+      "expected": 0,
+      "error": 6.5052130349130266e-18,
+      "tolerance": 1.1370716548575686e-10
+    },
+    "28.first.potential": {
+      "actual": 5.384581669432009e-15,
+      "expected": 0,
+      "error": 5.384581669432009e-15,
+      "tolerance": 1.1333362287064228e-10
+    },
+    "28.first.external": {
+      "actual": 4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.1370716548575688e-10
+    },
+    "28.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "28.first.projection.gradient": {
+      "actual": -1.5498746492892624e-17,
+      "expected": 0,
+      "error": 1.5498746492892624e-17,
+      "tolerance": 1.0000000000000018e-10
+    },
+    "28.first.projection.finite": {
+      "actual": -1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.2998778678181253e-10
+    },
+    "28.first.projection.combined": {
+      "actual": -1.9984014443252818e-15,
+      "expected": 0,
+      "error": 1.9984014443252818e-15,
+      "tolerance": 4.2998778678181253e-10
+    },
+    "28.second.donor.pairing": {
+      "actual": -3.8163916471489756e-17,
+      "expected": 0,
+      "error": 3.8163916471489756e-17,
+      "tolerance": 1.0165802788225286e-10
+    },
+    "28.second.donor.finite": {
+      "actual": 2.361473646836365e-15,
+      "expected": 0,
+      "error": 2.361473646836365e-15,
+      "tolerance": 1.0165802788225286e-10
+    },
+    "28.second.donor.combined": {
+      "actual": 2.3233097303648753e-15,
+      "expected": 0,
+      "error": 2.3233097303648753e-15,
+      "tolerance": 1.0165802788225284e-10
+    },
+    "28.second.body": {
+      "actual": 1.1102230246251565e-15,
+      "expected": 0,
+      "error": 1.1102230246251565e-15,
+      "tolerance": 4.91367247744215e-10
+    },
+    "28.second.wall": {
+      "actual": -6.938893903907228e-16,
+      "expected": 0,
+      "error": 6.938893903907228e-16,
+      "tolerance": 1.4715531747876823e-10
+    },
+    "28.second.gravity": {
+      "actual": 2.5153490401663703e-17,
+      "expected": 0,
+      "error": 2.5153490401663703e-17,
+      "tolerance": 1.1405204136820641e-10
+    },
+    "28.second.potential": {
+      "actual": -1.0394463068053028e-14,
+      "expected": 0,
+      "error": 1.0394463068053028e-14,
+      "tolerance": 1.1364140394604193e-10
+    },
+    "28.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.1405204136820641e-10
+    },
+    "28.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "28.second.projection.gradient": {
+      "actual": 2.941378878041939e-18,
+      "expected": 0,
+      "error": 2.941378878041939e-18,
+      "tolerance": 1.0000000000000059e-10
+    },
+    "28.second.projection.finite": {
+      "actual": -1.3322676295501878e-15,
+      "expected": 0,
+      "error": 1.3322676295501878e-15,
+      "tolerance": 4.300029153521695e-10
+    },
+    "28.second.projection.combined": {
+      "actual": -1.3322676295501878e-15,
+      "expected": 0,
+      "error": 1.3322676295501878e-15,
+      "tolerance": 4.300029153521695e-10
+    },
+    "28.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "28.final.gradient": {
+      "actual": 1.1048770539834698e-17,
+      "expected": 0,
+      "error": 1.1048770539834698e-17,
+      "tolerance": 1e-10
+    },
+    "28.final.finite": {
+      "actual": -1.6924060935886901e-15,
+      "expected": 0,
+      "error": 1.6924060935886901e-15,
+      "tolerance": 1.0000000002700706e-10
+    },
+    "28.final.combined": {
+      "actual": -1.6813573230586605e-15,
+      "expected": 0,
+      "error": 1.6813573230586605e-15,
+      "tolerance": 1.0000000002700706e-10
+    },
+    "28.Jensen": {
+      "actual": 3.847833510151055e-16,
+      "expected": 0,
+      "error": 3.847833510151055e-16,
+      "tolerance": 1.0019296327241353e-10
+    },
+    "28.mechanical": {
+      "actual": 1.0717121634584714e-14,
+      "expected": 0,
+      "error": 1.0717121634584714e-14,
+      "tolerance": 1.0158429920263721e-10
+    },
+    "29.first.donor.pairing": {
+      "actual": -2.949029909160572e-17,
+      "expected": 0,
+      "error": 2.949029909160572e-17,
+      "tolerance": 1.0165684700852558e-10
+    },
+    "29.first.donor.finite": {
+      "actual": -5.457331635205787e-16,
+      "expected": 0,
+      "error": 5.457331635205787e-16,
+      "tolerance": 1.0165684700852568e-10
+    },
+    "29.first.donor.combined": {
+      "actual": -5.752234626121844e-16,
+      "expected": 0,
+      "error": 5.752234626121844e-16,
+      "tolerance": 1.0165684700852568e-10
+    },
+    "29.first.body": {
+      "actual": 5.551115123125783e-15,
+      "expected": 0,
+      "error": 5.551115123125783e-15,
+      "tolerance": 4.913617576111258e-10
+    },
+    "29.first.wall": {
+      "actual": -3.608224830031759e-16,
+      "expected": 0,
+      "error": 3.608224830031759e-16,
+      "tolerance": 1.4715530840039062e-10
+    },
+    "29.first.gravity": {
+      "actual": 1.7780915628762273e-17,
+      "expected": 0,
+      "error": 1.7780915628762273e-17,
+      "tolerance": 1.140466071227255e-10
+    },
+    "29.first.potential": {
+      "actual": -2.3092638912203256e-14,
+      "expected": 0,
+      "error": 2.3092638912203256e-14,
+      "tolerance": 1.1363596500151516e-10
+    },
+    "29.first.external": {
+      "actual": 4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.140466071227255e-10
+    },
+    "29.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "29.first.projection.gradient": {
+      "actual": -1.6611256622769573e-17,
+      "expected": 0,
+      "error": 1.6611256622769573e-17,
+      "tolerance": 1.0000000000000007e-10
+    },
+    "29.first.projection.finite": {
+      "actual": -1.1102230246251565e-15,
+      "expected": 0,
+      "error": 1.1102230246251565e-15,
+      "tolerance": 4.3000289351793583e-10
+    },
+    "29.first.projection.combined": {
+      "actual": -1.3322676295501878e-15,
+      "expected": 0,
+      "error": 1.3322676295501878e-15,
+      "tolerance": 4.3000289351793583e-10
+    },
+    "29.second.donor.pairing": {
+      "actual": -2.6020852139652106e-17,
+      "expected": 0,
+      "error": 2.6020852139652106e-17,
+      "tolerance": 1.0181122165205568e-10
+    },
+    "29.second.donor.finite": {
+      "actual": -1.9595870065503007e-15,
+      "expected": 0,
+      "error": 1.9595870065503007e-15,
+      "tolerance": 1.0181122165205607e-10
+    },
+    "29.second.donor.combined": {
+      "actual": -1.985607858689953e-15,
+      "expected": 0,
+      "error": 1.985607858689953e-15,
+      "tolerance": 1.0181122165205607e-10
+    },
+    "29.second.body": {
+      "actual": -8.881784197001252e-16,
+      "expected": 0,
+      "error": 8.881784197001252e-16,
+      "tolerance": 4.916976696928909e-10
+    },
+    "29.second.wall": {
+      "actual": 2.192690473634684e-15,
+      "expected": 0,
+      "error": 2.192690473634684e-15,
+      "tolerance": 1.4715545334905214e-10
+    },
+    "29.second.gravity": {
+      "actual": 2.5587171270657905e-17,
+      "expected": 0,
+      "error": 2.5587171270657905e-17,
+      "tolerance": 1.1437591040211164e-10
+    },
+    "29.second.potential": {
+      "actual": 1.1907141939104804e-14,
+      "expected": 0,
+      "error": 1.1907141939104804e-14,
+      "tolerance": 1.1392626848940165e-10
+    },
+    "29.second.external": {
+      "actual": 4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.1437591040211165e-10
+    },
+    "29.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "29.second.projection.gradient": {
+      "actual": 5.0166255016841065e-17,
+      "expected": 0,
+      "error": 5.0166255016841065e-17,
+      "tolerance": 1.0000000000000017e-10
+    },
+    "29.second.projection.finite": {
+      "actual": 2.4424906541753444e-15,
+      "expected": 0,
+      "error": 2.4424906541753444e-15,
+      "tolerance": 4.3001858510811926e-10
+    },
+    "29.second.projection.combined": {
+      "actual": 2.4424906541753444e-15,
+      "expected": 0,
+      "error": 2.4424906541753444e-15,
+      "tolerance": 4.3001858510811926e-10
+    },
+    "29.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "29.final.gradient": {
+      "actual": 3.7486766391105164e-19,
+      "expected": 0,
+      "error": 3.7486766391105164e-19,
+      "tolerance": 1e-10
+    },
+    "29.final.finite": {
+      "actual": 3.1134970516221177e-15,
+      "expected": 0,
+      "error": 3.1134970516221177e-15,
+      "tolerance": 1.0000000002741976e-10
+    },
+    "29.final.combined": {
+      "actual": 3.113871919277475e-15,
+      "expected": 0,
+      "error": 3.113871919277475e-15,
+      "tolerance": 1.0000000002741976e-10
+    },
+    "29.Jensen": {
+      "actual": -1.27675647831893e-15,
+      "expected": 0,
+      "error": 1.27675647831893e-15,
+      "tolerance": 1.001878106443146e-10
+    },
+    "29.mechanical": {
+      "actual": -1.1390194343263715e-14,
+      "expected": 0,
+      "error": 1.1390194343263715e-14,
+      "tolerance": 1.0173403433029289e-10
+    },
+    "30.first.donor.pairing": {
+      "actual": 1.5612511283791264e-17,
+      "expected": 0,
+      "error": 1.5612511283791264e-17,
+      "tolerance": 1.0180992429169272e-10
+    },
+    "30.first.donor.finite": {
+      "actual": -2.5611294768995707e-15,
+      "expected": 0,
+      "error": 2.5611294768995707e-15,
+      "tolerance": 1.0180992429169324e-10
+    },
+    "30.first.donor.combined": {
+      "actual": -2.5455169656157794e-15,
+      "expected": 0,
+      "error": 2.5455169656157794e-15,
+      "tolerance": 1.0180992429169324e-10
+    },
+    "30.first.body": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 4.916919979345289e-10
+    },
+    "30.first.wall": {
+      "actual": 2.498001805406602e-16,
+      "expected": 0,
+      "error": 2.498001805406602e-16,
+      "tolerance": 1.4715544398565466e-10
+    },
+    "30.first.gravity": {
+      "actual": -1.46150452851046e-16,
+      "expected": 0,
+      "error": 1.46150452851046e-16,
+      "tolerance": 1.1437030082694349e-10
+    },
+    "30.first.potential": {
+      "actual": 2.90878432451791e-14,
+      "expected": 0,
+      "error": 2.90878432451791e-14,
+      "tolerance": 1.1392067843991654e-10
+    },
+    "30.first.external": {
+      "actual": 4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.1437030082694346e-10
+    },
+    "30.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "30.first.projection.gradient": {
+      "actual": 6.829129463018194e-17,
+      "expected": 0,
+      "error": 6.829129463018194e-17,
+      "tolerance": 1.000000000000002e-10
+    },
+    "30.first.projection.finite": {
+      "actual": 1.199040866595169e-14,
+      "expected": 0,
+      "error": 1.199040866595169e-14,
+      "tolerance": 4.300185527026102e-10
+    },
+    "30.first.projection.combined": {
+      "actual": 1.199040866595169e-14,
+      "expected": 0,
+      "error": 1.199040866595169e-14,
+      "tolerance": 4.300185527026102e-10
+    },
+    "30.second.donor.pairing": {
+      "actual": -3.469446951953614e-17,
+      "expected": 0,
+      "error": 3.469446951953614e-17,
+      "tolerance": 1.019710092491289e-10
+    },
+    "30.second.donor.finite": {
+      "actual": 1.3357099714478293e-15,
+      "expected": 0,
+      "error": 1.3357099714478293e-15,
+      "tolerance": 1.019710092491289e-10
+    },
+    "30.second.donor.combined": {
+      "actual": 1.3010155019282932e-15,
+      "expected": 0,
+      "error": 1.3010155019282932e-15,
+      "tolerance": 1.019710092491289e-10
+    },
+    "30.second.body": {
+      "actual": -3.3306690738754696e-15,
+      "expected": 0,
+      "error": 3.3306690738754696e-15,
+      "tolerance": 4.920121061971413e-10
+    },
+    "30.second.wall": {
+      "actual": -7.216449660063518e-16,
+      "expected": 0,
+      "error": 7.216449660063518e-16,
+      "tolerance": 1.4715560063660185e-10
+    },
+    "30.second.gravity": {
+      "actual": 5.941427905220564e-17,
+      "expected": 0,
+      "error": 5.941427905220564e-17,
+      "tolerance": 1.1468357446314327e-10
+    },
+    "30.second.potential": {
+      "actual": 7.216449660063518e-15,
+      "expected": 0,
+      "error": 7.216449660063518e-15,
+      "tolerance": 1.141930805603366e-10
+    },
+    "30.second.external": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1.1468357446314327e-10
+    },
+    "30.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "30.second.projection.gradient": {
+      "actual": 6.902885192489917e-17,
+      "expected": 0,
+      "error": 6.902885192489917e-17,
+      "tolerance": 1.0000000000000071e-10
+    },
+    "30.second.projection.finite": {
+      "actual": 6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.3003478649540066e-10
+    },
+    "30.second.projection.combined": {
+      "actual": 6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.3003478649540066e-10
+    },
+    "30.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "30.final.gradient": {
+      "actual": -6.526979197404364e-18,
+      "expected": 0,
+      "error": 6.526979197404364e-18,
+      "tolerance": 1e-10
+    },
+    "30.final.finite": {
+      "actual": 3.6306138464303233e-16,
+      "expected": 0,
+      "error": 3.6306138464303233e-16,
+      "tolerance": 1.00000000027725e-10
+    },
+    "30.final.combined": {
+      "actual": 3.565344054359745e-16,
+      "expected": 0,
+      "error": 3.565344054359745e-16,
+      "tolerance": 1.00000000027725e-10
+    },
+    "30.Jensen": {
+      "actual": -1.5166904190899722e-15,
+      "expected": 0,
+      "error": 1.5166904190899722e-15,
+      "tolerance": 1.0018260901609466e-10
+    },
+    "30.mechanical": {
+      "actual": -3.9174392896246246e-14,
+      "expected": 0,
+      "error": 3.9174392896246246e-14,
+      "tolerance": 1.0189046677041865e-10
+    },
+    "31.first.donor.pairing": {
+      "actual": -3.8163916471489756e-17,
+      "expected": 0,
+      "error": 3.8163916471489756e-17,
+      "tolerance": 1.019695900174206e-10
+    },
+    "31.first.donor.finite": {
+      "actual": -1.7547270060591647e-15,
+      "expected": 0,
+      "error": 1.7547270060591647e-15,
+      "tolerance": 1.0196959001742095e-10
+    },
+    "31.first.donor.combined": {
+      "actual": -1.7928909225306544e-15,
+      "expected": 0,
+      "error": 1.7928909225306544e-15,
+      "tolerance": 1.0196959001742095e-10
+    },
+    "31.first.body": {
+      "actual": 4.884981308350689e-15,
+      "expected": 0,
+      "error": 4.884981308350689e-15,
+      "tolerance": 4.920062607396654e-10
+    },
+    "31.first.wall": {
+      "actual": -7.771561172376096e-16,
+      "expected": 0,
+      "error": 7.771561172376096e-16,
+      "tolerance": 1.4715559101182657e-10
+    },
+    "31.first.gravity": {
+      "actual": 2.3418766925686896e-17,
+      "expected": 0,
+      "error": 2.3418766925686896e-17,
+      "tolerance": 1.14677797830715e-10
+    },
+    "31.first.potential": {
+      "actual": 1.8457457784393227e-14,
+      "expected": 0,
+      "error": 1.8457457784393227e-14,
+      "tolerance": 1.1418734977490118e-10
+    },
+    "31.first.external": {
+      "actual": -2.7755575615628914e-17,
+      "expected": 0,
+      "error": 2.7755575615628914e-17,
+      "tolerance": 1.1467779783071499e-10
+    },
+    "31.first.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "31.first.projection.gradient": {
+      "actual": -4.9559108422401373e-17,
+      "expected": 0,
+      "error": 4.9559108422401373e-17,
+      "tolerance": 1.0000000000000042e-10
+    },
+    "31.first.projection.finite": {
+      "actual": -3.552713678800501e-15,
+      "expected": 0,
+      "error": 3.552713678800501e-15,
+      "tolerance": 4.300347427251323e-10
+    },
+    "31.first.projection.combined": {
+      "actual": -3.552713678800501e-15,
+      "expected": 0,
+      "error": 3.552713678800501e-15,
+      "tolerance": 4.300347427251323e-10
+    },
+    "31.second.donor.pairing": {
+      "actual": 3.122502256758253e-17,
+      "expected": 0,
+      "error": 3.122502256758253e-17,
+      "tolerance": 1.0213714631432203e-10
+    },
+    "31.second.donor.finite": {
+      "actual": 1.9480673584676422e-15,
+      "expected": 0,
+      "error": 1.9480673584676422e-15,
+      "tolerance": 1.0213714631432202e-10
+    },
+    "31.second.donor.combined": {
+      "actual": 1.9792923810352248e-15,
+      "expected": 0,
+      "error": 1.9792923810352248e-15,
+      "tolerance": 1.0213714631432203e-10
+    },
+    "31.second.body": {
+      "actual": 4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.923101214708318e-10
+    },
+    "31.second.wall": {
+      "actual": -2.1094237467877974e-15,
+      "expected": 0,
+      "error": 2.1094237467877974e-15,
+      "tolerance": 1.4715576064130289e-10
+    },
+    "31.second.gravity": {
+      "actual": -4.163336342344337e-17,
+      "expected": 0,
+      "error": 4.163336342344337e-17,
+      "tolerance": 1.1497460968114998e-10
+    },
+    "31.second.potential": {
+      "actual": 5.287437154777308e-15,
+      "expected": 0,
+      "error": 5.287437154777308e-15,
+      "tolerance": 1.1444146000255948e-10
+    },
+    "31.second.external": {
+      "actual": 6.938893903907228e-17,
+      "expected": 0,
+      "error": 6.938893903907228e-17,
+      "tolerance": 1.1497460968114998e-10
+    },
+    "31.second.projection.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "31.second.projection.gradient": {
+      "actual": 9.697208274440774e-18,
+      "expected": 0,
+      "error": 9.697208274440774e-18,
+      "tolerance": 1.0000000000000016e-10
+    },
+    "31.second.projection.finite": {
+      "actual": 4.440892098500626e-16,
+      "expected": 0,
+      "error": 4.440892098500626e-16,
+      "tolerance": 4.3005149453734746e-10
+    },
+    "31.second.projection.combined": {
+      "actual": 6.661338147750939e-16,
+      "expected": 0,
+      "error": 6.661338147750939e-16,
+      "tolerance": 4.300514945373475e-10
+    },
+    "31.final.target": {
+      "actual": 0,
+      "expected": 0,
+      "error": 0,
+      "tolerance": 1e-10
+    },
+    "31.final.gradient": {
+      "actual": -2.4924096127888357e-18,
+      "expected": 0,
+      "error": 2.4924096127888357e-18,
+      "tolerance": 1e-10
+    },
+    "31.final.finite": {
+      "actual": 3.52476247553869e-16,
+      "expected": 0,
+      "error": 3.52476247553869e-16,
+      "tolerance": 1.0000000002792253e-10
+    },
+    "31.final.combined": {
+      "actual": 3.4998383793297885e-16,
+      "expected": 0,
+      "error": 3.4998383793297885e-16,
+      "tolerance": 1.0000000002792253e-10
+    },
+    "31.Jensen": {
+      "actual": -4.790005198040959e-16,
+      "expected": 0,
+      "error": 4.790005198040959e-16,
+      "tolerance": 1.0017736855460103e-10
+    },
+    "31.mechanical": {
+      "actual": 3.0597052669278924e-14,
+      "expected": 0,
+      "error": 3.0597052669278924e-14,
+      "tolerance": 1.020533681658713e-10
+    },
+    "whole.mechanical": {
+      "actual": -0.06972509314852829,
+      "expected": -0.06972509314857689,
+      "error": 4.860001290296623e-14,
+      "tolerance": 1.220828091597542e-8
+    },
+    "whole.recorded_change": {
+      "actual": -0.0697250931484632,
+      "expected": -0.06972509314857689,
+      "error": 1.1368683772161603e-13,
+      "tolerance": 1.1394501862970401e-10
+    },
+    "whole.donor": {
+      "actual": -0.09081405093361165,
+      "expected": -0.09081405093360653,
+      "error": 5.1209037010835345e-15,
+      "tolerance": 1.1816281018672182e-10
+    },
+    "whole.wall": {
+      "actual": -7.544690243128574,
+      "expected": -7.544690243128574,
+      "error": 0,
+      "tolerance": 1.608938048625715e-9
+    },
+    "whole.projection": {
+      "actual": -52.780314742313664,
+      "expected": -52.78031474231366,
+      "error": 7.105427357601002e-15,
+      "tolerance": 1.0656062948462732e-8
+    },
+    "whole.Jensen": {
+      "actual": -0.038680511641938434,
+      "expected": -0.03868051164194129,
+      "error": 2.858824288409778e-15,
+      "tolerance": 1.0773610232838798e-10
+    },
+    "whole.previous": {
+      "actual": -0.06972509314857689,
+      "expected": -0.06972509314857689,
+      "error": 0,
+      "tolerance": 1.1394501862971538e-10
+    }
+  },
+  "initializedWork": {
+    "topologyBuilds": 1,
+    "coefficientBuilds": 0,
+    "pressureSolves": 0,
+    "iterations": 0,
+    "matrixProducts": 0,
+    "workspaceBytes": 68096,
+    "eulerAttempts": 0,
+    "eulerStages": 0,
+    "faceEvaluations": 0,
+    "dualTransferAttempts": 0,
+    "dualFaceEvaluations": 0,
+    "thermodynamicCellReads": 512,
+    "dualNodes": 1600,
+    "dualInterfaces": 4608
+  },
+  "postSolveWork": {
+    "topologyBuilds": 1,
+    "coefficientBuilds": 96,
+    "pressureSolves": 96,
+    "iterations": 6131,
+    "matrixProducts": 6131,
+    "workspaceBytes": 68096,
+    "eulerAttempts": 64,
+    "eulerStages": 64,
+    "faceEvaluations": 94208,
+    "dualTransferAttempts": 64,
+    "dualFaceEvaluations": 294912,
+    "thermodynamicCellReads": 132608,
+    "dualNodes": 1600,
+    "dualInterfaces": 4608
+  },
+  "postLawWork": {
+    "topologyBuilds": 1,
+    "coefficientBuilds": 96,
+    "pressureSolves": 96,
+    "iterations": 6131,
+    "matrixProducts": 6131,
+    "workspaceBytes": 68096,
+    "eulerAttempts": 64,
+    "eulerStages": 64,
+    "faceEvaluations": 94208,
+    "dualTransferAttempts": 64,
+    "dualFaceEvaluations": 294912,
+    "thermodynamicCellReads": 133632,
+    "dualNodes": 1600,
+    "dualInterfaces": 4608
+  },
+  "recordedBaselineWork": {
+    "topologyBuilds": 1,
+    "coefficientBuilds": 96,
+    "pressureSolves": 96,
+    "iterations": 6131,
+    "matrixProducts": 6131,
+    "workspaceBytes": 68096,
+    "eulerAttempts": 64,
+    "eulerStages": 64,
+    "faceEvaluations": 94208,
+    "dualTransferAttempts": 64,
+    "dualFaceEvaluations": 294912,
+    "thermodynamicCellReads": 133632,
+    "dualNodes": 1600,
+    "dualInterfaces": 4608
+  },
+  "scopeCorrection": {
+    "postSolveExcludedValidationCellReads": 1024,
+    "initializationCellReads": 512
+  },
+  "completeSavedOutputEqual": true,
+  "canonicalSaveJSONEqual": true,
+  "cells": 512,
+  "acceptedSteps": 32,
+  "eulerStages": 64,
+  "wallSeconds": 1.80889283,
+  "cpuSeconds": 2.032225,
+  "finalRSSBytes": 191393792
+}

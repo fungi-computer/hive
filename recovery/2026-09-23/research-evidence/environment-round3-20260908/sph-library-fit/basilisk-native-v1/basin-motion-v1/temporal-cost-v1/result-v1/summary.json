@@ -1,0 +1,28 @@
+{
+  "invocationId": "0db25be8426c40fbaa6daf31bc59a0b2",
+  "comparisonExitCode": 0,
+  "capturedForceAndTransportAccountingPassed": true,
+  "legacyPredecessor": {
+    "run": "u3386.scope",
+    "passed": false
+  },
+  "onePeriodTransportBudgetM3PerM": 5.4e-07,
+  "comparatorSha256": "802de1253e1ce9a2e713945810e5b144ceb8356ea3933428c17117d0b85527c9",
+  "runnerSha256": "935766a3612fd48b0f094de78b6260454e15737ed417a1f02c5f030fbacded3a",
+  "transportAccountingSourceSha256": "7fc7e1414728d81aa466f383ae76c1c4a9037396fe32b97c9d187960787ff2a6",
+  "forceAccountingSourceSha256": "06b672128c88075c7304d7508013469e3ea20bd6959e17d23cf76fc49a1a8bcf",
+  "nativeCaptureWallSeconds": 12.719923869997729,
+  "nativePeakRssKiBBatch": 25788,
+  "caseExitCodes": [
+    {
+      "case": "coarse",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "case": "fine",
+      "exitCode": 0,
+      "timedOut": false
+    }
+  ]
+}

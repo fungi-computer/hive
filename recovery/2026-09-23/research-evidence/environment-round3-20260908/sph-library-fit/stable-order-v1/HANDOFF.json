@@ -1,0 +1,65 @@
+{
+  "sourceAndArtifactSHA256": {
+    "reference.cpp": "4bd5463c2823eb8a7ec7e610472ffea3d262dfc00732983bc807d75b5297ba9f",
+    "reference-checkpoint.h": "3e1ca7ee7331fbbf01473dbdf86923d7d5edf094f8e6e940d76548af527eece1",
+    "neighbor-order-law.h": "8c95a157f4ba6b180d97a30857f463dbab6788b9fe489b98a0f4ec0afa8a7188",
+    "run-restart.py": "44c859dfd11221f39f1e5a3b6db881874010f2661a1c7aa65b823de257014ab9",
+    "compile-reference.py": "0c1885037117e56475cf2423820ed786f58a021f279b7430d320ff836f520d1b",
+    "build-candidate.py": "398284e2a3bd9545076977b10f23ab390aceaab38151f3136cb2e8b5eef9dd93",
+    "stable-neighbor-order.patch": "374013b8a0033ca754f620107382e58aa5a9010b06010ab34ab7faeeeea38b14",
+    "local-source-build.patch": "fa3d0b27f845d6fc4adaae9e83072c01139681d1e024713429347a069342f5e7",
+    "numerical-source-inventory.json": "d402c35739038905a898302e353e4a271ec22b59769b0cf21028a9e33a5d4af9",
+    "reference": "5eee94a5051fbb52eb500e8f9f810d1b972ff7c8ee5972eb7fc353275cc5b0e0",
+    "build/lib/libSPlisHSPlasH.a": "68cb48d6331e3a86c695ee69edd8ccc6e8023fad30b4faa2bf017897e11d4d87",
+    "build/extern/install/NeighborhoodSearch/lib/libCompactNSearch.a": "1bb78be2e724e6d8da0f1a9ea04409c8bbe4e577faea8267139ce0c93623c8ad",
+    "build/CMakeCache.txt": "55d57b1983651bbf67d392b26902b7f962b631c18ad764906f7802c1bd6c937a",
+    "restart-result-v1/result.json": "b53d95b06c5d276c85c3c0b64be78d3852a50dbb72a8b26ce67fa67d1294e679"
+  },
+  "upstreamRevision": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "dependencyRevision": "CompactNSearch b40afcf47fe1963b363eba2371f04b42720fcb1d",
+  "build": {
+    "failedUnit": "run-u2847.scope",
+    "failedIncludeOnly": true,
+    "successUnit": "run-u2860.scope",
+    "successInvocation": "c938ca3461434e6088abf9499aaeed2c",
+    "jobs": 2,
+    "externalBuildJobsEach": 1
+  },
+  "compile": {
+    "unit": "run-u2872.scope",
+    "invocation": "d17c890141224a50a74ac9b197de1db4",
+    "exit": 0
+  },
+  "proof": {
+    "unit": "run-u2883.scope",
+    "invocation": "a4a8af57fbc64cc38b6d2bfc9f27fec3",
+    "exit": 0,
+    "wallSeconds": 3.4119441919610836,
+    "fullFinalByteExact": true
+  },
+  "cost": {
+    "scope": "one candidate receipt versus retained prior same-fixture receipt; shared host, not controlled paired benchmark",
+    "candidateOrdinaryMs": 1866.849187,
+    "retainedBaselineOrdinaryMs": 1686.545916,
+    "candidateRestartMs": 1498.736738,
+    "retainedBaselineRestartMs": 1361.753805,
+    "candidateOrdinarySortMs": 132.69198700000007,
+    "candidateOrdinaryQueryIncludingSortMs": 608.5470269999995,
+    "sortFractionOfOrdinaryStepLoop": 0.07107804311350624,
+    "candidateOrdinaryVsHistoricalBaselineRatio": 1.1069068261287704,
+    "addedLists": 768000,
+    "addedEntries": 7636973,
+    "addedComparisons": 32629332,
+    "allocationEvidence": "in-place neighbor vectors preserve data pointers/capacity/membership in owner law; sort uses fixed stack counters/comparator and libstdc++ introsort; no whole-process allocator trace; existing timing/counting string/map bookkeeping may allocate",
+    "maxChildRssKiB": 21752
+  },
+  "scopeLimits": [
+    "single recorded thread configuration",
+    "no boundary Z-sort/storage permutation",
+    "fixed point-set order",
+    "no emitters or extra force histories",
+    "same-host native double checkpoint",
+    "no hydrostatic/waterfall/refinement qualification",
+    "no WASM/game integration"
+  ]
+}

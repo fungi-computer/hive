@@ -1,0 +1,14 @@
+[
+  {
+    "path": ".botanical/research/environment-round3-20260908/sph-library-fit/upstream/SPlisHSPlasH/Simulation.cpp",
+    "unchanged": true
+  },
+  {
+    "path": ".botanical/research/environment-round3-20260908/sph-library-fit/upstream/SPlisHSPlasH/NeighborhoodSearch.h",
+    "unchanged": true
+  },
+  {
+    "path": ".botanical/research/environment-round3-20260908/sph-library-fit/build/extern/CompactNSearch/src/Ext_NeighborhoodSearch/include/CompactNSearch.h",
+    "unchanged": true
+  }
+]

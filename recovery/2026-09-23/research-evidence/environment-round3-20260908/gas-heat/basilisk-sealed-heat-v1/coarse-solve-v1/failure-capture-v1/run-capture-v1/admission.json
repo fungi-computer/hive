@@ -1,0 +1,19 @@
+{
+  "scope": "One fixed sealed 512-cell room, finite 100 J heater, 2 s horizon.",
+  "invocationId": "aa059b02b0c44e65a895db7b3b6514b1",
+  "argv": [
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/gas-heat/basilisk-sealed-heat-v1/coarse-solve-v1/failure-capture-v1/build-v1/sealed-heat"
+  ],
+  "binary": {
+    "bytes": 774056,
+    "sha256": "d4e2e59ee33defb5ab7d0bfba860cb54c0ddf7440b22aafb93a503e33b7a47d5"
+  },
+  "runner": {
+    "bytes": 5328,
+    "sha256": "07120f0e4c3be8730a3d4cc8ce41e63a9feb0a10448e73fa47128c6d269eca35"
+  },
+  "outerGuardSeconds": 30,
+  "nativeInnerWallCapSeconds": 25,
+  "subprocessTimeoutSeconds": 28,
+  "numericalRuns": 1
+}

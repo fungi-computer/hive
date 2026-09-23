@@ -1,0 +1,8 @@
+{
+  "reference.cpp": "b9b38fbe4f1264ff8f5d6e5741513074dc238876ee8eebce56aad091832431d7",
+  "reference-checkpoint.h": "4fd23f18769591d9ba1f2049bc1f64466748a99ab43aefddbe9505491a8dc3c0",
+  "compile-reference.py": "0c1885037117e56475cf2423820ed786f58a021f279b7430d320ff836f520d1b",
+  "reference": "61cfbf7fcb80674b6ec1a92f3b9e8ed24d11899cf525744ab0ccdfee7b263f5b",
+  "run-restart.py": "e7fb47044c2f1f669544a536e3ebb57981414f7fadad402f0c0d5d62a7bed127",
+  "compile-reference.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

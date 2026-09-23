@@ -1,0 +1,96 @@
+{
+  "scope": "source correction after first compile failure; no second compile or numerical run",
+  "owned": {
+    "sealed-heat.c": {
+      "bytes": 6581,
+      "sha256": "4dfa8c6a6d264746667be7dd1d6996139e7015e93ba8e4db45301db26a324b4a"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "CONTRACT.md": {
+      "bytes": 8654,
+      "sha256": "6638edbacd873060ffd97ae7cb54bb0c12ddc7d4cbd9e8c0e38e797d83dd111a"
+    }
+  },
+  "upstream": {
+    "all-mach.h": {
+      "bytes": 7148,
+      "sha256": "ea6dd43da175fd056ed7775f7ca2dad11b2b363f0997bbdd841ee6abcdfde785"
+    },
+    "compressible/two-phase.h": {
+      "bytes": 13581,
+      "sha256": "6111af5eb899222c320a316cedbb569670ae0a4c31318399c13f49bba4e2f231"
+    },
+    "compressible/thermal.h": {
+      "bytes": 8959,
+      "sha256": "1b685f1279634a6adb4f88da70e3d48c4f7cbc29bcc831db79711bba727f0f47"
+    },
+    "compressible/NASG.h": {
+      "bytes": 3324,
+      "sha256": "c45057c628ddcfe52422fb1964bea00162ed95bc412c78662d9e0f8068415f8b"
+    },
+    "vof.h": {
+      "bytes": 11656,
+      "sha256": "d807da67e8b13cb10ea1ec0ba2742394bd5ab7119da7c96736dc992894aedad6"
+    },
+    "poisson.h": {
+      "bytes": 14079,
+      "sha256": "f7df8d2d0d14bbe1832d4b0cc2fc4ec2fa50f586e80af4f5ecf61af671a333e4"
+    },
+    "run.h": {
+      "bytes": 953,
+      "sha256": "3c8d8f5c40fddd013684c67c6824518589039e2035e605e17e249675eedd6ef7"
+    },
+    "output.h": {
+      "bytes": 35773,
+      "sha256": "6b4550f142fb992ecc4e945d766849ee5696c360345763194a6dbcb69c7015a2"
+    },
+    "grid/events.h": {
+      "bytes": 7584,
+      "sha256": "0e0083811806ae9d37512d24e5b73c2c3c26af10bcf5d106f29c86f4084019a1"
+    },
+    "grid/cartesian-common.h": {
+      "bytes": 30316,
+      "sha256": "ec94500a5bfa6be44ee3a555bd30a27371b80fb6b951b8e137def1e1fa09c86c"
+    },
+    "qcc": {
+      "bytes": 1654088,
+      "sha256": "b7429c88f8e39253015d549bfdbd18ce6253833992ff08e3bf738cb1a3521828"
+    },
+    "timestep.h": {
+      "bytes": 458,
+      "sha256": "7a728bfe633cac8e6682fd8288ec6296a18d1486fb3c5b4b4019d227fb3947b4"
+    },
+    "ast/translate.c": {
+      "bytes": 163526,
+      "sha256": "2f4b2c93d9389e449ca3ab8eb0034eb15a47c9076de61af564ca0b766bff094f"
+    },
+    "grid/multigrid3D.h": {
+      "bytes": 98,
+      "sha256": "a81489d1a42e661e0b1c346f08d41f39d41822d70b8a1a2c2b5162c23ca516e5"
+    }
+  },
+  "prior_native_inputs_unchanged": true,
+  "change_from_first_shape": "The native cutoff event disables later heat calls despite a possible sub-ulp t below1; no heat, time or equations changed.",
+  "change_from_first_compile": "Reduce a local double, then assign heater_volume; qcc cannot reduce static double.",
+  "retained_first_compile": {
+    "build-v1/receipt.json": {
+      "bytes": 1414,
+      "sha256": "eedb20315c3bbd6e33421fcbd010ea97a6f1b8f4426aab484fb13338d8ff31fe"
+    },
+    "build-v1/command-1.log": {
+      "bytes": 93,
+      "sha256": "fe77349d0f75553070fdf109171997d63d584dd37c7020f2b9ddaec82215d627"
+    },
+    "build-v1/sealed-heat.c": {
+      "bytes": 6483,
+      "sha256": "6f4a334a97f4298480e624755222547fb39780d77e813d23affc76f9f2e8f9a9"
+    },
+    "COMPILE-REVIEW.md": {
+      "bytes": 1273,
+      "sha256": "78850f979baca9d72ed4db994d2d4f1e29cb30a727f737805207e596445c362f"
+    }
+  }
+}

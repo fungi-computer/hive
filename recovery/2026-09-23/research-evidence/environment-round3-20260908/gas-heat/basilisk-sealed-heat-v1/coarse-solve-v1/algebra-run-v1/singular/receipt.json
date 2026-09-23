@@ -1,0 +1,15 @@
+{
+  "mode": "singular",
+  "nativeExitCode": 3,
+  "wallSeconds": 0.00290758500341326,
+  "stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "bytes": 43,
+    "sha256": "fc1f823f2b05f74196abfa83b021870cb7ba4cde1b6dbfc080a33ad81fed2a09"
+  },
+  "accepted": true,
+  "errors": []
+}

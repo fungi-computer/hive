@@ -1,0 +1,323 @@
+{
+  "pins": [
+    {
+      "path": "binding.mjs",
+      "sha256": "ee4be4b9e68e97a4a442d3bf51e02255efecc7ba43620538e54f6fe36ae44ef6"
+    },
+    {
+      "path": "DECISION.md",
+      "sha256": "a75782903a8808e7cc12231b855c55b38163a107ffde61191b2fd6ee4019d828"
+    },
+    {
+      "path": "qualify.mjs",
+      "sha256": "1e89e79f588033070d81e9db91961fea19f4eccaea7b2d1353bab8e62522d8d9"
+    },
+    {
+      "path": "../../worldgen/volume-v2/voxel-world.mjs",
+      "sha256": "6aae7b83f71d95f30157f78603de9cc2f90a1d4bf0aab8818e03aebe355e6e3f"
+    },
+    {
+      "path": "../../worldgen/height-sea/terrain.js",
+      "sha256": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf"
+    },
+    {
+      "path": "../transport-v2/checkpoint/geometry.mjs",
+      "sha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14"
+    },
+    {
+      "path": "../transport-v2/checkpoint/solver.mjs",
+      "sha256": "14ef3fa8aa65bc0ba58009a9bbdbfb47d345dbe5cdc1e7020bcaacf8f0b2db6b"
+    },
+    {
+      "path": "../transport-v2/checkpoint/transport.mjs",
+      "sha256": "51faac0c0a9e1eae18f46e964f6ce4ecc598c4f67d59c7f81924c13e6e32dfae"
+    },
+    {
+      "path": "../transport-v2/checkpoint/physics.mjs",
+      "sha256": "50f82527649ee66e9a356e7dbbe23b956b1b5792f8d3a56c141063e51c65486b"
+    }
+  ],
+  "wallMs": 5512.278919,
+  "cpuMs": 1922.292,
+  "rssBytes": 111267840,
+  "rows": [
+    {
+      "name": "actual generated cave pocket and 3D point-read geometry",
+      "status": "pass",
+      "compiledPointReads": 512,
+      "compileWork": {
+        "coldGeneratedBricks": 4,
+        "decodedBaseCells": 16384,
+        "heightColumnSamples": 1024,
+        "caveMetricEvaluations": 16384,
+        "evictions": 2,
+        "residentBricks": 2,
+        "residentBytes": 8192,
+        "changedCells": 0
+      },
+      "pocketAir": 36,
+      "fluidCells": 439,
+      "faces": 1132,
+      "implicitInitialReferenceAirKg": 284.472,
+      "sealedWindow": true,
+      "mapping": [
+        {
+          "at": {
+            "x": 18,
+            "y": -48,
+            "z": -64
+          },
+          "brick": "1,-3,-4",
+          "brickIndex": 2,
+          "material": 0
+        },
+        {
+          "at": {
+            "x": 19,
+            "y": -47,
+            "z": -62
+          },
+          "brick": "1,-3,-4",
+          "brickIndex": 291,
+          "material": 0
+        },
+        {
+          "at": {
+            "x": 16,
+            "y": -49,
+            "z": -65
+          },
+          "brick": "1,-4,-5",
+          "brickIndex": 4080,
+          "material": 0
+        }
+      ],
+      "geometryIdentitySha256": "feb7f540bddb3f0d85c2481668dc93a18cc446b29968d766c11983cb35858330",
+      "wallMs": 1259.970936
+    },
+    {
+      "name": "negative x/z zero and negative y brick boundaries",
+      "status": "pass",
+      "pointReads": 64,
+      "work": {
+        "coldGeneratedBricks": 8,
+        "decodedBaseCells": 32768,
+        "heightColumnSamples": 2048,
+        "caveMetricEvaluations": 32768,
+        "evictions": 0,
+        "residentBricks": 8,
+        "residentBytes": 32768,
+        "changedCells": 0
+      },
+      "boundaryPoints": [
+        {
+          "world": [
+            -1,
+            -17,
+            -1
+          ],
+          "center": [
+            -0.5,
+            -8.91,
+            -0.5
+          ],
+          "fluid": false
+        },
+        {
+          "world": [
+            0,
+            -17,
+            -1
+          ],
+          "center": [
+            0.5,
+            -8.91,
+            -0.5
+          ],
+          "fluid": false
+        },
+        {
+          "world": [
+            -1,
+            -16,
+            -1
+          ],
+          "center": [
+            -0.5,
+            -8.370000000000001,
+            -0.5
+          ],
+          "fluid": false
+        },
+        {
+          "world": [
+            0,
+            -16,
+            -1
+          ],
+          "center": [
+            0.5,
+            -8.370000000000001,
+            -0.5
+          ],
+          "fluid": false
+        },
+        {
+          "world": [
+            -1,
+            -17,
+            0
+          ],
+          "center": [
+            -0.5,
+            -8.91,
+            0.5
+          ],
+          "fluid": false
+        },
+        {
+          "world": [
+            0,
+            -17,
+            0
+          ],
+          "center": [
+            0.5,
+            -8.91,
+            0.5
+          ],
+          "fluid": false
+        },
+        {
+          "world": [
+            -1,
+            -16,
+            0
+          ],
+          "center": [
+            -0.5,
+            -8.370000000000001,
+            0.5
+          ],
+          "fluid": false
+        },
+        {
+          "world": [
+            0,
+            -16,
+            0
+          ],
+          "center": [
+            0.5,
+            -8.370000000000001,
+            0.5
+          ],
+          "fluid": false
+        }
+      ],
+      "wallMs": 932.0285529999999
+    },
+    {
+      "name": "brick eviction is not a world or gas revision",
+      "status": "pass",
+      "work": {
+        "coldGeneratedBricks": 4,
+        "decodedBaseCells": 16384,
+        "heightColumnSamples": 1024,
+        "caveMetricEvaluations": 16384,
+        "evictions": 4,
+        "residentBricks": 2,
+        "residentBytes": 8192,
+        "changedCells": 0
+      },
+      "geometryExact": true,
+      "worldRevision": 0,
+      "terrainOverrides": 0,
+      "wallMs": 507.53741599999967
+    },
+    {
+      "name": "nonzero gas step, source conservation and same-domain world/gas reload",
+      "status": "pass",
+      "source": {
+        "x": 19,
+        "y": -47,
+        "z": -62
+      },
+      "sourceIndex": 283,
+      "seconds": 2,
+      "maxFaceSpeedMS": 0.000905592613234472,
+      "maxKelvin": 293.24203078872296,
+      "tracerSourceKg": 0.000019999999999999985,
+      "heatSourceJ": 59.999999999999964,
+      "massErrorKg": 6.776263578034403e-21,
+      "heatErrorJ": 3.552713678800501e-14,
+      "maxCellFluxImbalanceM3S": 9.936089688551014e-12,
+      "exactReload": true,
+      "checkpointChanges": 0,
+      "pressureSolves": 40,
+      "iterations": 2734,
+      "matrixProducts": 2734,
+      "operatorBuilds": 1,
+      "workspaceBytes": 42688,
+      "scalarCacheBuilds": 1,
+      "scalarEulerStages": 80,
+      "scalarFaceEvaluations": 90560,
+      "scalarReconstructions": 160,
+      "scalarRejectedStages": 0,
+      "scalarWorkspaceBytes": 122240,
+      "wallMs": 1360.4811559999998
+    },
+    {
+      "name": "foreign world and realm reject without a gas call",
+      "status": "pass",
+      "rejections": [
+        {
+          "change": {
+            "worldId": "other-world"
+          },
+          "error": "stale or foreign voxel gas binding"
+        },
+        {
+          "change": {
+            "spaceId": "other-realm"
+          },
+          "error": "stale or foreign voxel gas binding"
+        }
+      ],
+      "stateUntouched": true,
+      "solverCallsAdded": 0,
+      "wallMs": 4.9492850000006
+    },
+    {
+      "name": "fill then reopen voxel: reject before steps, preserve quantities, no remap",
+      "status": "pass",
+      "fill": {
+        "ok": true,
+        "revision": 1,
+        "changedBricks": [
+          "1,-3,-4"
+        ]
+      },
+      "reopen": {
+        "ok": true,
+        "revision": 2,
+        "changedBricks": [
+          "1,-3,-4"
+        ]
+      },
+      "sourceGasIndex": 283,
+      "wrongAxisIndex": 227,
+      "brickIndex": 291,
+      "wrongBrickAxisIndex": 531,
+      "retainedSourceHeatJ": 59.934130847951515,
+      "retainedSourceTracerKg": 0.000019980644865921345,
+      "staleRejected": true,
+      "changedShapeRestoreRejected": true,
+      "sameShapeNewRevisionRejected": true,
+      "gasStateUntouched": true,
+      "newGasInitialized": false,
+      "solverCallsAdded": 0,
+      "wallMs": 1437.9651239999994
+    }
+  ]
+}

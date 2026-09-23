@@ -1,0 +1,78 @@
+{
+  "scope": "Compile only; neither fixed wave case executed.",
+  "invocationId": "a007c1869b394f47bdcbf12ee29091df",
+  "reviewedSourcePinsSha256": "7e5ddf9b809ff75dd79bbca859fe40e3446873f203ff61e1ebe54041f42646f3",
+  "commands": [
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-events",
+        "-source",
+        "wave.c"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 2.776800481020473,
+      "log": "command-1.log"
+    },
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "wave.c",
+        "-o",
+        "wave",
+        "-lm"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 11.481493629980832,
+      "log": "command-2.log"
+    }
+  ],
+  "exitCode": 0,
+  "wallSeconds": 14.258421042992268,
+  "files": [
+    {
+      "path": "_wave.c",
+      "sha256": "654c190f8ace5d281c48a461b2171e027a0b8238e3fb6bf57fe42a30953e0544",
+      "bytes": 1816726
+    },
+    {
+      "path": "command-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "command-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "compile-wave.py",
+      "sha256": "f1be1b1183c39238c5c58d5ca2c2e46f4c1bec08f0a78dba458a85b2c6d5620c",
+      "bytes": 2631
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "7e5ddf9b809ff75dd79bbca859fe40e3446873f203ff61e1ebe54041f42646f3",
+      "bytes": 2155
+    },
+    {
+      "path": "wave",
+      "sha256": "b51fc305dcf1047c2fb49120d9ee8e373b956ae64f129a059027f3f1f9a4885b",
+      "bytes": 385592
+    },
+    {
+      "path": "wave-observation.h",
+      "sha256": "8e018f7eaa26a536f7d8e5b3ba30ebff0ab903f950ace30a536bbb2cd7d9d3ea",
+      "bytes": 9221
+    },
+    {
+      "path": "wave.c",
+      "sha256": "8358ae268ec83b239d4ddeffbbea14828582dddc9d263be67142858749a85426",
+      "bytes": 5958
+    }
+  ]
+}

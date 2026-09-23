@@ -1,0 +1,5 @@
+{
+  "baseline": "../reference/terrain.js",
+  "sha256": "1e0c01b88d6a28e60ef2cd150bf98c085612df3a75a57793a27d5d70c230af34",
+  "candidate": "height-sea terrain definition copied from the pinned sampler then recut in this directory only"
+}

@@ -1,0 +1,96 @@
+{
+  "scope": "Root-reviewed transport source with separately authorized 120-second native observation window; precompile freeze.",
+  "legacyPredecessor": {
+    "run": "u3386.scope",
+    "passed": false
+  },
+  "activeBudgetM3PerM": 5.4e-07,
+  "files": [
+    {
+      "path": "BASELINE.json",
+      "bytes": 3716,
+      "sha256": "1b8cf4045a7b9ce857a0e570edce7e51daa8e7d4a2ac5974030a309542677ae5"
+    },
+    {
+      "path": "CONTRACT.md",
+      "bytes": 8071,
+      "sha256": "c589739e664c6620549b64227b6905c22393284786449e4c44760678b92adbe2"
+    },
+    {
+      "path": "FIRST-SHAPE.md",
+      "bytes": 1143,
+      "sha256": "9500323cddbe739f5f6b430d030d47c468106d257054cdb856fd998491ff3388"
+    },
+    {
+      "path": "SOURCE-INVENTORY.json",
+      "bytes": 7575,
+      "sha256": "326826caf136bfdefbc9bf00ce5cd63e633b29dab4314e81af8871634e9a3f75"
+    },
+    {
+      "path": "caller.patch",
+      "bytes": 7816,
+      "sha256": "3b11fff21b6e7dab09ee95362692bf175cd17bcb283ceda8f30be468c675fb47"
+    },
+    {
+      "path": "compare-wave.mjs",
+      "bytes": 14199,
+      "sha256": "f171af527a4e958f1518a7fee9b8eb3d7eb3b515bbf46f52cdfe2f5d6883c5a6"
+    },
+    {
+      "path": "compile-wave.py",
+      "bytes": 2750,
+      "sha256": "264f6dc1078d85ad47f024f83a45aecda3f00cb06c71b2dcb76854987bc7ee40"
+    },
+    {
+      "path": "force_accounting.py",
+      "bytes": 6119,
+      "sha256": "06b672128c88075c7304d7508013469e3ea20bd6959e17d23cf76fc49a1a8bcf"
+    },
+    {
+      "path": "oracle/oracle.mjs",
+      "bytes": 3302,
+      "sha256": "1b9ae075cc53816831945a0f9f8f023f6bf395da53352ac4dfe8ceeb02076c84"
+    },
+    {
+      "path": "run-wave.py",
+      "bytes": 6581,
+      "sha256": "e422d64675249705933555609e31877a0a3c5722071a3d9b0d492a9e5cc51616"
+    },
+    {
+      "path": "runner.patch",
+      "bytes": 7228,
+      "sha256": "4124597c09160b4a18f88f9cd8d9621737b363557a5e49c5e2514a5d0acaf188"
+    },
+    {
+      "path": "transport_accounting.py",
+      "bytes": 8394,
+      "sha256": "7fc7e1414728d81aa466f383ae76c1c4a9037396fe32b97c9d187960787ff2a6"
+    },
+    {
+      "path": "wave-observation.h",
+      "bytes": 9461,
+      "sha256": "c874670a3b587048fb587a5e0534ea30a38f02d9763aecac9ab1cbd9257da513"
+    },
+    {
+      "path": "wave-reduced-observation.h",
+      "bytes": 7230,
+      "sha256": "b8006c656359e8d44700cc8a60065dc4c6522c71fc96041022a215505bbcf16c"
+    },
+    {
+      "path": "wave-transport-observation.h",
+      "bytes": 14696,
+      "sha256": "c6f1579028dd5404af024c39c41696130d86042f074abe1fd9c34d1bc5df79d7"
+    },
+    {
+      "path": "wave.c",
+      "bytes": 7127,
+      "sha256": "e2461cb3807766f85ed6ea3b8aeb3ced7628393bbaef2b44fb89f66dc51724ba"
+    },
+    {
+      "path": "observation-window.patch",
+      "bytes": 2487,
+      "sha256": "19c4e466d2c395835f0173a7774f36d709e7cfc6efe190514522a5a7802905f2"
+    }
+  ],
+  "combinedNativeCeilingSeconds": 120
+}

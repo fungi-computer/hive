@@ -1,0 +1,15 @@
+{
+  "mode": "geometry",
+  "nativeExitCode": 3,
+  "wallSeconds": 0.004411563975736499,
+  "stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "bytes": 42,
+    "sha256": "b5d0c2ba21621ccd2c5e823dc308a4f12154c4920eb427f9cc3242503e823d51"
+  },
+  "accepted": true,
+  "errors": []
+}

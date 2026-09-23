@@ -1,0 +1,25 @@
+{
+  "scope": "Pinned source, no production mutation",
+  "files": [
+    {
+      "path": "src/world-lab/terrain.js",
+      "sha256": "1e0c01b88d6a28e60ef2cd150bf98c085612df3a75a57793a27d5d70c230af34"
+    },
+    {
+      "path": "src/world-lab/section.js",
+      "sha256": "be1370bca6b34cd83812090627bce1dca5d6e2bc31efa54a8233c6d5c061598b"
+    },
+    {
+      "path": "src/world-lab/worker.js",
+      "sha256": "5dbb3817947c16bbc387721403070375e5f4e609067b436c021743ee854cbef7"
+    },
+    {
+      "path": "src/world-lab/main.js",
+      "sha256": "fcec884e5eae1188deb08f9c605be7655b6ce2609db3359236f7fbfa42f4cfa2"
+    },
+    {
+      "path": "src/art/scale.js",
+      "sha256": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c"
+    }
+  ]
+}

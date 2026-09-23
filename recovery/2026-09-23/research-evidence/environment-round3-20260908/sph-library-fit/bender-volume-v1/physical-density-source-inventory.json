@@ -1,0 +1,23 @@
+{
+  "status": "source/algorithm note only; no physical-density map, solver execution, library change or port",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "note": "PHYSICAL-DENSITY-INPUT-FIT.md",
+  "noteSha256": "375966a92524a73f6572d1a8d51369d35066f20f26f115b369a100f6275551dd",
+  "sourceSha256": {
+    "upstream/SPlisHSPlasH/BoundaryModel_Koschier2017.h": "09bf5f8925a09409cb7f7bc50452e145ed90379d5d5f9d19dfee91098774cd38",
+    "upstream/SPlisHSPlasH/BoundaryModel_Koschier2017.cpp": "a8b6523daf58c7a4beae034f39c77aedc71d17331e59dc4f71d6cfc3ea6f1bb3",
+    "upstream/SPlisHSPlasH/BoundaryModel.h": "bae175eb4030b52eb204c4d6dc47996c257725662d89ba4afa1f04e612a9f028",
+    "upstream/SPlisHSPlasH/BoundaryModel.cpp": "51384cfea44a9545c29a2d314019f4d52bbc14f65796776e85713cf1e1ad8130",
+    "upstream/SPlisHSPlasH/TimeStep.h": "02ae6046db7b8fc717b3a24775e2f9c2f3f1b30544c523426f45c75ec3dd1c53",
+    "upstream/SPlisHSPlasH/TimeStep.cpp": "07be5993b2038fb5360b696412a4a8fb4706c2e2bfa4b976567db20a6c55773c",
+    "upstream/SPlisHSPlasH/Simulation.h": "2d11a8dcd2dc96ee297944ad46640f7142c52d465cf5a5689e47ec5b9094d36c",
+    "upstream/SPlisHSPlasH/DFSPH/TimeStepDFSPH.h": "759fb7b2ea860cf6383fd8e6e7571bf32428666a28e540ddaa56bfe7fd35c264",
+    "upstream/SPlisHSPlasH/DFSPH/TimeStepDFSPH.cpp": "5dcc295c24fbf083c200f264e2284516a540b5b1b61747cdea80a56ac74e9889",
+    "upstream/Simulator/SimulatorBase.cpp": "b56506c8e88c2bc2ec26fc96e9305ca24e36a9ee10a35263cce161a9f44dde33",
+    "stable-order-v1/dependencies/Discregrid/discregrid/src/cubic_lagrange_discrete_grid.cpp": "3a4645184f8ae1db2b589eb451568e5a5cb015671fa73505aaf9c9136cbbbdac",
+    "stable-order-v1/build/lib/libSPlisHSPlasH.a": "68cb48d6331e3a86c695ee69edd8ccc6e8023fad30b4faa2bf017897e11d4d87"
+  },
+  "priorV2HandoffSha256": "ec5d6494ff32cf5353ae42cab2a63cfb94004329df8b451e4ef4065b12080c3b",
+  "frozenV2InventoryVerifiedUnchanged": true,
+  "binarySymbolCheck": "read-only nm confirms real Koschier initModel, computeDensityAndGradient, DFSPH factor/rate/acceleration/matrix operations in frozen library"
+}

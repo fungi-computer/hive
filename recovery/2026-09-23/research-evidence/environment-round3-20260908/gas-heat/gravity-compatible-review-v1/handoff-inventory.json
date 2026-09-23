@@ -1,0 +1,22 @@
+{
+  "CHECKPOINTS.md": {
+    "bytes": 6825,
+    "sha256": "691a31f4a62fb6569555f31e56a83623384637487258328222f964d49fb29613"
+  },
+  "DECISION.md": {
+    "bytes": 15692,
+    "sha256": "ad5a8ce00b1df7b865ee60044e32326bfcd362c223adc92303fa8c823bc8e5af"
+  },
+  "HANDOFF.md": {
+    "bytes": 1687,
+    "sha256": "eebd82e64eb73117a5d98afa2eabffc61917e9e0a6c6f31d46ae5f8878f1f49d"
+  },
+  "PRIMARY-SOURCES.md": {
+    "bytes": 3084,
+    "sha256": "cfb45567d6fb162e70604e75652bf6b616869b1bfe93b1d4ce7da28a8ac69383"
+  },
+  "source-inventory.json": {
+    "bytes": 1921,
+    "sha256": "3ec4f26e6db72102097915800ec2db5ab0809e2673b853d7a39fae1fcb905c19"
+  }
+}

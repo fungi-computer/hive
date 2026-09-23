@@ -1,0 +1,94 @@
+{
+  "scope": "Exact representation-discrimination and instantaneous Darcy tendencies; no integration/convergence/infiltration-performance or Richards validation claim",
+  "params": {
+    "thetaR": 0.05,
+    "thetaS": 0.45,
+    "alpha": 2,
+    "n": 2,
+    "m": 0.5,
+    "Ks": 0.0001,
+    "Ss": 0.001,
+    "bulkVolume": 1,
+    "faceArea": 1,
+    "ell": 0.25
+  },
+  "a": {
+    "name": "dry-top-wet-bottom",
+    "pond": {
+      "bed": 0,
+      "area": 1,
+      "volume": 0.1
+    },
+    "cells": [
+      {
+        "z": -0.25,
+        "psi": -1,
+        "water": 0.2288854381999832
+      },
+      {
+        "z": -1.25,
+        "psi": 0.5,
+        "water": 0.4505
+      }
+    ],
+    "cumulativeInfiltrationLabel": 0,
+    "porousTotal": 0.6793854381999832,
+    "Hpond": 0.1,
+    "Htop": -1.25,
+    "conductivity": 7.453523980583214e-7,
+    "signedPondToSoilM3PerS": 0.000004024902949514936,
+    "direction": "infiltration",
+    "afterPointOneSeconds": {
+      "pond": 0.09999959750970505,
+      "top": 0.22888584069027815,
+      "bottom": 0.4505
+    },
+    "massError": 0
+  },
+  "b": {
+    "name": "wet-top-dry-bottom",
+    "pond": {
+      "bed": 0,
+      "area": 1,
+      "volume": 0.1
+    },
+    "cells": [
+      {
+        "z": -0.25,
+        "psi": 0.5,
+        "water": 0.4505
+      },
+      {
+        "z": -1.25,
+        "psi": -1,
+        "water": 0.2288854381999832
+      }
+    ],
+    "cumulativeInfiltrationLabel": 0,
+    "porousTotal": 0.6793854381999832,
+    "Hpond": 0.1,
+    "Htop": 0.25,
+    "conductivity": 0.0001,
+    "signedPondToSoilM3PerS": -0.00006,
+    "direction": "exfiltration",
+    "afterPointOneSeconds": {
+      "pond": 0.10000600000000001,
+      "top": 0.450494,
+      "bottom": 0.2288854381999832
+    },
+    "massError": 0
+  },
+  "stockCompression": {
+    "atZeroPressure": 0.45,
+    "atHalfMetrePressure": 0.4505,
+    "occupiedPoreVolumeBoth": 0.45,
+    "extraReferenceDensityStockFromSpecificStorage": 0.0005000000000000004
+  },
+  "checks": {
+    "equalTotal": true,
+    "oppositeRequiredDirections": true,
+    "retentionRoundtrip": true,
+    "pairedBalance": true
+  },
+  "implication": "A single soil/groundwater total or cumulative infiltration number maps both valid states to the same description yet must choose opposite surface exchange. Preserve disjoint porous distribution and retention/head, or explicitly decline reversed seepage. Saturated reference-density storage is not extra geometrical pore capacity."
+}

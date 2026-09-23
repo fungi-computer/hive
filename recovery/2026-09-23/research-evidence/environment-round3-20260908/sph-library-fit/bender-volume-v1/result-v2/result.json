@@ -1,0 +1,4882 @@
+{
+  "scope": "static real Bender2019 map/contact consumer; fixed 540kg / 600 fluid particles, inverted complete box, no timestep",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "grids": [
+    [
+      18,
+      19,
+      18
+    ],
+    [
+      36,
+      38,
+      36
+    ]
+  ],
+  "queriesPerGrid": 18,
+  "nativeMapAuthoring": "verbatim retained volume-function leaf uses mapped SDF field0; native Gauss rule30; sparse required-node input only, full field topology",
+  "witnesses": "mapped SDF versus direct inverted mesh versus independent analytic box, each direct rule30 and query-only rule50; independent continuum GL48",
+  "controls": {
+    "nonnegativeInterpolatedVolume": "all fixed queries >= 0; failed flag retained even when native consumer ignores it",
+    "meshSdfM": 1e-12,
+    "fineOffSurfaceSdfDivR": 0.01,
+    "fineVolumeInterpolationDivR3": 0.01,
+    "rule30Rule50VolumeDivR3": 0.01,
+    "contactPositionM": 1e-14,
+    "positiveState": "exact",
+    "restoration": "exact"
+  },
+  "preservedFirstFailure": "c52b928fc0a752049f261ccb24293ac6bfeef9ddc5f870d9c5786947b43a829b",
+  "captureCorrection": "same numerical fields; nonnegative volume remains a false control when violated, but observations complete",
+  "physicalQualification": "unqualified; a passing static map/control packet is not passing hydrostatics or a port",
+  "sources": {
+    "SOURCE-FIT.md": "c84ae885409e0291237e5bc8dc22da8e40e5b9f8bee00f32fdf98cb60f8d1751",
+    "FIRST-SHAPE.md": "5e48644163371a38a7633a209e1cfd1e9eebc595750eadbfdee057d3babfdf47",
+    "CAPTURE.md": "95e3fb2c2d76b5dc028c0277861a425adbc273d288240256bc80b6345a4642df",
+    "geometry.h": "7e5e8181d94e54e7fed574c53fa582a89feae7a9ab485eb01b33ce48ada18396",
+    "continuum.h": "012d85f997c78d48a148b6f54d5a86bd727f2b5936725842984018de9821181e",
+    "map-input.h": "c803d1534291f6b47115994196cd04e4af6ce932b1a43037763b0428639cffce",
+    "probes.h": "e7ad028fbdbfcfbf7a3ceffda18b09bed9034f7a781868e372361f2cddbb1e86",
+    "native-volume-leaf.inc": "1ca2154acf1d3234b4dd7260841356d90371c5f1eff27a4a680ee0b429d4e2e5",
+    "leaf-provenance.json": "88e0571ba931f015b71516687e36d262c04cfc3716225a19c38a3f43280cbd4f",
+    "reference.cpp": "5a81756e0cdadca8b852cfaba5da2d58f60741817e12f1068235ed5fc0eb526f",
+    "reference": "113d53ea30be2438a9fd031426ae788dd13e0fd4a376435a798aba11b7233069",
+    "compile-reference.py": "aa220331d9891354039feb0988d293b9e90f693d5aa1afdc6295a2717bdaa586",
+    "compile-command.json": "36732ffc36a8929b28efcca949b2ea81bb2dbb8498e885afeec0b47a1fc1314d",
+    "run-proof.py": "e90e65706485bccc93fb8a0f954ae6268403da12edf38aa84905fccd345ce803"
+  },
+  "frozenColdOracle": "cde1510068aa9ec58502b81f5f167829030a37d1c0683238fbd90824075401c7",
+  "frozenPhysicalFailure": "00f47dfe93ad78ebe80378d99ca0766565e476741b9177cb419aa55f318cfd96",
+  "frozenLibraries": {
+    "build/lib/libSPlisHSPlasH.a": "68cb48d6331e3a86c695ee69edd8ccc6e8023fad30b4faa2bf017897e11d4d87",
+    "build/extern/install/NeighborhoodSearch/lib/libCompactNSearch.a": "1bb78be2e724e6d8da0f1a9ea04409c8bbe4e577faea8267139ce0c93623c8ad",
+    "build/extern/install/Discregrid/lib/libDiscregrid.a": "2e23c922c401dfcbf3fa8559ff8670a7d65b443064083b48e0cafe6f61d98d1b"
+  },
+  "pass": false,
+  "exit": 1,
+  "probes": [
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "bulk",
+      "positionM": [
+        0.45,
+        0.225,
+        0.45
+      ],
+      "initialParticleId": 264,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.22499999999999998,
+      "directMeshDistanceM": 0.22499999999999995,
+      "mappedDistanceM": 0.22499999999999987,
+      "mappedGradient": [
+        -3.545134185846299e-15,
+        1.000000000000001,
+        2.1816210374438764e-15
+      ],
+      "interpolatedVolumeM3": 0.0024090923213034425,
+      "mappedSdfVolume30M3": 0.0024068457815726446,
+      "mappedSdfVolume50M3": 0.002252897442204767,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "outside-active-support",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.0003810501345146024,
+      "authoredCoefficientMaxM3": 0.004836098253544273,
+      "interpolationWeightMin": -0.3748161996452844,
+      "interpolationWeightMax": 0.2417199698913935,
+      "directMeshVolume30M3": 0.0024068243753465513,
+      "directMeshVolume50M3": 0.0022528936546680717,
+      "analyticBoxVolume30M3": 0.002406824375346549,
+      "analyticBoxVolume50M3": 0.002252893654668075,
+      "volumeInterpolationErrorM3": 2.2465397307978342e-06,
+      "sdfAuthoringVolumeErrorM3": 2.1406226093350494e-08,
+      "meshGeometryVolumeErrorM3": 2.168404344971009e-18,
+      "contact": {
+        "mappedDistanceM": 0.22499999999999987,
+        "mappedNormalRaw": [
+          -3.545134185846299e-15,
+          1.000000000000001,
+          2.1816210374438764e-15
+        ],
+        "beforePositionM": [
+          0.45,
+          0.225,
+          0.45
+        ],
+        "afterPositionM": [
+          0.45,
+          0.225,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 1.0031451389156825,
+        "gradientPerM": [
+          3.8307287652102596e-17,
+          1.0567112750927113e-16,
+          1.4604898893874864e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.9999999485967409,
+          "gradientPerM": [
+            -5.922700835100607e-16,
+            5.314581657539653e-16,
+            -1.9895913222919918e-16
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 1.0031451389156825,
+      "expectedCombinedDensity": 0.9999999485967409,
+      "measuredNativeVsPhysicalDensityError": 0,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        0,
+        0,
+        0
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "floor",
+      "positionM": [
+        0.45,
+        0.045000000000000005,
+        0.45
+      ],
+      "initialParticleId": 244,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.044999999999999984,
+      "directMeshDistanceM": 0.04499999999999999,
+      "mappedDistanceM": 0.04499999999999971,
+      "mappedGradient": [
+        7.908376260734052e-15,
+        0.999999999999996,
+        6.272160482651145e-15
+      ],
+      "interpolatedVolumeM3": 0.018959176328275457,
+      "mappedSdfVolume30M3": 0.01895847197245732,
+      "mappedSdfVolume50M3": 0.018365955856097436,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.01445939610199925,
+      "authoredCoefficientMaxM3": 0.024612695171260312,
+      "interpolationWeightMin": -0.3526709400992041,
+      "interpolationWeightMax": 0.21077153799618825,
+      "directMeshVolume30M3": 0.018958471972457352,
+      "directMeshVolume50M3": 0.018365955856097432,
+      "analyticBoxVolume30M3": 0.018958471972457338,
+      "analyticBoxVolume50M3": 0.018365955856097432,
+      "volumeInterpolationErrorM3": 7.043558181360488e-07,
+      "sdfAuthoringVolumeErrorM3": -3.122502256758253e-17,
+      "meshGeometryVolumeErrorM3": 1.3877787807814457e-17,
+      "contact": {
+        "mappedDistanceM": 0.04499999999999971,
+        "mappedNormalRaw": [
+          7.908376260734052e-15,
+          0.999999999999996,
+          6.272160482651145e-15
+        ],
+        "beforePositionM": [
+          0.45,
+          0.045000000000000005,
+          0.45
+        ],
+        "afterPositionM": [
+          0.45,
+          0.045000000000000005,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.4499999999999992,
+          -0.059004191152595205,
+          0.44999999999999934
+        ],
+        "effectiveVolumeM3": 0.018959176328275457,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.3410874311694927,
+      "nativeBoundaryGradientOperatorPerM": [
+        -3.097049553449442e-13,
+        -38.68365504006342,
+        -2.4776396427595537e-13
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.8048921865512679,
+        "gradientPerM": [
+          3.8307287652102596e-17,
+          5.41232540283454,
+          1.4604898893874864e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.7778189376061522,
+          "gradientPerM": [
+            1.1268038452954767e-14,
+            5.139480171557462,
+            -1.3205225553118643e-18
+          ]
+        },
+        "solid": {
+          "density": 0.22218108014828764,
+          "gradientPerM": [
+            -3.0101208517200007e-15,
+            -5.139486317658902,
+            -1.2118828718602844e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.1459796177207604,
+      "expectedCombinedDensity": 1.0000000177544397,
+      "measuredNativeVsPhysicalDensityError": 1.118906351021205,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -3.066948344932242e-13,
+        -33.54416872240452,
+        -2.477627523930835e-13
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "side",
+      "positionM": [
+        0.05,
+        0.225,
+        0.45
+      ],
+      "initialParticleId": 260,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.04999999999999999,
+      "directMeshDistanceM": 0.04999999999999947,
+      "mappedDistanceM": 0.049999999999999004,
+      "mappedGradient": [
+        1.000000000000031,
+        -2.6339753558131174e-14,
+        1.377148279886447e-14
+      ],
+      "interpolatedVolumeM3": 0.019164605074922642,
+      "mappedSdfVolume30M3": 0.01915834473468425,
+      "mappedSdfVolume50M3": 0.018507817100950123,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.014010303997917773,
+      "authoredCoefficientMaxM3": 0.024863716887530446,
+      "interpolationWeightMin": -0.42124030226998593,
+      "interpolationWeightMax": 0.27495115085644417,
+      "directMeshVolume30M3": 0.019005608747740366,
+      "directMeshVolume50M3": 0.01837358737732325,
+      "analyticBoxVolume30M3": 0.019005608747740373,
+      "analyticBoxVolume50M3": 0.018373587377323235,
+      "volumeInterpolationErrorM3": 6.260340238390533e-06,
+      "sdfAuthoringVolumeErrorM3": 0.00015273598694388532,
+      "meshGeometryVolumeErrorM3": -6.938893903907228e-18,
+      "contact": {
+        "mappedDistanceM": 0.049999999999999004,
+        "mappedNormalRaw": [
+          1.000000000000031,
+          -2.6339753558131174e-14,
+          1.377148279886447e-14
+        ],
+        "beforePositionM": [
+          0.05,
+          0.225,
+          0.45
+        ],
+        "afterPositionM": [
+          0.05,
+          0.225,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.05400419115259521,
+          0.22500000000000275,
+          0.44999999999999857
+        ],
+        "effectiveVolumeM3": 0.019164605074922642,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.3556185429308496,
+      "nativeBoundaryGradientOperatorPerM": [
+        -39.1028048297492,
+        1.033100335443664e-12,
+        -5.426385600310154e-13
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.8386792304896252,
+        "gradientPerM": [
+          5.066958477368336,
+          -1.1637347741576018e-16,
+          -2.98040220911314e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.8027225995799242,
+          "gradientPerM": [
+            4.819409647672508,
+            -7.601341290675167e-17,
+            5.199516709804198e-19
+          ]
+        },
+        "solid": {
+          "density": 0.19727740885518433,
+          "gradientPerM": [
+            -4.8194059637288635,
+            3.638104363923685e-17,
+            -8.48391612089934e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.194297773420475,
+      "expectedCombinedDensity": 1.0000000084351086,
+      "measuredNativeVsPhysicalDensityError": 1.1583411340756653,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -34.28339886602034,
+        1.0330639544000248e-12,
+        -5.426300761148945e-13
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "vertical-edge",
+      "positionM": [
+        0.05,
+        0.225,
+        0.05
+      ],
+      "initialParticleId": 20,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.04999999999999999,
+      "directMeshDistanceM": 0.050000000000000024,
+      "mappedDistanceM": 0.025966575000178366,
+      "mappedGradient": [
+        0.5559101286772964,
+        4.068181832276804e-15,
+        0.5559101286772963
+      ],
+      "interpolatedVolumeM3": 0.025926067261364132,
+      "mappedSdfVolume30M3": 0.025935065793458847,
+      "mappedSdfVolume50M3": 0.02503979099724625,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.021373365275332602,
+      "authoredCoefficientMaxM3": 0.029538339484975543,
+      "interpolationWeightMin": -0.4733448890136559,
+      "interpolationWeightMax": 0.3127508885229875,
+      "directMeshVolume30M3": 0.02555932424546345,
+      "directMeshVolume50M3": 0.024729654097669865,
+      "analyticBoxVolume30M3": 0.02555932424546344,
+      "analyticBoxVolume50M3": 0.024729654097669876,
+      "volumeInterpolationErrorM3": -8.998532094715156e-06,
+      "sdfAuthoringVolumeErrorM3": 0.00037574154799539794,
+      "meshGeometryVolumeErrorM3": 1.0408340855860843e-17,
+      "contact": {
+        "mappedDistanceM": 0.025966575000178366,
+        "mappedNormalRaw": [
+          0.5559101286772964,
+          4.068181832276804e-15,
+          0.5559101286772963
+        ],
+        "beforePositionM": [
+          0.05,
+          0.225,
+          0.05
+        ],
+        "afterPositionM": [
+          0.05,
+          0.225,
+          0.05
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.023542068835822005,
+          0.22499999999999948,
+          -0.023542068835821994
+        ],
+        "effectiveVolumeM3": 0.025926067261364132,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.83389417039263,
+      "nativeBoundaryGradientOperatorPerM": [
+        -37.40500194815174,
+        -2.682240267615432e-13,
+        -37.40500194815173
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.6983598778892423,
+        "gradientPerM": [
+          4.2048081295307975,
+          -1.1637347741576018e-16,
+          4.204808129530797
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.6428274530723931,
+          "gradientPerM": [
+            3.8591982250629493,
+            2.934157670913372e-17,
+            3.859198225062956
+          ]
+        },
+        "solid": {
+          "density": 0.35717256377712936,
+          "gradientPerM": [
+            -3.859194909489405,
+            -4.677213209245925e-17,
+            -3.8591941045117295
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.5322540482818723,
+      "expectedCombinedDensity": 1.0000000168495224,
+      "measuredNativeVsPhysicalDensityError": 1.4767216066155004,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -33.54580703866234,
+        -2.6817725462945075e-13,
+        -33.54580784364
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "floor-edge",
+      "positionM": [
+        0.05,
+        0.045000000000000005,
+        0.45
+      ],
+      "initialParticleId": 240,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.044999999999999984,
+      "directMeshDistanceM": 0.04499999999999999,
+      "mappedDistanceM": 0.025045901244783057,
+      "mappedGradient": [
+        0.5338624507585245,
+        0.5903811722221011,
+        -6.817565742012114e-15
+      ],
+      "interpolatedVolumeM3": 0.02588887948886918,
+      "mappedSdfVolume30M3": 0.02589711006960227,
+      "mappedSdfVolume50M3": 0.02502548159538211,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.021600630182165053,
+      "authoredCoefficientMaxM3": 0.02953647671665477,
+      "interpolationWeightMin": -0.3964476710085053,
+      "interpolationWeightMax": 0.2397479900641759,
+      "directMeshVolume30M3": 0.02565414896613947,
+      "directMeshVolume50M3": 0.024826185030246906,
+      "analyticBoxVolume30M3": 0.025654148966139476,
+      "analyticBoxVolume50M3": 0.024826185030246917,
+      "volumeInterpolationErrorM3": -8.23058073308805e-06,
+      "sdfAuthoringVolumeErrorM3": 0.0002429611034628007,
+      "meshGeometryVolumeErrorM3": -6.938893903907228e-18,
+      "contact": {
+        "mappedDistanceM": 0.025045901244783057,
+        "mappedNormalRaw": [
+          0.5338624507585245,
+          0.5903811722221011,
+          -6.817565742012114e-15
+        ],
+        "beforePositionM": [
+          0.05,
+          0.045000000000000005,
+          0.45
+        ],
+        "afterPositionM": [
+          0.05,
+          0.045000000000000005,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.019756819150223134,
+          -0.03214180422668779,
+          0.4500000000000009
+        ],
+        "effectiveVolumeM3": 0.02588887948886918,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.831263673506972,
+      "nativeBoundaryGradientOperatorPerM": [
+        -35.42885510010158,
+        -39.17962196960328,
+        4.5109775528651365e-13
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.6703095964230017,
+        "gradientPerM": [
+          4.055538191253842,
+          4.501722813676844,
+          1.4604898893874864e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.6228968236642809,
+          "gradientPerM": [
+            3.7394656651483524,
+            4.11098470342373,
+            -1.2438763306249457e-17
+          ]
+        },
+        "solid": {
+          "density": 0.3771031892311959,
+          "gradientPerM": [
+            -3.7394594674855672,
+            -4.110987493879156,
+            -9.605809085765172e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.501573269929974,
+      "expectedCombinedDensity": 1.0000000128954767,
+      "measuredNativeVsPhysicalDensityError": 1.4541604842757763,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -31.689395632616012,
+        -35.068634475724124,
+        4.511073610955994e-13
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "floor-corner",
+      "positionM": [
+        0.05,
+        0.045000000000000005,
+        0.05
+      ],
+      "initialParticleId": 0,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.044999999999999984,
+      "directMeshDistanceM": 0.045,
+      "mappedDistanceM": 0.012933395353124507,
+      "mappedGradient": [
+        0.31829326721608,
+        0.34967377055875554,
+        0.31829326721608364
+      ],
+      "interpolatedVolumeM3": 0.02871392794189733,
+      "mappedSdfVolume30M3": 0.028724611099567882,
+      "mappedSdfVolume50M3": 0.027734829323772914,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.0255513501976245,
+      "authoredCoefficientMaxM3": 0.03062715206702815,
+      "interpolationWeightMin": -0.44559552515426065,
+      "interpolationWeightMax": 0.2727080671625202,
+      "directMeshVolume30M3": 0.02841897112712819,
+      "directMeshVolume50M3": 0.027488399890345336,
+      "analyticBoxVolume30M3": 0.028418971127128184,
+      "analyticBoxVolume50M3": 0.027488399890345336,
+      "volumeInterpolationErrorM3": -1.0683157670551141e-05,
+      "sdfAuthoringVolumeErrorM3": 0.0003056399724396912,
+      "meshGeometryVolumeErrorM3": 6.938893903907228e-18,
+      "contact": {
+        "mappedDistanceM": 0.012933395353124507,
+        "mappedNormalRaw": [
+          0.31829326721608,
+          0.34967377055875554,
+          0.31829326721608364
+        ],
+        "beforePositionM": [
+          0.05,
+          0.045000000000000005,
+          0.05
+        ],
+        "afterPositionM": [
+          0.05,
+          0.045000000000000005,
+          0.05
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.008077531196282375,
+          -0.018803389546286492,
+          -0.008077531196283044
+        ],
+        "effectiveVolumeM3": 0.02871392794189733,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 2.031094979846507,
+      "nativeBoundaryGradientOperatorPerM": [
+        -32.71583040920151,
+        -35.94128105882961,
+        -32.715830409201885
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.5561510044678327,
+        "gradientPerM": [
+          3.3584115173582827,
+          3.7396415310669284,
+          3.358411517358283
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.4976397498423072,
+          "gradientPerM": [
+            2.9872330532501925,
+            3.280332214570979,
+            2.9872330532501747
+          ]
+        },
+        "solid": {
+          "density": 0.502360243748365,
+          "gradientPerM": [
+            -2.987229032228725,
+            -3.280329278812718,
+            -2.9872263765099243
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.5872459843143396,
+      "expectedCombinedDensity": 0.9999999935906722,
+      "measuredNativeVsPhysicalDensityError": 1.528734736098142,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -29.728601376972783,
+        -32.660951780016894,
+        -29.728604032691962
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "free-surface",
+      "positionM": [
+        0.45,
+        0.49500000000000005,
+        0.45
+      ],
+      "initialParticleId": 294,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.45,
+      "directMeshDistanceM": 0.45,
+      "mappedDistanceM": 0.42849999660508975,
+      "mappedGradient": [
+        0.5827145872321627,
+        0.10678421760165488,
+        0.5827145872321627
+      ],
+      "interpolatedVolumeM3": -4.157879213028127e-09,
+      "mappedSdfVolume30M3": 0,
+      "mappedSdfVolume50M3": 0,
+      "nonnegativeVolumeControl": false,
+      "nativeBranch": "outside-active-support",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0,
+      "authoredCoefficientMaxM3": 6.789681711601503e-08,
+      "interpolationWeightMin": -0.36146547035739895,
+      "interpolationWeightMax": 0.2851797177922927,
+      "directMeshVolume30M3": 0,
+      "directMeshVolume50M3": 0,
+      "analyticBoxVolume30M3": 0,
+      "analyticBoxVolume50M3": 0,
+      "volumeInterpolationErrorM3": -4.157879213028127e-09,
+      "sdfAuthoringVolumeErrorM3": 0,
+      "meshGeometryVolumeErrorM3": 0,
+      "contact": {
+        "mappedDistanceM": 0.42849999660508975,
+        "mappedNormalRaw": [
+          0.5827145872321627,
+          0.10678421760165488,
+          0.5827145872321627
+        ],
+        "beforePositionM": [
+          0.45,
+          0.49500000000000005,
+          0.45
+        ],
+        "afterPositionM": [
+          0.45,
+          0.49500000000000005,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.8048921865512677,
+        "gradientPerM": [
+          1.6231008126047095e-16,
+          -5.41232540283454,
+          5.172798127977854e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.7778189376061523,
+          "gradientPerM": [
+            -1.0953813754575554e-14,
+            -5.1394801715574685,
+            -1.8726625070938343e-17
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0.222181080148288,
+          "gradientPerM": [
+            2.75371410727765e-15,
+            5.1394863176589,
+            1.640074389040708e-17
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.8048921865512677,
+      "expectedCombinedDensity": 0.7778189376061523,
+      "measuredNativeVsPhysicalDensityError": 0,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        0,
+        0,
+        0
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "surface-wall",
+      "positionM": [
+        0.05,
+        0.49500000000000005,
+        0.45
+      ],
+      "initialParticleId": 290,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.04999999999999999,
+      "directMeshDistanceM": 0.050000000000000024,
+      "mappedDistanceM": 0.05000000000000064,
+      "mappedGradient": [
+        0.9999999999999694,
+        9.377503884570261e-14,
+        -8.726484149775506e-15
+      ],
+      "interpolatedVolumeM3": 0.018447765776806253,
+      "mappedSdfVolume30M3": 0.018429839305043792,
+      "mappedSdfVolume50M3": 0.017849865603587173,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.013853638235582697,
+      "authoredCoefficientMaxM3": 0.02421535132740491,
+      "interpolationWeightMin": -0.4034862673187442,
+      "interpolationWeightMax": 0.3891301094740813,
+      "directMeshVolume30M3": 0.01842983930648041,
+      "directMeshVolume50M3": 0.017849865600284037,
+      "analyticBoxVolume30M3": 0.01842983930648042,
+      "analyticBoxVolume50M3": 0.017849865600284065,
+      "volumeInterpolationErrorM3": 1.79264717624604e-05,
+      "sdfAuthoringVolumeErrorM3": -1.4366181855240967e-12,
+      "meshGeometryVolumeErrorM3": -1.0408340855860843e-17,
+      "contact": {
+        "mappedDistanceM": 0.05000000000000064,
+        "mappedNormalRaw": [
+          0.9999999999999694,
+          9.377503884570261e-14,
+          -8.726484149775506e-15
+        ],
+        "beforePositionM": [
+          0.05,
+          0.49500000000000005,
+          0.45
+        ],
+        "afterPositionM": [
+          0.05,
+          0.49500000000000005,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.05400419115259521,
+          0.4949999999999903,
+          0.4500000000000009
+        ],
+        "effectiveVolumeM3": 0.018447765776806253,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.3049125335438005,
+      "nativeBoundaryGradientOperatorPerM": [
+        -37.64019043936878,
+        -3.5358503287487687e-12,
+        3.214409389771608e-13
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.6703095964230017,
+        "gradientPerM": [
+          4.055538191253842,
+          -4.501722813676844,
+          -3.7089860690233987e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.6228968236642789,
+          "gradientPerM": [
+            3.73946566514835,
+            -4.110984703423742,
+            -3.1713479491836356e-17
+          ]
+        },
+        "solid": {
+          "density": 0.19727740885518433,
+          "gradientPerM": [
+            -4.8194059637288635,
+            3.638104363923685e-17,
+            -8.48391612089934e-18
+          ]
+        },
+        "air": {
+          "density": 0.179825780376012,
+          "gradientPerM": [
+            1.0799464962432916,
+            4.110987493879164,
+            -7.42625853616218e-18
+          ]
+        }
+      },
+      "actualCombinedDensity": 1.9752221299668022,
+      "expectedCombinedDensity": 0.8201742325194632,
+      "measuredNativeVsPhysicalDensityError": 1.1076351246886162,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -32.82078447563992,
+        -3.535886709792408e-12,
+        3.214494228932817e-13
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "surface-corner",
+      "positionM": [
+        0.05,
+        0.49500000000000005,
+        0.05
+      ],
+      "initialParticleId": 50,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.04999999999999999,
+      "directMeshDistanceM": 0.050000000000000024,
+      "mappedDistanceM": 0.02596657500017876,
+      "mappedGradient": [
+        0.5559101286773307,
+        -6.936594785204179e-14,
+        0.5559101286772693
+      ],
+      "interpolatedVolumeM3": 0.025731195848441073,
+      "mappedSdfVolume30M3": 0.025733246049921277,
+      "mappedSdfVolume50M3": 0.024860233056204935,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.02133512706468689,
+      "authoredCoefficientMaxM3": 0.02947298711571854,
+      "interpolationWeightMin": -0.45022916448467565,
+      "interpolationWeightMax": 0.4426269434042413,
+      "directMeshVolume30M3": 0.025404794713694712,
+      "directMeshVolume50M3": 0.02459408814695393,
+      "analyticBoxVolume30M3": 0.02540479471369471,
+      "analyticBoxVolume50M3": 0.024594088146953897,
+      "volumeInterpolationErrorM3": -2.050201480204017e-06,
+      "sdfAuthoringVolumeErrorM3": 0.0003284513362265644,
+      "meshGeometryVolumeErrorM3": 3.469446951953614e-18,
+      "contact": {
+        "mappedDistanceM": 0.02596657500017876,
+        "mappedNormalRaw": [
+          0.5559101286773307,
+          -6.936594785204179e-14,
+          0.5559101286772693
+        ],
+        "beforePositionM": [
+          0.05,
+          0.49500000000000005,
+          0.05
+        ],
+        "afterPositionM": [
+          0.05,
+          0.49500000000000005,
+          0.05
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.023542068835826057,
+          0.4950000000000092,
+          -0.023542068835817942
+        ],
+        "effectiveVolumeM3": 0.025731195848441073,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.8201098372528195,
+      "nativeBoundaryGradientOperatorPerM": [
+        -37.12384995134135,
+        4.6236115934326375e-12,
+        -37.12384995133725
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.5561510044678326,
+        "gradientPerM": [
+          3.358411517358283,
+          -3.7396415310669293,
+          3.3584115173582827
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.49763974984230674,
+          "gradientPerM": [
+            2.987233053250193,
+            -3.280332214570969,
+            2.987233053250167
+          ]
+        },
+        "solid": {
+          "density": 0.35717256377712936,
+          "gradientPerM": [
+            -3.859194909489405,
+            -4.677213209245925e-17,
+            -3.8591941045117295
+          ]
+        },
+        "air": {
+          "density": 0.1451876705747304,
+          "gradientPerM": [
+            0.871965703441556,
+            3.280328535080249,
+            0.8719657034415583
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.376260841720652,
+      "expectedCombinedDensity": 0.8548123136194361,
+      "measuredNativeVsPhysicalDensityError": 1.4629372734756902,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -33.264655041851945,
+        4.62365836556473e-12,
+        -33.26465584682552
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "planar-q-0.000000",
+      "positionM": [
+        0.5,
+        0,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0,
+      "directMeshDistanceM": 0,
+      "mappedDistanceM": 1.3392065234540734e-15,
+      "mappedGradient": [
+        -1.7074593400869314e-13,
+        1.00000000000005,
+        -1.5407698576947375e-13
+      ],
+      "interpolatedVolumeM3": 0.02342048368027513,
+      "mappedSdfVolume30M3": 0.0234043711235244,
+      "mappedSdfVolume50M3": 0.022700491636572707,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.014459396101999245,
+      "authoredCoefficientMaxM3": 0.02461269517126031,
+      "interpolationWeightMin": -0.31226847919027684,
+      "interpolationWeightMax": 0.8344180989574079,
+      "directMeshVolume30M3": 0.023404371123524437,
+      "directMeshVolume50M3": 0.022700491636572746,
+      "analyticBoxVolume30M3": 0.023404371123524448,
+      "analyticBoxVolume50M3": 0.022700491636572718,
+      "volumeInterpolationErrorM3": 1.6112556750731005e-05,
+      "sdfAuthoringVolumeErrorM3": -3.8163916471489756e-17,
+      "meshGeometryVolumeErrorM3": -1.0408340855860843e-17,
+      "contact": {
+        "mappedDistanceM": 1.3392065234540734e-15,
+        "mappedNormalRaw": [
+          -1.7074593400869314e-13,
+          1.00000000000005,
+          -1.5407698576947375e-13
+        ],
+        "beforePositionM": [
+          0.5,
+          0,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.5000000000000178,
+          -0.10400419115259521,
+          0.500000000000016
+        ],
+        "effectiveVolumeM3": 0.02342048368027513,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.6566603818481487,
+      "nativeBoundaryGradientOperatorPerM": [
+        8.161749619514344e-12,
+        -47.786353999356876,
+        7.34557465756291e-12
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.5025419195827638,
+        "gradientPerM": [
+          3.4226096445314417e-15,
+          7.5958919307617085,
+          2.7413958886092594e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.5000000176186186,
+          "gradientPerM": [
+            -9.16226151663576e-15,
+            6.7304917086923695,
+            -1.925136782372546e-17
+          ]
+        },
+        "solid": {
+          "density": 0.5000000176186188,
+          "gradientPerM": [
+            8.634323376090378e-15,
+            -6.730491708692375,
+            -8.325574707115556e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.1592023014309127,
+      "expectedCombinedDensity": 1.0000000352372374,
+      "measuredNativeVsPhysicalDensityError": 1.15666036422953,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        8.153115296138253e-12,
+        -41.0558622906645,
+        7.345582983137617e-12
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "planar-q-0.125000",
+      "positionM": [
+        0.5,
+        0.026001047788148803,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.026001047788148823,
+      "directMeshDistanceM": 0.026001047788147796,
+      "mappedDistanceM": 0.02600104778815028,
+      "mappedGradient": [
+        -9.766162925432338e-14,
+        0.9999999999999714,
+        -9.967600128821319e-14
+      ],
+      "interpolatedVolumeM3": 0.0209147004965651,
+      "mappedSdfVolume30M3": 0.02093194174965243,
+      "mappedSdfVolume50M3": 0.020267457915441413,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.014459396101999245,
+      "authoredCoefficientMaxM3": 0.02461269517126031,
+      "interpolationWeightMin": -0.04427315062019141,
+      "interpolationWeightMax": 0.8828805162777212,
+      "directMeshVolume30M3": 0.020931941749652447,
+      "directMeshVolume50M3": 0.02026745791544142,
+      "analyticBoxVolume30M3": 0.02093194174965243,
+      "analyticBoxVolume50M3": 0.02026745791544142,
+      "volumeInterpolationErrorM3": -1.7241253087330044e-05,
+      "sdfAuthoringVolumeErrorM3": -1.734723475976807e-17,
+      "meshGeometryVolumeErrorM3": 1.734723475976807e-17,
+      "contact": {
+        "mappedDistanceM": 0.02600104778815028,
+        "mappedNormalRaw": [
+          -9.766162925432338e-14,
+          0.9999999999999714,
+          -9.967600128821319e-14
+        ],
+        "beforePositionM": [
+          0.5,
+          0.026001047788148803,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.026001047788148803,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.5000000000000101,
+          -0.07800314336444641,
+          0.5000000000000103
+        ],
+        "effectiveVolumeM3": 0.0209147004965651,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.4794124743060033,
+      "nativeBoundaryGradientOperatorPerM": [
+        4.145342959897806e-12,
+        -42.67363968068332,
+        4.236449398576879e-12
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.6899870234210881,
+        "gradientPerM": [
+          4.945210829914339e-15,
+          6.588478701740188,
+          7.104275268646158e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.669925986983188,
+          "gradientPerM": [
+            -3.5639370548470665e-15,
+            6.154908109449481,
+            -1.2880653193190818e-17
+          ]
+        },
+        "solid": {
+          "density": 0.33007402946058917,
+          "gradientPerM": [
+            -1.2538508314932818e-14,
+            -6.154916223045127,
+            3.3875502151306215e-17
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.1693994977270914,
+      "expectedCombinedDensity": 1.000000016443777,
+      "measuredNativeVsPhysicalDensityError": 1.149338444845414,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        4.157881468212739e-12,
+        -36.518723457638195,
+        4.2364155230747275e-12
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "planar-q-0.250000",
+      "positionM": [
+        0.5,
+        0.052002095576297605,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.05200209557629759,
+      "directMeshDistanceM": 0.05200209557629773,
+      "mappedDistanceM": 0.05200209557629803,
+      "mappedGradient": [
+        -4.4655055610179256e-14,
+        0.9999999999999584,
+        -4.5002314177272145e-14
+      ],
+      "interpolatedVolumeM3": 0.018220985125649666,
+      "mappedSdfVolume30M3": 0.018219138177168127,
+      "mappedSdfVolume50M3": 0.017642236056989027,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.014459396101999245,
+      "authoredCoefficientMaxM3": 0.02461269517126031,
+      "interpolationWeightMin": -0.01480899231063639,
+      "interpolationWeightMax": 0.9738700229519243,
+      "directMeshVolume30M3": 0.018219138177168137,
+      "directMeshVolume50M3": 0.01764223605698903,
+      "analyticBoxVolume30M3": 0.018219138177168144,
+      "analyticBoxVolume50M3": 0.01764223605698902,
+      "volumeInterpolationErrorM3": 1.8469484815396287e-06,
+      "sdfAuthoringVolumeErrorM3": -1.0408340855860843e-17,
+      "meshGeometryVolumeErrorM3": -6.938893903907228e-18,
+      "contact": {
+        "mappedDistanceM": 0.05200209557629803,
+        "mappedNormalRaw": [
+          -4.4655055610179256e-14,
+          0.9999999999999584,
+          -4.5002314177272145e-14
+        ],
+        "beforePositionM": [
+          0.5,
+          0.052002095576297605,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.052002095576297605,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.5000000000000047,
+          -0.052002095576297605,
+          0.5000000000000047
+        ],
+        "effectiveVolumeM3": 0.018220985125649666,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.2888710834495287,
+      "nativeBoundaryGradientOperatorPerM": [
+        1.6668194866186864e-12,
+        -37.17747495388543,
+        1.6668194866186864e-12
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.8378527296524056,
+        "gradientPerM": [
+          5.706476214949767e-15,
+          4.776858322887696,
+          4.831324777074623e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.812239610132923,
+          "gradientPerM": [
+            2.056823112262082e-14,
+            4.687323684338012,
+            6.407546170797544e-17
+          ]
+        },
+        "solid": {
+          "density": 0.18776040737836075,
+          "gradientPerM": [
+            -3.675246841223751e-15,
+            -4.687311862401162,
+            2.9150378317863792e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.1267238131019344,
+      "expectedCombinedDensity": 1.0000000175112838,
+      "measuredNativeVsPhysicalDensityError": 1.101110676071168,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        1.6704947334599101e-12,
+        -32.49016309148427,
+        1.6668165715808546e-12
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "planar-q-0.500000",
+      "positionM": [
+        0.5,
+        0.10400419115259521,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.10400419115259518,
+      "directMeshDistanceM": 0.10400419115259546,
+      "mappedDistanceM": 0.1040041911525954,
+      "mappedGradient": [
+        2.5906749819646033e-14,
+        0.9999999999999981,
+        2.26215577034958e-14
+      ],
+      "interpolatedVolumeM3": 0.012673980418755499,
+      "mappedSdfVolume30M3": 0.012693193382818197,
+      "mappedSdfVolume50M3": 0.012211349533438573,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.00483580345716882,
+      "authoredCoefficientMaxM3": 0.014459437022288024,
+      "interpolationWeightMin": -0.3121869198159345,
+      "interpolationWeightMax": 0.9396288544171435,
+      "directMeshVolume30M3": 0.012693193382818211,
+      "directMeshVolume50M3": 0.012211349533438588,
+      "analyticBoxVolume30M3": 0.012693193382818206,
+      "analyticBoxVolume50M3": 0.012211349533438588,
+      "volumeInterpolationErrorM3": -1.9212964062698817e-05,
+      "sdfAuthoringVolumeErrorM3": -1.3877787807814457e-17,
+      "meshGeometryVolumeErrorM3": 5.204170427930421e-18,
+      "contact": {
+        "mappedDistanceM": 0.1040041911525954,
+        "mappedNormalRaw": [
+          2.5906749819646033e-14,
+          0.9999999999999981,
+          2.26215577034958e-14
+        ],
+        "beforePositionM": [
+          0.5,
+          0.10400419115259521,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.10400419115259521,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.4999999999999966,
+          -0.02600104778814899,
+          0.49999999999999706
+        ],
+        "effectiveVolumeM3": 0.012673980418755499,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0.37817344008400455,
+      "nativeBoundaryGradientOperatorPerM": [
+        -3.7883943314730954e-13,
+        -14.544740017474924,
+        -3.291555730624164e-13
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.9850962651341049,
+        "gradientPerM": [
+          6.7431530309747546e-15,
+          0.892565423842239,
+          7.688122373794661e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.9666667115680643,
+          "gradientPerM": [
+            -1.7718508783435097e-14,
+            1.4422561417294077,
+            -6.362658356657469e-17
+          ]
+        },
+        "solid": {
+          "density": 0.03333333383095152,
+          "gradientPerM": [
+            2.5070291748472507e-17,
+            -1.4422491681268566,
+            -2.8954425434604574e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 1.3632697052181095,
+      "expectedCombinedDensity": 1.0000000453990159,
+      "measuredNativeVsPhysicalDensityError": 0.34484010625305306,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -3.78864503439058e-13,
+        -13.102490849348067,
+        -3.2915267761987295e-13
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "planar-q-0.750000",
+      "positionM": [
+        0.5,
+        0.15600628672889283,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.15600628672889283,
+      "directMeshDistanceM": 0.15600628672889283,
+      "mappedDistanceM": 0.156006286728893,
+      "mappedGradient": [
+        1.881648144795346e-14,
+        1.0000000000000009,
+        -8.372487290181107e-16
+      ],
+      "interpolatedVolumeM3": 0.007517751058493861,
+      "mappedSdfVolume30M3": 0.007517642526416405,
+      "mappedSdfVolume50M3": 0.007162841743128675,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.00483580345716882,
+      "authoredCoefficientMaxM3": 0.014459437022288024,
+      "interpolationWeightMin": -0.051228190994957144,
+      "interpolationWeightMax": 1.0234953958433364,
+      "directMeshVolume30M3": 0.0075176425264164085,
+      "directMeshVolume50M3": 0.0071628417431286884,
+      "analyticBoxVolume30M3": 0.0075176425264164085,
+      "analyticBoxVolume50M3": 0.007162841743128684,
+      "volumeInterpolationErrorM3": 1.0853207745627896e-07,
+      "sdfAuthoringVolumeErrorM3": -3.469446951953614e-18,
+      "meshGeometryVolumeErrorM3": 0,
+      "contact": {
+        "mappedDistanceM": 0.156006286728893,
+        "mappedNormalRaw": [
+          1.881648144795346e-14,
+          1.0000000000000009,
+          -8.372487290181107e-16
+        ],
+        "beforePositionM": [
+          0.5,
+          0.15600628672889283,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.15600628672889283,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.49999999999999656,
+          -0.026001047788148962,
+          0.5000000000000001
+        ],
+        "effectiveVolumeM3": 0.007517751058493861,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0.008301466618205359,
+      "nativeBoundaryGradientOperatorPerM": [
+        -1.8116731766198062e-14,
+        -0.958069070805062,
+        5.844107021354214e-16
+      ],
+      "nativeFluidQuadrature": {
+        "density": 1.0005277174622904,
+        "gradientPerM": [
+          7.338217308793648e-15,
+          0.29237554652736036,
+          6.558737600213058e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.998697955126566,
+          "gradientPerM": [
+            2.0389134942007755e-14,
+            0.12021490053725307,
+            1.2022774235650146e-16
+          ]
+        },
+        "solid": {
+          "density": 0.0013020831950208975,
+          "gradientPerM": [
+            5.104142785176834e-19,
+            -0.12018743305239027,
+            1.6584764486535067e-20
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 1.0088291840804957,
+      "expectedCombinedDensity": 1.0000000383215868,
+      "measuredNativeVsPhysicalDensityError": 0.006999383423184461,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -1.811724218047658e-14,
+        -0.8378816377526717,
+        5.843941173709348e-16
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "planar-q-1.000000",
+      "positionM": [
+        0.5,
+        0.20800838230519042,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.20800838230519042,
+      "directMeshDistanceM": 0.20800838230519036,
+      "mappedDistanceM": 0.2080083823051903,
+      "mappedGradient": [
+        1.458959068790596e-14,
+        0.9999999999999983,
+        -9.297410529105384e-15
+      ],
+      "interpolatedVolumeM3": 0.0033961859446185708,
+      "mappedSdfVolume30M3": 0.0034031173125357466,
+      "mappedSdfVolume50M3": 0.003200897722779256,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.0003810501345146024,
+      "authoredCoefficientMaxM3": 0.004836098253544256,
+      "interpolationWeightMin": -0.28693433710853716,
+      "interpolationWeightMax": 1.0095705505007413,
+      "directMeshVolume30M3": 0.0034031172703025054,
+      "directMeshVolume50M3": 0.0032008976412804205,
+      "analyticBoxVolume30M3": 0.003403117270302509,
+      "analyticBoxVolume50M3": 0.003200897641280416,
+      "volumeInterpolationErrorM3": -6.931367917175843e-06,
+      "sdfAuthoringVolumeErrorM3": 4.2233241209777006e-11,
+      "meshGeometryVolumeErrorM3": -3.469446951953614e-18,
+      "contact": {
+        "mappedDistanceM": 0.2080083823051903,
+        "mappedNormalRaw": [
+          1.458959068790596e-14,
+          0.9999999999999983,
+          -9.297410529105384e-15
+        ],
+        "beforePositionM": [
+          0.5,
+          0.20800838230519042,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.20800838230519042,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.49999999999999656,
+          -0.026001047788148685,
+          0.5000000000000022
+        ],
+        "effectiveVolumeM3": 0.0033961859446185708,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.9994848974233818,
+        "gradientPerM": [
+          7.331857636164229e-15,
+          -0.2758428274546807,
+          9.284232594827967e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.9999999485967409,
+          "gradientPerM": [
+            -5.922700835100607e-16,
+            5.314581657539653e-16,
+            -1.9895913222919918e-16
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.9994848974233818,
+      "expectedCombinedDensity": 0.9999999485967409,
+      "measuredNativeVsPhysicalDensityError": 0,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        0,
+        0,
+        0
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "zero-edge",
+      "positionM": [
+        0,
+        0.3,
+        0
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0,
+      "directMeshDistanceM": 0,
+      "mappedDistanceM": -0.008985716621501787,
+      "mappedGradient": [
+        0.20872535300641654,
+        -3.236445504279534e-15,
+        0.2087253530064263
+      ],
+      "interpolatedVolumeM3": 0.02908996619682773,
+      "mappedSdfVolume30M3": 0.0290527693790502,
+      "mappedSdfVolume50M3": 0.028141431343091508,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "contact-fallback",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.021330369277418916,
+      "authoredCoefficientMaxM3": 0.02947298711571854,
+      "interpolationWeightMin": -0.24990004367806334,
+      "interpolationWeightMax": 0.6316096700657111,
+      "directMeshVolume30M3": 0.02887098702593557,
+      "directMeshVolume50M3": 0.02795354868756248,
+      "analyticBoxVolume30M3": 0.028870987025935543,
+      "analyticBoxVolume50M3": 0.027953548687562463,
+      "volumeInterpolationErrorM3": 3.719681777752948e-05,
+      "sdfAuthoringVolumeErrorM3": 0.00018178235311462967,
+      "meshGeometryVolumeErrorM3": 2.7755575615628914e-17,
+      "contact": {
+        "mappedDistanceM": -0.008985716621501787,
+        "mappedNormalRaw": [
+          0.20872535300641654,
+          -3.236445504279534e-15,
+          0.2087253530064263
+        ],
+        "beforePositionM": [
+          0,
+          0.3,
+          0
+        ],
+        "afterPositionM": [
+          0.003677103441791014,
+          0.29999999999999993,
+          0.0036771034417911862
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": -4.901079542207755e-16,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.24972975089646698,
+        "gradientPerM": [
+          3.8680411059677753,
+          -0.06472304411135166,
+          3.8680411059677753
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.2500000114348764,
+          "gradientPerM": [
+            3.3652509556989862,
+            -8.714377773278317e-17,
+            3.3652509556989556
+          ]
+        },
+        "solid": {
+          "density": 0.7500000290534904,
+          "gradientPerM": [
+            -3.365240752993375,
+            2.704411067625392e-16,
+            -3.3652509556989565
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.24972975089646698,
+      "expectedCombinedDensity": 1.0000000404883669,
+      "measuredNativeVsPhysicalDensityError": -0.7500000290534904,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        3.365240752993375,
+        -2.704411067625392e-16,
+        3.3652509556989565
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "zero-corner",
+      "positionM": [
+        0,
+        0,
+        0
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0,
+      "directMeshDistanceM": 0,
+      "mappedDistanceM": -0.012780977164457153,
+      "mappedGradient": [
+        0.11151983773069726,
+        0.21456093102325594,
+        0.11151983773069694
+      ],
+      "interpolatedVolumeM3": 0.030452727530652885,
+      "mappedSdfVolume30M3": 0.0304390376573727,
+      "mappedSdfVolume50M3": 0.02942947880626945,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "contact-fallback",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.0255513501976245,
+      "authoredCoefficientMaxM3": 0.03062715206702815,
+      "interpolationWeightMin": -0.26005438647305734,
+      "interpolationWeightMax": 0.6948959028751697,
+      "directMeshVolume30M3": 0.030290093443728763,
+      "directMeshVolume50M3": 0.02929498841988648,
+      "analyticBoxVolume30M3": 0.030290093443728766,
+      "analyticBoxVolume50M3": 0.02929498841988648,
+      "volumeInterpolationErrorM3": 1.3689873280185033e-05,
+      "sdfAuthoringVolumeErrorM3": 0.00014894421364393742,
+      "meshGeometryVolumeErrorM3": -3.469446951953614e-18,
+      "contact": {
+        "mappedDistanceM": -0.012780977164457153,
+        "mappedNormalRaw": [
+          0.11151983773069726,
+          0.21456093102325594,
+          0.11151983773069694
+        ],
+        "beforePositionM": [
+          0,
+          0,
+          0
+        ],
+        "afterPositionM": [
+          0.0021778101761461984,
+          0.004190043569774909,
+          0.0021778101761461923
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0.03699389467754268,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.12563547989569096,
+        "gradientPerM": [
+          1.9618100829552692,
+          1.8989729826904271,
+          1.9618100829552692
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.12500000070997266,
+          "gradientPerM": [
+            1.6826251267595183,
+            1.682625126759523,
+            1.6826251267595234
+          ]
+        },
+        "solid": {
+          "density": 0.8750000297634628,
+          "gradientPerM": [
+            -1.682615626233858,
+            -1.6826258289394265,
+            -1.6826251267595227
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.12563547989569096,
+      "expectedCombinedDensity": 1.0000000304734356,
+      "measuredNativeVsPhysicalDensityError": -0.8750000297634628,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        1.682615626233858,
+        1.6826258289394265,
+        1.6826251267595227
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 0,
+      "name": "synthetic-penetration",
+      "positionM": [
+        0.5,
+        -0.0026001047788148804,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": true,
+      "analyticDistanceM": -0.0026001047788148934,
+      "directMeshDistanceM": -0.0026001047788152066,
+      "mappedDistanceM": -0.002600104778813688,
+      "mappedGradient": [
+        -1.7981329644556924e-13,
+        1.0000000000000622,
+        -1.5918984106198324e-13
+      ],
+      "interpolatedVolumeM3": 0.023656856825376223,
+      "mappedSdfVolume30M3": 0.02364561189981088,
+      "mappedSdfVolume50M3": 0.0229317583476924,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "contact-fallback",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.014459396101999245,
+      "authoredCoefficientMaxM3": 0.02461269517126031,
+      "interpolationWeightMin": -0.29321420064613124,
+      "interpolationWeightMax": 0.7272479100149133,
+      "directMeshVolume30M3": 0.023645611899810917,
+      "directMeshVolume50M3": 0.022931758347692413,
+      "analyticBoxVolume30M3": 0.023645611899810896,
+      "analyticBoxVolume50M3": 0.022931758347692406,
+      "volumeInterpolationErrorM3": 1.124492556534365e-05,
+      "sdfAuthoringVolumeErrorM3": -3.8163916471489756e-17,
+      "meshGeometryVolumeErrorM3": 2.0816681711721685e-17,
+      "contact": {
+        "mappedDistanceM": -0.002600104778813688,
+        "mappedNormalRaw": [
+          -1.7981329644556924e-13,
+          1.0000000000000622,
+          -1.5918984106198324e-13
+        ],
+        "beforePositionM": [
+          0.5,
+          -0.0026001047788148804,
+          0.5
+        ],
+        "afterPositionM": [
+          0.49999999999999906,
+          0.0026001047788148804,
+          0.49999999999999917
+        ],
+        "beforeVelocityMPerS": [
+          1,
+          -2,
+          0.5
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          -0.9000000000000002,
+          1.8000000000000005,
+          -0.4500000000000001
+        ],
+        "deltaKineticJ": -2.3625000000000007,
+        "deltaPotentialJ": 0.04591265018431317,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.4828523138887032,
+        "gradientPerM": [
+          3.2974803549459268e-15,
+          7.617743377261917,
+          3.568788352256829e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.48250522260217477,
+          "gradientPerM": [
+            5.354263018303182e-15,
+            6.72449910222051,
+            -2.208471709807704e-17
+          ]
+        },
+        "solid": {
+          "density": 0.517494801492362,
+          "gradientPerM": [
+            -2.484801025593847e-15,
+            -6.724486847757631,
+            2.6833199930406592e-17
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.4828523138887032,
+      "expectedCombinedDensity": 1.0000000240945368,
+      "measuredNativeVsPhysicalDensityError": -0.517494801492362,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        2.484801025593847e-15,
+        6.724486847757631,
+        -2.6833199930406592e-17
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "bulk",
+      "positionM": [
+        0.45,
+        0.225,
+        0.45
+      ],
+      "initialParticleId": 264,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.22499999999999998,
+      "directMeshDistanceM": 0.22499999999999995,
+      "mappedDistanceM": 0.22499999999999995,
+      "mappedGradient": [
+        -1.43509758869355e-14,
+        1.0000000000000049,
+        -1.7078002183740344e-14
+      ],
+      "interpolatedVolumeM3": 0.0024068682351927103,
+      "mappedSdfVolume30M3": 0.002406824373323861,
+      "mappedSdfVolume50M3": 0.0022528936546680725,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "outside-active-support",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.0017747931996444513,
+      "authoredCoefficientMaxM3": 0.004835803455354584,
+      "interpolationWeightMin": -0.18315433463854988,
+      "interpolationWeightMax": 1.0196718490481311,
+      "directMeshVolume30M3": 0.0024068243753465513,
+      "directMeshVolume50M3": 0.0022528936546680717,
+      "analyticBoxVolume30M3": 0.002406824375346549,
+      "analyticBoxVolume50M3": 0.002252893654668075,
+      "volumeInterpolationErrorM3": 4.3861868849210534e-08,
+      "sdfAuthoringVolumeErrorM3": -2.022690175074171e-12,
+      "meshGeometryVolumeErrorM3": 2.168404344971009e-18,
+      "contact": {
+        "mappedDistanceM": 0.22499999999999995,
+        "mappedNormalRaw": [
+          -1.43509758869355e-14,
+          1.0000000000000049,
+          -1.7078002183740344e-14
+        ],
+        "beforePositionM": [
+          0.45,
+          0.225,
+          0.45
+        ],
+        "afterPositionM": [
+          0.45,
+          0.225,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 1.0031451389156825,
+        "gradientPerM": [
+          3.8307287652102596e-17,
+          1.0567112750927113e-16,
+          1.4604898893874864e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.9999999485967409,
+          "gradientPerM": [
+            -5.922700835100607e-16,
+            5.314581657539653e-16,
+            -1.9895913222919918e-16
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 1.0031451389156825,
+      "expectedCombinedDensity": 0.9999999485967409,
+      "measuredNativeVsPhysicalDensityError": 0,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        0,
+        0,
+        0
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "floor",
+      "positionM": [
+        0.45,
+        0.045000000000000005,
+        0.45
+      ],
+      "initialParticleId": 244,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.044999999999999984,
+      "directMeshDistanceM": 0.04499999999999999,
+      "mappedDistanceM": 0.044999999999999644,
+      "mappedGradient": [
+        3.310780363464633e-15,
+        1.000000000000025,
+        1.206922185265582e-14
+      ],
+      "interpolatedVolumeM3": 0.01895637960324014,
+      "mappedSdfVolume30M3": 0.018958471972457338,
+      "mappedSdfVolume50M3": 0.018365955856097425,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.01445939610199927,
+      "authoredCoefficientMaxM3": 0.01982140953595675,
+      "interpolationWeightMin": -0.30303813995502893,
+      "interpolationWeightMax": 0.8936627596508346,
+      "directMeshVolume30M3": 0.018958471972457352,
+      "directMeshVolume50M3": 0.018365955856097432,
+      "analyticBoxVolume30M3": 0.018958471972457338,
+      "analyticBoxVolume50M3": 0.018365955856097432,
+      "volumeInterpolationErrorM3": -2.0923692171971597e-06,
+      "sdfAuthoringVolumeErrorM3": -1.3877787807814457e-17,
+      "meshGeometryVolumeErrorM3": 1.3877787807814457e-17,
+      "contact": {
+        "mappedDistanceM": 0.044999999999999644,
+        "mappedNormalRaw": [
+          3.310780363464633e-15,
+          1.000000000000025,
+          1.206922185265582e-14
+        ],
+        "beforePositionM": [
+          0.45,
+          0.045000000000000005,
+          0.45
+        ],
+        "afterPositionM": [
+          0.45,
+          0.045000000000000005,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.4499999999999997,
+          -0.059004191152595205,
+          0.44999999999999873
+        ],
+        "effectiveVolumeM3": 0.01895637960324014,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.340889603335184,
+      "nativeBoundaryGradientOperatorPerM": [
+        -1.238637079347702e-13,
+        -38.67794869793996,
+        -4.74810880416619e-13
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.8048921865512679,
+        "gradientPerM": [
+          3.8307287652102596e-17,
+          5.41232540283454,
+          1.4604898893874864e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.7778189376061522,
+          "gradientPerM": [
+            1.1268038452954767e-14,
+            5.139480171557462,
+            -1.3205225553118643e-18
+          ]
+        },
+        "solid": {
+          "density": 0.22218108014828764,
+          "gradientPerM": [
+            -3.0101208517200007e-15,
+            -5.139486317658902,
+            -1.2118828718602844e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.1457817898864517,
+      "expectedCombinedDensity": 1.0000000177544397,
+      "measuredNativeVsPhysicalDensityError": 1.1187085231868963,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -1.208535870830502e-13,
+        -33.53846238028106,
+        -4.748096685337472e-13
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "side",
+      "positionM": [
+        0.05,
+        0.225,
+        0.45
+      ],
+      "initialParticleId": 260,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.04999999999999999,
+      "directMeshDistanceM": 0.04999999999999947,
+      "mappedDistanceM": 0.05000000000000055,
+      "mappedGradient": [
+        0.9999999999999727,
+        1.0704834397643625e-14,
+        -8.167443758930512e-14
+      ],
+      "interpolatedVolumeM3": 0.01904031346928632,
+      "mappedSdfVolume30M3": 0.019033719594745376,
+      "mappedSdfVolume50M3": 0.018396034037453383,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.014591194745454492,
+      "authoredCoefficientMaxM3": 0.020631371513550677,
+      "interpolationWeightMin": -0.33102475068371584,
+      "interpolationWeightMax": 0.874499902505591,
+      "directMeshVolume30M3": 0.019005608747740366,
+      "directMeshVolume50M3": 0.01837358737732325,
+      "analyticBoxVolume30M3": 0.019005608747740373,
+      "analyticBoxVolume50M3": 0.018373587377323235,
+      "volumeInterpolationErrorM3": 6.593874540945788e-06,
+      "sdfAuthoringVolumeErrorM3": 2.8110847005009126e-05,
+      "meshGeometryVolumeErrorM3": -6.938893903907228e-18,
+      "contact": {
+        "mappedDistanceM": 0.05000000000000055,
+        "mappedNormalRaw": [
+          0.9999999999999727,
+          1.0704834397643625e-14,
+          -8.167443758930512e-14
+        ],
+        "beforePositionM": [
+          0.05,
+          0.225,
+          0.45
+        ],
+        "afterPositionM": [
+          0.05,
+          0.225,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.05400419115259521,
+          0.2249999999999989,
+          0.4500000000000085
+        ],
+        "effectiveVolumeM3": 0.01904031346928632,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.3468267100351266,
+      "nativeBoundaryGradientOperatorPerM": [
+        -38.84920448796429,
+        -4.1470714624977563e-13,
+        3.1725096688107834e-12
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.8386792304896252,
+        "gradientPerM": [
+          5.066958477368336,
+          -1.1637347741576018e-16,
+          -2.98040220911314e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.8027225995799242,
+          "gradientPerM": [
+            4.819409647672508,
+            -7.601341290675167e-17,
+            5.199516709804198e-19
+          ]
+        },
+        "solid": {
+          "density": 0.19727740885518433,
+          "gradientPerM": [
+            -4.8194059637288635,
+            3.638104363923685e-17,
+            -8.48391612089934e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.185505940524752,
+      "expectedCombinedDensity": 1.0000000084351086,
+      "measuredNativeVsPhysicalDensityError": 1.1495493011799423,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -34.02979852423543,
+        -4.1474352729341487e-13,
+        3.1725181527269043e-12
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "vertical-edge",
+      "positionM": [
+        0.05,
+        0.225,
+        0.05
+      ],
+      "initialParticleId": 20,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.04999999999999999,
+      "directMeshDistanceM": 0.050000000000000024,
+      "mappedDistanceM": 0.04325187341635272,
+      "mappedGradient": [
+        0.15736707783371431,
+        -6.0333205139698375e-15,
+        0.15736707783371726
+      ],
+      "interpolatedVolumeM3": 0.025686209280368258,
+      "mappedSdfVolume30M3": 0.025689321726265063,
+      "mappedSdfVolume50M3": 0.024815735288062427,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.021452205169039586,
+      "authoredCoefficientMaxM3": 0.026632300582602665,
+      "interpolationWeightMin": -0.5566737513200264,
+      "interpolationWeightMax": 0.7499962661479633,
+      "directMeshVolume30M3": 0.02555932424546345,
+      "directMeshVolume50M3": 0.024729654097669865,
+      "analyticBoxVolume30M3": 0.02555932424546344,
+      "analyticBoxVolume50M3": 0.024729654097669876,
+      "volumeInterpolationErrorM3": -3.1124458968051494e-06,
+      "sdfAuthoringVolumeErrorM3": 0.00012999748080161355,
+      "meshGeometryVolumeErrorM3": 1.0408340855860843e-17,
+      "contact": {
+        "mappedDistanceM": 0.04325187341635272,
+        "mappedNormalRaw": [
+          0.15736707783371431,
+          -6.0333205139698375e-15,
+          0.15736707783371726
+        ],
+        "beforePositionM": [
+          0.05,
+          0.225,
+          0.05
+        ],
+        "afterPositionM": [
+          0.05,
+          0.225,
+          0.05
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.023542068835821325,
+          0.22500000000000284,
+          -0.0235420688358227
+        ],
+        "effectiveVolumeM3": 0.025686209280368258,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.8169276884099963,
+      "nativeBoundaryGradientOperatorPerM": [
+        -37.05894528803463,
+        1.426617746752885e-12,
+        -37.05894528803532
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.6983598778892423,
+        "gradientPerM": [
+          4.2048081295307975,
+          -1.1637347741576018e-16,
+          4.204808129530797
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.6428274530723931,
+          "gradientPerM": [
+            3.8591982250629493,
+            2.934157670913372e-17,
+            3.859198225062956
+          ]
+        },
+        "solid": {
+          "density": 0.35717256377712936,
+          "gradientPerM": [
+            -3.859194909489405,
+            -4.677213209245925e-17,
+            -3.8591941045117295
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.5152875662992384,
+      "expectedCombinedDensity": 1.0000000168495224,
+      "measuredNativeVsPhysicalDensityError": 1.459755124632867,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -33.199750378545225,
+        1.4266645188849775e-12,
+        -33.19975118352359
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "floor-edge",
+      "positionM": [
+        0.05,
+        0.045000000000000005,
+        0.45
+      ],
+      "initialParticleId": 240,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.044999999999999984,
+      "directMeshDistanceM": 0.04499999999999999,
+      "mappedDistanceM": 0.04113903727658591,
+      "mappedGradient": [
+        0.11185366423866153,
+        0.42152607154062155,
+        4.124627273917329e-15
+      ],
+      "interpolatedVolumeM3": 0.025715321134009848,
+      "mappedSdfVolume30M3": 0.025716679102218278,
+      "mappedSdfVolume50M3": 0.02486515564043894,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.02141063774020973,
+      "authoredCoefficientMaxM3": 0.026403666336969986,
+      "interpolationWeightMin": -0.25989422390500794,
+      "interpolationWeightMax": 0.766430883540694,
+      "directMeshVolume30M3": 0.02565414896613947,
+      "directMeshVolume50M3": 0.024826185030246906,
+      "analyticBoxVolume30M3": 0.025654148966139476,
+      "analyticBoxVolume50M3": 0.024826185030246917,
+      "volumeInterpolationErrorM3": -1.3579682084305378e-06,
+      "sdfAuthoringVolumeErrorM3": 6.253013607880956e-05,
+      "meshGeometryVolumeErrorM3": -6.938893903907228e-18,
+      "contact": {
+        "mappedDistanceM": 0.04113903727658591,
+        "mappedNormalRaw": [
+          0.11185366423866153,
+          0.42152607154062155,
+          4.124627273917329e-15
+        ],
+        "beforePositionM": [
+          0.05,
+          0.045000000000000005,
+          0.45
+        ],
+        "afterPositionM": [
+          0.05,
+          0.045000000000000005,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.023325212349336398,
+          -0.055525257926043486,
+          0.449999999999999
+        ],
+        "effectiveVolumeM3": 0.025715321134009848,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.8189869308760604,
+      "nativeBoundaryGradientOperatorPerM": [
+        -13.457057816921731,
+        -50.71358863987369,
+        -5.040828090160295e-13
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.6703095964230017,
+        "gradientPerM": [
+          4.055538191253842,
+          4.501722813676844,
+          1.4604898893874864e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.6228968236642809,
+          "gradientPerM": [
+            3.7394656651483524,
+            4.11098470342373,
+            -1.2438763306249457e-17
+          ]
+        },
+        "solid": {
+          "density": 0.3771031892311959,
+          "gradientPerM": [
+            -3.7394594674855672,
+            -4.110987493879156,
+            -9.605809085765172e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.489296527299062,
+      "expectedCombinedDensity": 1.0000000128954767,
+      "measuredNativeVsPhysicalDensityError": 1.4418837416448644,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -9.717598349436164,
+        -46.602601145994534,
+        -5.040732032069437e-13
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "floor-corner",
+      "positionM": [
+        0.05,
+        0.045000000000000005,
+        0.05
+      ],
+      "initialParticleId": 0,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.044999999999999984,
+      "directMeshDistanceM": 0.045,
+      "mappedDistanceM": 0.04045784172331784,
+      "mappedGradient": [
+        0.01931861095549988,
+        0.32148025852102236,
+        0.01931861095549942
+      ],
+      "interpolatedVolumeM3": 0.02851403461050871,
+      "mappedSdfVolume30M3": 0.028524316845525075,
+      "mappedSdfVolume50M3": 0.02755120404883756,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.02526695874518007,
+      "authoredCoefficientMaxM3": 0.028964224041689454,
+      "interpolationWeightMin": -0.47895749864557075,
+      "interpolationWeightMax": 0.6573131675247157,
+      "directMeshVolume30M3": 0.02841897112712819,
+      "directMeshVolume50M3": 0.027488399890345336,
+      "analyticBoxVolume30M3": 0.028418971127128184,
+      "analyticBoxVolume50M3": 0.027488399890345336,
+      "volumeInterpolationErrorM3": -1.0282235016364355e-05,
+      "sdfAuthoringVolumeErrorM3": 0.00010534571839688339,
+      "meshGeometryVolumeErrorM3": 6.938893903907228e-18,
+      "contact": {
+        "mappedDistanceM": 0.04045784172331784,
+        "mappedNormalRaw": [
+          0.01931861095549988,
+          0.32148025852102236,
+          0.01931861095549942
+        ],
+        "beforePositionM": [
+          0.05,
+          0.045000000000000005,
+          0.05
+        ],
+        "afterPositionM": [
+          0.05,
+          0.045000000000000005,
+          0.05
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.04377255686252629,
+          -0.058630640648625866,
+          0.04377255686252644
+        ],
+        "effectiveVolumeM3": 0.02851403461050871,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 2.016955418630439,
+      "nativeBoundaryGradientOperatorPerM": [
+        -3.48357879615342,
+        -57.97010015603241,
+        -3.483578796153335
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.5561510044678327,
+        "gradientPerM": [
+          3.3584115173582827,
+          3.7396415310669284,
+          3.358411517358283
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.4976397498423072,
+          "gradientPerM": [
+            2.9872330532501925,
+            3.280332214570979,
+            2.9872330532501747
+          ]
+        },
+        "solid": {
+          "density": 0.502360243748365,
+          "gradientPerM": [
+            -2.987229032228725,
+            -3.280329278812718,
+            -2.9872263765099243
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.5731064230982716,
+      "expectedCombinedDensity": 0.9999999935906722,
+      "measuredNativeVsPhysicalDensityError": 1.514595174882074,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -0.496349763924695,
+        -54.68977087721969,
+        -0.4963524196434106
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "free-surface",
+      "positionM": [
+        0.45,
+        0.49500000000000005,
+        0.45
+      ],
+      "initialParticleId": 294,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.45,
+      "directMeshDistanceM": 0.45,
+      "mappedDistanceM": 0.44912455330291373,
+      "mappedGradient": [
+        0.01639404477662593,
+        0.00022530315062175803,
+        0.016394044776633327
+      ],
+      "interpolatedVolumeM3": 0,
+      "mappedSdfVolume30M3": 0,
+      "mappedSdfVolume50M3": 0,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "outside-active-support",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0,
+      "authoredCoefficientMaxM3": 0,
+      "interpolationWeightMin": -0.2803784399610468,
+      "interpolationWeightMax": 0.6908841872441895,
+      "directMeshVolume30M3": 0,
+      "directMeshVolume50M3": 0,
+      "analyticBoxVolume30M3": 0,
+      "analyticBoxVolume50M3": 0,
+      "volumeInterpolationErrorM3": 0,
+      "sdfAuthoringVolumeErrorM3": 0,
+      "meshGeometryVolumeErrorM3": 0,
+      "contact": {
+        "mappedDistanceM": 0.44912455330291373,
+        "mappedNormalRaw": [
+          0.01639404477662593,
+          0.00022530315062175803,
+          0.016394044776633327
+        ],
+        "beforePositionM": [
+          0.45,
+          0.49500000000000005,
+          0.45
+        ],
+        "afterPositionM": [
+          0.45,
+          0.49500000000000005,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.8048921865512677,
+        "gradientPerM": [
+          1.6231008126047095e-16,
+          -5.41232540283454,
+          5.172798127977854e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.7778189376061523,
+          "gradientPerM": [
+            -1.0953813754575554e-14,
+            -5.1394801715574685,
+            -1.8726625070938343e-17
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0.222181080148288,
+          "gradientPerM": [
+            2.75371410727765e-15,
+            5.1394863176589,
+            1.640074389040708e-17
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.8048921865512677,
+      "expectedCombinedDensity": 0.7778189376061523,
+      "measuredNativeVsPhysicalDensityError": 0,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        0,
+        0,
+        0
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "surface-wall",
+      "positionM": [
+        0.05,
+        0.49500000000000005,
+        0.45
+      ],
+      "initialParticleId": 290,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.04999999999999999,
+      "directMeshDistanceM": 0.050000000000000024,
+      "mappedDistanceM": 0.05000000000000094,
+      "mappedGradient": [
+        0.9999999999999922,
+        9.313292116243001e-14,
+        9.950237200466681e-14
+      ],
+      "interpolatedVolumeM3": 0.018442312746410502,
+      "mappedSdfVolume30M3": 0.01842983930648041,
+      "mappedSdfVolume50M3": 0.017849865600284027,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.013853638235582688,
+      "authoredCoefficientMaxM3": 0.019277208777984636,
+      "interpolationWeightMin": -0.2767930356694288,
+      "interpolationWeightMax": 0.8011227996982059,
+      "directMeshVolume30M3": 0.01842983930648041,
+      "directMeshVolume50M3": 0.017849865600284037,
+      "analyticBoxVolume30M3": 0.01842983930648042,
+      "analyticBoxVolume50M3": 0.017849865600284065,
+      "volumeInterpolationErrorM3": 1.2473439930091312e-05,
+      "sdfAuthoringVolumeErrorM3": 0,
+      "meshGeometryVolumeErrorM3": -1.0408340855860843e-17,
+      "contact": {
+        "mappedDistanceM": 0.05000000000000094,
+        "mappedNormalRaw": [
+          0.9999999999999922,
+          9.313292116243001e-14,
+          9.950237200466681e-14
+        ],
+        "beforePositionM": [
+          0.05,
+          0.49500000000000005,
+          0.45
+        ],
+        "afterPositionM": [
+          0.05,
+          0.49500000000000005,
+          0.45
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.05400419115259521,
+          0.4949999999999904,
+          0.4499999999999897
+        ],
+        "effectiveVolumeM3": 0.018442312746410502,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.3045268105356433,
+      "nativeBoundaryGradientOperatorPerM": [
+        -37.62906426262461,
+        -3.4946369157381827e-12,
+        -3.735646358202884e-12
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.6703095964230017,
+        "gradientPerM": [
+          4.055538191253842,
+          -4.501722813676844,
+          -3.7089860690233987e-16
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.6228968236642789,
+          "gradientPerM": [
+            3.73946566514835,
+            -4.110984703423742,
+            -3.1713479491836356e-17
+          ]
+        },
+        "solid": {
+          "density": 0.19727740885518433,
+          "gradientPerM": [
+            -4.8194059637288635,
+            3.638104363923685e-17,
+            -8.48391612089934e-18
+          ]
+        },
+        "air": {
+          "density": 0.179825780376012,
+          "gradientPerM": [
+            1.0799464962432916,
+            4.110987493879164,
+            -7.42625853616218e-18
+          ]
+        }
+      },
+      "actualCombinedDensity": 1.974836406958645,
+      "expectedCombinedDensity": 0.8201742325194632,
+      "measuredNativeVsPhysicalDensityError": 1.107249401680459,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -32.80965829889575,
+        -3.494673296781822e-12,
+        -3.735637874286763e-12
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "surface-corner",
+      "positionM": [
+        0.05,
+        0.49500000000000005,
+        0.05
+      ],
+      "initialParticleId": 50,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.04999999999999999,
+      "directMeshDistanceM": 0.050000000000000024,
+      "mappedDistanceM": 0.04325187341635223,
+      "mappedGradient": [
+        0.15736707783369674,
+        2.714994231286424e-14,
+        0.1573670778337206
+      ],
+      "interpolatedVolumeM3": 0.025536456777910513,
+      "mappedSdfVolume30M3": 0.025531892654327527,
+      "mappedSdfVolume50M3": 0.02467737894478726,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.021123113278258405,
+      "authoredCoefficientMaxM3": 0.02621926785251984,
+      "interpolationWeightMin": -0.3928594180749375,
+      "interpolationWeightMax": 0.6870659525268682,
+      "directMeshVolume30M3": 0.025404794713694712,
+      "directMeshVolume50M3": 0.02459408814695393,
+      "analyticBoxVolume30M3": 0.02540479471369471,
+      "analyticBoxVolume50M3": 0.024594088146953897,
+      "volumeInterpolationErrorM3": 4.564123582986163e-06,
+      "sdfAuthoringVolumeErrorM3": 0.00012709794063281432,
+      "meshGeometryVolumeErrorM3": 3.469446951953614e-18,
+      "contact": {
+        "mappedDistanceM": 0.04325187341635223,
+        "mappedNormalRaw": [
+          0.15736707783369674,
+          2.714994231286424e-14,
+          0.1573670778337206
+        ],
+        "beforePositionM": [
+          0.05,
+          0.49500000000000005,
+          0.05
+        ],
+        "afterPositionM": [
+          0.05,
+          0.49500000000000005,
+          0.05
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          -0.02354206883581643,
+          0.49499999999998734,
+          -0.02354206883582757
+        ],
+        "effectiveVolumeM3": 0.025536456777910513,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.8063348654226,
+      "nativeBoundaryGradientOperatorPerM": [
+        -36.842888892370496,
+        -6.368447161877909e-12,
+        -36.84288889237608
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.5561510044678326,
+        "gradientPerM": [
+          3.358411517358283,
+          -3.7396415310669293,
+          3.3584115173582827
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.49763974984230674,
+          "gradientPerM": [
+            2.987233053250193,
+            -3.280332214570969,
+            2.987233053250167
+          ]
+        },
+        "solid": {
+          "density": 0.35717256377712936,
+          "gradientPerM": [
+            -3.859194909489405,
+            -4.677213209245925e-17,
+            -3.8591941045117295
+          ]
+        },
+        "air": {
+          "density": 0.1451876705747304,
+          "gradientPerM": [
+            0.871965703441556,
+            3.280328535080249,
+            0.8719657034415583
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.3624858698904325,
+      "expectedCombinedDensity": 0.8548123136194361,
+      "measuredNativeVsPhysicalDensityError": 1.4491623016454707,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -32.98369398288109,
+        -6.368400389745816e-12,
+        -32.98369478786435
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "planar-q-0.000000",
+      "positionM": [
+        0.5,
+        0,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0,
+      "directMeshDistanceM": 0,
+      "mappedDistanceM": -2.4867261028128e-15,
+      "mappedGradient": [
+        -4.5223470153919356e-13,
+        1.0000000000000697,
+        -4.520046086954015e-13
+      ],
+      "interpolatedVolumeM3": 0.023398006206341013,
+      "mappedSdfVolume30M3": 0.023404371123524476,
+      "mappedSdfVolume50M3": 0.022700491636572742,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "contact-fallback",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.019821409535956718,
+      "authoredCoefficientMaxM3": 0.024612695171260326,
+      "interpolationWeightMin": -0.17309299836599437,
+      "interpolationWeightMax": 1.0558236612109435,
+      "directMeshVolume30M3": 0.023404371123524437,
+      "directMeshVolume50M3": 0.022700491636572746,
+      "analyticBoxVolume30M3": 0.023404371123524448,
+      "analyticBoxVolume50M3": 0.022700491636572718,
+      "volumeInterpolationErrorM3": -6.3649171834628815e-06,
+      "sdfAuthoringVolumeErrorM3": 3.8163916471489756e-17,
+      "meshGeometryVolumeErrorM3": -1.0408340855860843e-17,
+      "contact": {
+        "mappedDistanceM": -2.4867261028128e-15,
+        "mappedNormalRaw": [
+          -4.5223470153919356e-13,
+          1.0000000000000697,
+          -4.520046086954015e-13
+        ],
+        "beforePositionM": [
+          0.5,
+          0,
+          0.5
+        ],
+        "afterPositionM": [
+          0.49999999999999767,
+          0.005200209557629761,
+          0.49999999999999767
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0.04591265018431317,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.5025419195827638,
+        "gradientPerM": [
+          3.4226096445314417e-15,
+          7.5958919307617085,
+          2.7413958886092594e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.5000000176186186,
+          "gradientPerM": [
+            -9.16226151663576e-15,
+            6.7304917086923695,
+            -1.925136782372546e-17
+          ]
+        },
+        "solid": {
+          "density": 0.5000000176186188,
+          "gradientPerM": [
+            8.634323376090378e-15,
+            -6.730491708692375,
+            -8.325574707115556e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.5025419195827638,
+      "expectedCombinedDensity": 1.0000000352372374,
+      "measuredNativeVsPhysicalDensityError": -0.5000000176186188,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -8.634323376090378e-15,
+        6.730491708692375,
+        8.325574707115556e-18
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "planar-q-0.125000",
+      "positionM": [
+        0.5,
+        0.026001047788148803,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.026001047788148823,
+      "directMeshDistanceM": 0.026001047788147796,
+      "mappedDistanceM": 0.026001047788151075,
+      "mappedGradient": [
+        -4.567769047148533e-15,
+        1.0000000000000262,
+        -4.096919725199805e-15
+      ],
+      "interpolatedVolumeM3": 0.020922758879673417,
+      "mappedSdfVolume30M3": 0.02093194174965245,
+      "mappedSdfVolume50M3": 0.020267457915441406,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.019821409535956718,
+      "authoredCoefficientMaxM3": 0.024612695171260326,
+      "interpolationWeightMin": -0.26923266423404985,
+      "interpolationWeightMax": 1.0294411121777054,
+      "directMeshVolume30M3": 0.020931941749652447,
+      "directMeshVolume50M3": 0.02026745791544142,
+      "analyticBoxVolume30M3": 0.02093194174965243,
+      "analyticBoxVolume50M3": 0.02026745791544142,
+      "volumeInterpolationErrorM3": -9.182869979033198e-06,
+      "sdfAuthoringVolumeErrorM3": 3.469446951953614e-18,
+      "meshGeometryVolumeErrorM3": 1.734723475976807e-17,
+      "contact": {
+        "mappedDistanceM": 0.026001047788151075,
+        "mappedNormalRaw": [
+          -4.567769047148533e-15,
+          1.0000000000000262,
+          -4.096919725199805e-15
+        ],
+        "beforePositionM": [
+          0.5,
+          0.026001047788148803,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.026001047788148803,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.5000000000000004,
+          -0.07800314336444641,
+          0.5000000000000004
+        ],
+        "effectiveVolumeM3": 0.020922758879673417,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.4799824883253359,
+      "nativeBoundaryGradientOperatorPerM": [
+        1.8228308353553055e-13,
+        -42.6900817300079,
+        1.8228308353553055e-13
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.6899870234210881,
+        "gradientPerM": [
+          4.945210829914339e-15,
+          6.588478701740188,
+          7.104275268646158e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.669925986983188,
+          "gradientPerM": [
+            -3.5639370548470665e-15,
+            6.154908109449481,
+            -1.2880653193190818e-17
+          ]
+        },
+        "solid": {
+          "density": 0.33007402946058917,
+          "gradientPerM": [
+            -1.2538508314932818e-14,
+            -6.154916223045127,
+            3.3875502151306215e-17
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.169969511746424,
+      "expectedCombinedDensity": 1.000000016443777,
+      "measuredNativeVsPhysicalDensityError": 1.1499084588647466,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        1.9482159185046336e-13,
+        -36.53516550696277,
+        1.8224920803337924e-13
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "planar-q-0.250000",
+      "positionM": [
+        0.5,
+        0.052002095576297605,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.05200209557629759,
+      "directMeshDistanceM": 0.05200209557629773,
+      "mappedDistanceM": 0.05200209557629796,
+      "mappedGradient": [
+        2.206846030689307e-13,
+        1.0000000000000058,
+        1.9987826699580974e-13
+      ],
+      "interpolatedVolumeM3": 0.01821949487536208,
+      "mappedSdfVolume30M3": 0.01821913817716816,
+      "mappedSdfVolume50M3": 0.01764223605698904,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.014459396101999278,
+      "authoredCoefficientMaxM3": 0.019821409535956763,
+      "interpolationWeightMin": -0.09059269066655788,
+      "interpolationWeightMax": 1.0382235241732563,
+      "directMeshVolume30M3": 0.018219138177168137,
+      "directMeshVolume50M3": 0.01764223605698903,
+      "analyticBoxVolume30M3": 0.018219138177168144,
+      "analyticBoxVolume50M3": 0.01764223605698902,
+      "volumeInterpolationErrorM3": 3.566981939193137e-07,
+      "sdfAuthoringVolumeErrorM3": 2.42861286636753e-17,
+      "meshGeometryVolumeErrorM3": -6.938893903907228e-18,
+      "contact": {
+        "mappedDistanceM": 0.05200209557629796,
+        "mappedNormalRaw": [
+          2.206846030689307e-13,
+          1.0000000000000058,
+          1.9987826699580974e-13
+        ],
+        "beforePositionM": [
+          0.5,
+          0.052002095576297605,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.052002095576297605,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.4999999999999771,
+          -0.052002095576297605,
+          0.49999999999997924
+        ],
+        "effectiveVolumeM3": 0.01821949487536208,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 1.2887656698020489,
+      "nativeBoundaryGradientOperatorPerM": [
+        -8.194525543971658e-12,
+        -37.17443429816019,
+        -7.42070836185327e-12
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.8378527296524056,
+        "gradientPerM": [
+          5.706476214949767e-15,
+          4.776858322887696,
+          4.831324777074623e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.812239610132923,
+          "gradientPerM": [
+            2.056823112262082e-14,
+            4.687323684338012,
+            6.407546170797544e-17
+          ]
+        },
+        "solid": {
+          "density": 0.18776040737836075,
+          "gradientPerM": [
+            -3.675246841223751e-15,
+            -4.687311862401162,
+            2.9150378317863792e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 2.1266183994544545,
+      "expectedCombinedDensity": 1.0000000175112838,
+      "measuredNativeVsPhysicalDensityError": 1.1010052624236881,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -8.190850297130434e-12,
+        -32.487122435759034,
+        -7.420711276891101e-12
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "planar-q-0.500000",
+      "positionM": [
+        0.5,
+        0.10400419115259521,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.10400419115259518,
+      "directMeshDistanceM": 0.10400419115259546,
+      "mappedDistanceM": 0.10400419115259509,
+      "mappedGradient": [
+        7.505500735166965e-14,
+        1.0000000000000047,
+        8.560310459970278e-14
+      ],
+      "interpolatedVolumeM3": 0.012693164843324235,
+      "mappedSdfVolume30M3": 0.012693193382818217,
+      "mappedSdfVolume50M3": 0.012211349533438595,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.009279812001660639,
+      "authoredCoefficientMaxM3": 0.01445939610199929,
+      "interpolationWeightMin": -0.0016180131364131548,
+      "interpolationWeightMax": 0.9975312244308503,
+      "directMeshVolume30M3": 0.012693193382818211,
+      "directMeshVolume50M3": 0.012211349533438588,
+      "analyticBoxVolume30M3": 0.012693193382818206,
+      "analyticBoxVolume50M3": 0.012211349533438588,
+      "volumeInterpolationErrorM3": -2.8539493981613595e-08,
+      "sdfAuthoringVolumeErrorM3": 5.204170427930421e-18,
+      "meshGeometryVolumeErrorM3": 5.204170427930421e-18,
+      "contact": {
+        "mappedDistanceM": 0.10400419115259509,
+        "mappedNormalRaw": [
+          7.505500735166965e-14,
+          1.0000000000000047,
+          8.560310459970278e-14
+        ],
+        "beforePositionM": [
+          0.5,
+          0.10400419115259521,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.10400419115259521,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.49999999999999023,
+          -0.026001047788148685,
+          0.4999999999999889
+        ],
+        "effectiveVolumeM3": 0.012693164843324235,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0.37874587586151726,
+      "nativeBoundaryGradientOperatorPerM": [
+        -1.0946994484773599e-12,
+        -14.56675618433942,
+        -1.243976645997e-12
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.9850962651341049,
+        "gradientPerM": [
+          6.7431530309747546e-15,
+          0.892565423842239,
+          7.688122373794661e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.9666667115680643,
+          "gradientPerM": [
+            -1.7718508783435097e-14,
+            1.4422561417294077,
+            -6.362658356657469e-17
+          ]
+        },
+        "solid": {
+          "density": 0.03333333383095152,
+          "gradientPerM": [
+            2.5070291748472507e-17,
+            -1.4422491681268566,
+            -2.8954425434604574e-18
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 1.363842140995622,
+      "expectedCombinedDensity": 1.0000000453990159,
+      "measuredNativeVsPhysicalDensityError": 0.3454125420305657,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        -1.0947245187691083e-12,
+        -13.124507016212563,
+        -1.2439737505544565e-12
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "planar-q-0.750000",
+      "positionM": [
+        0.5,
+        0.15600628672889283,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.15600628672889283,
+      "directMeshDistanceM": 0.15600628672889283,
+      "mappedDistanceM": 0.15600628672889283,
+      "mappedGradient": [
+        -2.99972892648561e-15,
+        0.9999999999999929,
+        2.1232523435124163e-14
+      ],
+      "interpolatedVolumeM3": 0.007517345683478833,
+      "mappedSdfVolume30M3": 0.007517642526416424,
+      "mappedSdfVolume50M3": 0.007162841743128693,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.004835803455253432,
+      "authoredCoefficientMaxM3": 0.009279812001660653,
+      "interpolationWeightMin": -0.02976896146361772,
+      "interpolationWeightMax": 0.9367909861515779,
+      "directMeshVolume30M3": 0.0075176425264164085,
+      "directMeshVolume50M3": 0.0071628417431286884,
+      "analyticBoxVolume30M3": 0.0075176425264164085,
+      "analyticBoxVolume50M3": 0.007162841743128684,
+      "volumeInterpolationErrorM3": -2.9684293759071195e-07,
+      "sdfAuthoringVolumeErrorM3": 1.5612511283791264e-17,
+      "meshGeometryVolumeErrorM3": 0,
+      "contact": {
+        "mappedDistanceM": 0.15600628672889283,
+        "mappedNormalRaw": [
+          -2.99972892648561e-15,
+          0.9999999999999929,
+          2.1232523435124163e-14
+        ],
+        "beforePositionM": [
+          0.5,
+          0.15600628672889283,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.15600628672889283,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.5000000000000006,
+          -0.026001047788148796,
+          0.4999999999999961
+        ],
+        "effectiveVolumeM3": 0.007517345683478833,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0.008301018983383599,
+      "nativeBoundaryGradientOperatorPerM": [
+        2.9218959466028797e-15,
+        -0.9580174094423805,
+        -2.0453271626220157e-14
+      ],
+      "nativeFluidQuadrature": {
+        "density": 1.0005277174622904,
+        "gradientPerM": [
+          7.338217308793648e-15,
+          0.29237554652736036,
+          6.558737600213058e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.998697955126566,
+          "gradientPerM": [
+            2.0389134942007755e-14,
+            0.12021490053725307,
+            1.2022774235650146e-16
+          ]
+        },
+        "solid": {
+          "density": 0.0013020831950208975,
+          "gradientPerM": [
+            5.104142785176834e-19,
+            -0.12018743305239027,
+            1.6584764486535067e-20
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 1.008828736445674,
+      "expectedCombinedDensity": 1.0000000383215868,
+      "measuredNativeVsPhysicalDensityError": 0.006998935788362701,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        2.921385532324362e-15,
+        -0.8378299763899901,
+        -2.0453288210984644e-14
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "planar-q-1.000000",
+      "positionM": [
+        0.5,
+        0.20800838230519042,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0.20800838230519042,
+      "directMeshDistanceM": 0.20800838230519036,
+      "mappedDistanceM": 0.2080083823051903,
+      "mappedGradient": [
+        1.636215778082884e-14,
+        0.9999999999999951,
+        3.158246280299815e-14
+      ],
+      "interpolatedVolumeM3": 0.003403138428691876,
+      "mappedSdfVolume30M3": 0.003403117270302511,
+      "mappedSdfVolume50M3": 0.003200897641280422,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "volume-accepted",
+      "nativeVolumeAccepted": true,
+      "authoredCoefficientMinM3": 0.001774793199644454,
+      "authoredCoefficientMaxM3": 0.004835803455354584,
+      "interpolationWeightMin": -0.04888599298678959,
+      "interpolationWeightMax": 0.8590470335033006,
+      "directMeshVolume30M3": 0.0034031172703025054,
+      "directMeshVolume50M3": 0.0032008976412804205,
+      "analyticBoxVolume30M3": 0.003403117270302509,
+      "analyticBoxVolume50M3": 0.003200897641280416,
+      "volumeInterpolationErrorM3": 2.115838936478029e-08,
+      "sdfAuthoringVolumeErrorM3": 5.637851296924623e-18,
+      "meshGeometryVolumeErrorM3": -3.469446951953614e-18,
+      "contact": {
+        "mappedDistanceM": 0.2080083823051903,
+        "mappedNormalRaw": [
+          1.636215778082884e-14,
+          0.9999999999999951,
+          3.158246280299815e-14
+        ],
+        "beforePositionM": [
+          0.5,
+          0.20800838230519042,
+          0.5
+        ],
+        "afterPositionM": [
+          0.5,
+          0.20800838230519042,
+          0.5
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0.49999999999999617,
+          -0.026001047788148685,
+          0.4999999999999926
+        ],
+        "effectiveVolumeM3": 0.003403138428691876,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.9994848974233818,
+        "gradientPerM": [
+          7.331857636164229e-15,
+          -0.2758428274546807,
+          9.284232594827967e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.9999999485967409,
+          "gradientPerM": [
+            -5.922700835100607e-16,
+            5.314581657539653e-16,
+            -1.9895913222919918e-16
+          ]
+        },
+        "solid": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.9994848974233818,
+      "expectedCombinedDensity": 0.9999999485967409,
+      "measuredNativeVsPhysicalDensityError": 0,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        0,
+        0,
+        0
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "zero-edge",
+      "positionM": [
+        0,
+        0.3,
+        0
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0,
+      "directMeshDistanceM": 0,
+      "mappedDistanceM": -0.006593213627640613,
+      "mappedGradient": [
+        0.3013179017567259,
+        -1.74449153146785e-14,
+        0.3013179017567284
+      ],
+      "interpolatedVolumeM3": 0.028967734661005457,
+      "mappedSdfVolume30M3": 0.028954326192672943,
+      "mappedSdfVolume50M3": 0.028021169877933367,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "contact-fallback",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.026216964984230956,
+      "authoredCoefficientMaxM3": 0.029367381857914182,
+      "interpolationWeightMin": -0.5744263303556126,
+      "interpolationWeightMax": 0.710942464025695,
+      "directMeshVolume30M3": 0.02887098702593557,
+      "directMeshVolume50M3": 0.02795354868756248,
+      "analyticBoxVolume30M3": 0.028870987025935543,
+      "analyticBoxVolume50M3": 0.027953548687562463,
+      "volumeInterpolationErrorM3": 1.3408468332514606e-05,
+      "sdfAuthoringVolumeErrorM3": 8.333916673737216e-05,
+      "meshGeometryVolumeErrorM3": 2.7755575615628914e-17,
+      "contact": {
+        "mappedDistanceM": -0.006593213627640613,
+        "mappedNormalRaw": [
+          0.3013179017567259,
+          -1.74449153146785e-14,
+          0.3013179017567284
+        ],
+        "beforePositionM": [
+          0,
+          0.3,
+          0
+        ],
+        "afterPositionM": [
+          0.003677103441791085,
+          0.29999999999999977,
+          0.0036771034417911156
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": -1.960431816883102e-15,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.24972975089646698,
+        "gradientPerM": [
+          3.8680411059677753,
+          -0.06472304411135166,
+          3.8680411059677753
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.2500000114348764,
+          "gradientPerM": [
+            3.3652509556989862,
+            -8.714377773278317e-17,
+            3.3652509556989556
+          ]
+        },
+        "solid": {
+          "density": 0.7500000290534904,
+          "gradientPerM": [
+            -3.365240752993375,
+            2.704411067625392e-16,
+            -3.3652509556989565
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.24972975089646698,
+      "expectedCombinedDensity": 1.0000000404883669,
+      "measuredNativeVsPhysicalDensityError": -0.7500000290534904,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        3.365240752993375,
+        -2.704411067625392e-16,
+        3.3652509556989565
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "zero-corner",
+      "positionM": [
+        0,
+        0,
+        0
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": false,
+      "analyticDistanceM": 0,
+      "directMeshDistanceM": 0,
+      "mappedDistanceM": -0.0088823182567245,
+      "mappedGradient": [
+        0.17977020899653137,
+        0.24824737413401168,
+        0.17977020899653187
+      ],
+      "interpolatedVolumeM3": 0.03036247725880763,
+      "mappedSdfVolume30M3": 0.030359414465104373,
+      "mappedSdfVolume50M3": 0.029334502916241373,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "contact-fallback",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.028964224041689454,
+      "authoredCoefficientMaxM3": 0.03055038353250173,
+      "interpolationWeightMin": -0.5887495286187008,
+      "interpolationWeightMax": 0.7188772967839042,
+      "directMeshVolume30M3": 0.030290093443728763,
+      "directMeshVolume50M3": 0.02929498841988648,
+      "analyticBoxVolume30M3": 0.030290093443728766,
+      "analyticBoxVolume50M3": 0.02929498841988648,
+      "volumeInterpolationErrorM3": 3.062793703257488e-06,
+      "sdfAuthoringVolumeErrorM3": 6.932102137561028e-05,
+      "meshGeometryVolumeErrorM3": -3.469446951953614e-18,
+      "contact": {
+        "mappedDistanceM": -0.0088823182567245,
+        "mappedNormalRaw": [
+          0.17977020899653137,
+          0.24824737413401168,
+          0.17977020899653187
+        ],
+        "beforePositionM": [
+          0,
+          0,
+          0
+        ],
+        "afterPositionM": [
+          0.0026308933468033803,
+          0.003633040027133653,
+          0.0026308933468033873
+        ],
+        "beforeVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          0,
+          0,
+          0
+        ],
+        "deltaKineticJ": 0,
+        "deltaPotentialJ": 0.03207611039956303,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.12563547989569096,
+        "gradientPerM": [
+          1.9618100829552692,
+          1.8989729826904271,
+          1.9618100829552692
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.12500000070997266,
+          "gradientPerM": [
+            1.6826251267595183,
+            1.682625126759523,
+            1.6826251267595234
+          ]
+        },
+        "solid": {
+          "density": 0.8750000297634628,
+          "gradientPerM": [
+            -1.682615626233858,
+            -1.6826258289394265,
+            -1.6826251267595227
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.12563547989569096,
+      "expectedCombinedDensity": 1.0000000304734356,
+      "measuredNativeVsPhysicalDensityError": -0.8750000297634628,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        1.682615626233858,
+        1.6826258289394265,
+        1.6826251267595227
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    },
+    {
+      "kind": "probe",
+      "grid": 1,
+      "name": "synthetic-penetration",
+      "positionM": [
+        0.5,
+        -0.0026001047788148804,
+        0.5
+      ],
+      "initialParticleId": -1,
+      "syntheticContact": true,
+      "analyticDistanceM": -0.0026001047788148934,
+      "directMeshDistanceM": -0.0026001047788152066,
+      "mappedDistanceM": -0.002600104778817441,
+      "mappedGradient": [
+        -4.982447483405976e-13,
+        0.999999999999985,
+        -4.98090715083404e-13
+      ],
+      "interpolatedVolumeM3": 0.023635160284513505,
+      "mappedSdfVolume30M3": 0.023645611899810907,
+      "mappedSdfVolume50M3": 0.02293175834769242,
+      "nonnegativeVolumeControl": true,
+      "nativeBranch": "contact-fallback",
+      "nativeVolumeAccepted": false,
+      "authoredCoefficientMinM3": 0.019821409535956718,
+      "authoredCoefficientMaxM3": 0.024612695171260326,
+      "interpolationWeightMin": -0.2678299671294321,
+      "interpolationWeightMax": 1.0306336622323815,
+      "directMeshVolume30M3": 0.023645611899810917,
+      "directMeshVolume50M3": 0.022931758347692413,
+      "analyticBoxVolume30M3": 0.023645611899810896,
+      "analyticBoxVolume50M3": 0.022931758347692406,
+      "volumeInterpolationErrorM3": -1.0451615297401434e-05,
+      "sdfAuthoringVolumeErrorM3": -1.0408340855860843e-17,
+      "meshGeometryVolumeErrorM3": 2.0816681711721685e-17,
+      "contact": {
+        "mappedDistanceM": -0.002600104778817441,
+        "mappedNormalRaw": [
+          -4.982447483405976e-13,
+          0.999999999999985,
+          -4.98090715083404e-13
+        ],
+        "beforePositionM": [
+          0.5,
+          -0.0026001047788148804,
+          0.5
+        ],
+        "afterPositionM": [
+          0.4999999999999974,
+          0.0026001047788148804,
+          0.4999999999999974
+        ],
+        "beforeVelocityMPerS": [
+          1,
+          -2,
+          0.5
+        ],
+        "afterVelocityMPerS": [
+          0,
+          0,
+          0
+        ],
+        "boundaryPointM": [
+          0,
+          0,
+          0
+        ],
+        "effectiveVolumeM3": 0,
+        "deltaMomentumKgMPerS": [
+          -0.9000000000000002,
+          1.8000000000000005,
+          -0.4500000000000001
+        ],
+        "deltaKineticJ": -2.3625000000000007,
+        "deltaPotentialJ": 0.04591265018431317,
+        "formulaMatches": true,
+        "positiveMappedDistanceUnmoved": true,
+        "temporaryStateRestored": true
+      },
+      "positivePhysicalDistanceUnmoved": true,
+      "nativeBoundaryDensity": 0,
+      "nativeBoundaryGradientOperatorPerM": [
+        0,
+        0,
+        0
+      ],
+      "nativeFluidQuadrature": {
+        "density": 0.4828523138887032,
+        "gradientPerM": [
+          3.2974803549459268e-15,
+          7.617743377261917,
+          3.568788352256829e-15
+        ]
+      },
+      "independentContinuum48": {
+        "fluid": {
+          "density": 0.48250522260217477,
+          "gradientPerM": [
+            5.354263018303182e-15,
+            6.72449910222051,
+            -2.208471709807704e-17
+          ]
+        },
+        "solid": {
+          "density": 0.517494801492362,
+          "gradientPerM": [
+            -2.484801025593847e-15,
+            -6.724486847757631,
+            2.6833199930406592e-17
+          ]
+        },
+        "air": {
+          "density": 0,
+          "gradientPerM": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "actualCombinedDensity": 0.4828523138887032,
+      "expectedCombinedDensity": 1.0000000240945368,
+      "measuredNativeVsPhysicalDensityError": -0.517494801492362,
+      "measuredNativeVsPhysicalGradientErrorPerM": [
+        2.484801025593847e-15,
+        6.724486847757631,
+        -2.6833199930406592e-17
+      ],
+      "attribution": "measured total operator discrepancy; map/SDF/quadrature errors reported separately, not assumed zero"
+    }
+  ],
+  "maps": [
+    {
+      "kind": "grid",
+      "grid": 0,
+      "resolution": [
+        18,
+        19,
+        18
+      ],
+      "cellSizeM": [
+        0.10177964051226453,
+        0.10063334364319798,
+        0.10177964051226453
+      ],
+      "domainMinM": [
+        -0.41601676461038084,
+        -0.41601676461038084,
+        -0.41601676461038084
+      ],
+      "domainMaxM": [
+        1.4160167646103807,
+        1.4960167646103808,
+        1.4160167646103807
+      ],
+      "fullNodesPerField": 48298,
+      "cellsPerField": 6156,
+      "fieldArrayPayloadBytes": 2397952,
+      "sdfEvaluations": 48298,
+      "volumeNodeEvaluations": 372,
+      "requiredVolumeNodes": 372,
+      "volumeQuadratureUpperBound": 1523712,
+      "sdfMs": 11.69728,
+      "volumeAuthoringMs": 62.245721,
+      "directWitnessMs": 46.251538000000004,
+      "contactMs": 0.065237,
+      "probePlusOutputMs": 81.728702,
+      "maxMeshAnalyticSdfErrorM": 3.517498792238172e-14
+    },
+    {
+      "kind": "grid",
+      "grid": 1,
+      "resolution": [
+        36,
+        38,
+        36
+      ],
+      "cellSizeM": [
+        0.050889820256132264,
+        0.05031667182159899,
+        0.050889820256132264
+      ],
+      "domainMinM": [
+        -0.41601676461038084,
+        -0.41601676461038084,
+        -0.41601676461038084
+      ],
+      "domainMaxM": [
+        1.4160167646103807,
+        1.4960167646103808,
+        1.4160167646103807
+      ],
+      "fullNodesPerField": 365227,
+      "cellsPerField": 49248,
+      "fieldArrayPayloadBytes": 18845104,
+      "sdfEvaluations": 365227,
+      "volumeNodeEvaluations": 455,
+      "requiredVolumeNodes": 455,
+      "volumeQuadratureUpperBound": 1863680,
+      "sdfMs": 365.645606,
+      "volumeAuthoringMs": 372.487894,
+      "directWitnessMs": 114.42967499999997,
+      "contactMs": 0.08648000000000002,
+      "probePlusOutputMs": 188.609765,
+      "maxMeshAnalyticSdfErrorM": 5.722158857857096e-14
+    }
+  ],
+  "result": {
+    "kind": "result",
+    "pass": false,
+    "numericalControls": false,
+    "contactSourceLaw": true,
+    "positivePhysicalDistanceUnmoved": true,
+    "physicalStateRestored": true,
+    "negativeQueryVolumes": 1,
+    "nonnegativeVolumeControl": false,
+    "maxMeshAnalyticSdfErrorM": 5.722158857857096e-14,
+    "fineOffSurfaceSdfErrorM": 0.006748126583647762,
+    "fineVolumeInterpolationErrorM3": 1.3408468332514606e-05,
+    "maxRule30Rule50VolumeDifferenceM3": 0.001024911548863,
+    "sdfToleranceM": 0.0020800838230519043,
+    "volumeToleranceM3": 9.000000000000002e-05,
+    "radiusM": 0.052002095576297605,
+    "supportM": 0.20800838230519042,
+    "massKg": 539.999999999994,
+    "fluidCount": 600,
+    "probesPerGrid": 18,
+    "initializationMs": 53.866845,
+    "elapsedMs": 1138.498526
+  },
+  "fluidInitializationByteEqual": true,
+  "nativeCaptureParseSeconds": 1.1662932520266622,
+  "maxChildRssKiB": 26240,
+  "evidenceSha256": {
+    "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout": "fd37a47d7be342da197ec2c2fb1ee68ae05e3633aafbb50b0201967ebd5dd0cb",
+    "initialization.csv": "74e9f1e569189715a0b5cd51d27159d0a48db1f496f4deed8fc636c862a0c28a"
+  }
+}

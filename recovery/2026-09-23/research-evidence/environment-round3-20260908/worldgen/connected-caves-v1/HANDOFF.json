@@ -1,0 +1,16 @@
+{
+  "status": "personally and independently accepted within recorded scope",
+  "files": {
+    "features.mjs": "b91219b568be736243b80fd16af35473587d3b7ada5819fd51ac2efde1590f48",
+    "voxel-world.mjs": "68dcf790fc56b83cf661ad2a78294860809d98648a321d2c60fa3a4340d54112",
+    "qualify.mjs": "b9274575e7f160e2650c68d0c4662d1f80d1b6077e8d656d1231e1f84525a00d",
+    "CONTRACT.md": "30a8a492e349706ea1acd39e541bd89f295acf9e57f6f36d37a783b2b9c878b9",
+    "RESULTS.md": "3d76b822514282153cc681beb3dd75686fb2321b481a5fe7a34ad65c27898df5",
+    "run-v1/proof.json": "24b997e1a1fa9557bc49a0ab9c4d4b70d56066671bfd13bec60e52ec8e291958",
+    "run-v1/terminal.json": "bd06a052bd6ba2ae3e768945183b14051ffc3bf544824d46909e08e05a163d37",
+    "fallow-features-final.json": "c867f7cc868d7b61b1129c8adfb64aa23c0ddb717fb98759f3975ffba0f8739e",
+    "fallow-world-final.json": "1eb65f17c98edfb488086dfdad5d8f00d4c688bfe8ebe441592bde631a2822e5",
+    "REVIEW.md": "d09b65664773bf614ff3dac6ce03a0bc6af07bea7c653d22d4aaee3edcd598e4"
+  },
+  "scope": "ignored-only generated component; no production/air/water/digging integration"
+}

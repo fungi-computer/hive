@@ -1,0 +1,42 @@
+{
+  "scope": "Source-first one fixed closed standing-wave proposal. No numerical source compiled/run. Root independent oracle not yet consumed.",
+  "ownedDirectory": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1",
+  "sourceReview": {
+    "nativeFormulationsCompared": [
+      "gravity.c",
+      "stokes-ns.c",
+      "dispersion_gravitocap.c"
+    ],
+    "chosen": "corrected direct-a/native-p two-phase+conserving closed fundamental",
+    "preservesFailedAndPassedBasinReceipts": true,
+    "proposedNativeBudgetSeconds": 28,
+    "finiteAmplitudeAndNominalStaggerLimitsDisclosed": true
+  },
+  "files": [
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/PROPOSAL.md",
+      "bytes": 9123,
+      "sha256": "0c22ba15cdfc15433d76a5b119ae92d4fdd03f163c6a8201ba8c52cce3b6d422"
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/CALLER-CONTRACT.md",
+      "bytes": 6789,
+      "sha256": "728cf53e1c7d1a604c546f154bab4ffd62f529ddd9987a6b5c85d8d872d5765b"
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/FIXTURE.json",
+      "bytes": 876,
+      "sha256": "6009ed87bc100025d9685fbef6cb25152184727a5215f71b885dfc9b4a071c59"
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/SOURCE-INVENTORY.json",
+      "bytes": 5904,
+      "sha256": "560be022cc736af4c0377cd41e67aa1d395049cf5d89ca03f092db0b31feb7da"
+    }
+  ],
+  "priorAcceptedResult": {
+    "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-caller-audit-v1/RESULT-V2-HANDOFF.json",
+    "bytes": 3376,
+    "sha256": "aab195a6a0bd73e6be85cd205f22718131a81316c3a4520ea05513916d140a58"
+  }
+}

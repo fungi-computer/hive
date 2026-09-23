@@ -1,0 +1,438 @@
+[
+  {
+    "label": "dry multi-port suction manifold rejected",
+    "name": "Error",
+    "message": "exact pore/boundary capacity and wet multi-port reservoir stock",
+    "partial": null
+  },
+  {
+    "label": "no overfilled geometric pores",
+    "name": "Error",
+    "message": "exact pore/boundary capacity and wet multi-port reservoir stock",
+    "partial": null
+  },
+  {
+    "label": "wrong geometry/definition identity",
+    "name": "Error",
+    "message": "region geometry/definition/solver identity",
+    "partial": null
+  },
+  {
+    "label": "step admission budget",
+    "name": "Error",
+    "message": "bounded region timestep and accepted steps",
+    "partial": null
+  },
+  {
+    "label": "actual evaluation budget",
+    "name": "Error",
+    "message": "request nonlinear evaluation budget",
+    "partial": {
+      "committed": false,
+      "lastLocalState": {
+        "version": "rigid-richards-connected-volume-be-v1",
+        "identity": "{\"version\":\"rigid-richards-connected-volume-be-v1\",\"geometry\":\"{\\\"version\\\":\\\"rigid-soil-voxel-graph-v1\\\",\\\"regionId\\\":\\\"saturated-x-2-path-layer\\\",\\\"revision\\\":0,\\\"spacingM\\\":[1,0.54,1],\\\"exterior\\\":\\\"closed\\\",\\\"definitions\\\":[{\\\"id\\\":\\\"synthetic-low-k-layer-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.000001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000},{\\\"id\\\":\\\"synthetic-rigid-loam-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.0001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000}],\\\"cells\\\":[{\\\"at\\\":[0,0,0],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,0,1],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,0,0],\\\"soilId\\\":\\\"synthetic-low-k-layer-si-v1\\\"},{\\\"at\\\":[1,0,1],\\\"soilId\\\":\\\"synthetic-low-k-layer-si-v1\\\"},{\\\"at\\\":[2,0,0],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,0,1],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"}],\\\"reservoirs\\\":[{\\\"id\\\":\\\"high-face\\\",\\\"areaM2\\\":1},{\\\"id\\\":\\\"low-face\\\",\\\"areaM2\\\":1}],\\\"ports\\\":[{\\\"cell\\\":[0,0,0],\\\"side\\\":\\\"x-\\\",\\\"reservoirId\\\":\\\"low-face\\\"},{\\\"cell\\\":[0,0,1],\\\"side\\\":\\\"x-\\\",\\\"reservoirId\\\":\\\"low-face\\\"},{\\\"cell\\\":[2,0,0],\\\"side\\\":\\\"x+\\\",\\\"reservoirId\\\":\\\"high-face\\\"},{\\\"cell\\\":[2,0,1],\\\"side\\\":\\\"x+\\\",\\\"reservoirId\\\":\\\"high-face\\\"}],\\\"closedFaces\\\":[]}\",\"faceRule\":\"series-centre-half-trace-quarter-v1\",\"solver\":\"analytic-dense-newton-tree-closure-v1\",\"pressureGuess\":\"stable-id-multisource-bfs-canonical-stock-v1\",\"dryBoundary\":\"single-port-only-v1\"}",
+        "massKg": [
+          243,
+          243,
+          243,
+          243,
+          243,
+          243,
+          3530,
+          3930
+        ],
+        "initialTotalKg": 8918,
+        "timeS": 0,
+        "steps": 0
+      },
+      "receipt": {
+        "startS": 0,
+        "endS": 0,
+        "faceIds": [
+          "x:0,0,0",
+          "x:0,0,1",
+          "x:1,0,0",
+          "x:1,0,1",
+          "x:2,0,0",
+          "x:2,0,1",
+          "x:3,0,0",
+          "x:3,0,1",
+          "z:0,0,1",
+          "z:1,0,1",
+          "z:2,0,1"
+        ],
+        "faceTransferKg": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "steps": [],
+        "rejectedStages": [],
+        "maxAbsMetrics": {}
+      },
+      "work": {
+        "evaluations": 1,
+        "evaluationLimit": 1,
+        "faceEvaluations": 11,
+        "iterations": 1,
+        "lineTrials": 1,
+        "rejected": 0,
+        "guessEdgeVisits": 22,
+        "guessNodeReads": 8,
+        "guessProjections": 0,
+        "matrixBuilds": 1,
+        "matrixAssemblyAdds": 44,
+        "peakDenseBytes": 512,
+        "pivotComparisons": 28,
+        "matrixSwapEntries": 0,
+        "factorDivisions": 28,
+        "matrixUpdates": 140,
+        "matrixUpdateLimit": 30000000,
+        "rhsUpdates": 28,
+        "backSubProducts": 28,
+        "backSubDivisions": 8,
+        "maxLinearResidualKg": 2.6020852139652106e-18,
+        "closureFaceVisits": 0,
+        "closureTreeVisits": 0
+      }
+    }
+  },
+  {
+    "label": "actual dense update budget",
+    "name": "Error",
+    "message": "request dense elimination work budget",
+    "partial": {
+      "committed": false,
+      "lastLocalState": {
+        "version": "rigid-richards-connected-volume-be-v1",
+        "identity": "{\"version\":\"rigid-richards-connected-volume-be-v1\",\"geometry\":\"{\\\"version\\\":\\\"rigid-soil-voxel-graph-v1\\\",\\\"regionId\\\":\\\"saturated-x-2-path-layer\\\",\\\"revision\\\":0,\\\"spacingM\\\":[1,0.54,1],\\\"exterior\\\":\\\"closed\\\",\\\"definitions\\\":[{\\\"id\\\":\\\"synthetic-low-k-layer-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.000001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000},{\\\"id\\\":\\\"synthetic-rigid-loam-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.0001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000}],\\\"cells\\\":[{\\\"at\\\":[0,0,0],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,0,1],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,0,0],\\\"soilId\\\":\\\"synthetic-low-k-layer-si-v1\\\"},{\\\"at\\\":[1,0,1],\\\"soilId\\\":\\\"synthetic-low-k-layer-si-v1\\\"},{\\\"at\\\":[2,0,0],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,0,1],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"}],\\\"reservoirs\\\":[{\\\"id\\\":\\\"high-face\\\",\\\"areaM2\\\":1},{\\\"id\\\":\\\"low-face\\\",\\\"areaM2\\\":1}],\\\"ports\\\":[{\\\"cell\\\":[0,0,0],\\\"side\\\":\\\"x-\\\",\\\"reservoirId\\\":\\\"low-face\\\"},{\\\"cell\\\":[0,0,1],\\\"side\\\":\\\"x-\\\",\\\"reservoirId\\\":\\\"low-face\\\"},{\\\"cell\\\":[2,0,0],\\\"side\\\":\\\"x+\\\",\\\"reservoirId\\\":\\\"high-face\\\"},{\\\"cell\\\":[2,0,1],\\\"side\\\":\\\"x+\\\",\\\"reservoirId\\\":\\\"high-face\\\"}],\\\"closedFaces\\\":[]}\",\"faceRule\":\"series-centre-half-trace-quarter-v1\",\"solver\":\"analytic-dense-newton-tree-closure-v1\",\"pressureGuess\":\"stable-id-multisource-bfs-canonical-stock-v1\",\"dryBoundary\":\"single-port-only-v1\"}",
+        "massKg": [
+          243,
+          243,
+          243,
+          243,
+          243,
+          243,
+          3530,
+          3930
+        ],
+        "initialTotalKg": 8918,
+        "timeS": 0,
+        "steps": 0
+      },
+      "receipt": {
+        "startS": 0,
+        "endS": 0,
+        "faceIds": [
+          "x:0,0,0",
+          "x:0,0,1",
+          "x:1,0,0",
+          "x:1,0,1",
+          "x:2,0,0",
+          "x:2,0,1",
+          "x:3,0,0",
+          "x:3,0,1",
+          "z:0,0,1",
+          "z:1,0,1",
+          "z:2,0,1"
+        ],
+        "faceTransferKg": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "steps": [],
+        "rejectedStages": [],
+        "maxAbsMetrics": {}
+      },
+      "work": {
+        "evaluations": 1,
+        "evaluationLimit": 250000,
+        "faceEvaluations": 11,
+        "iterations": 1,
+        "lineTrials": 0,
+        "rejected": 0,
+        "guessEdgeVisits": 22,
+        "guessNodeReads": 8,
+        "guessProjections": 0,
+        "matrixBuilds": 1,
+        "matrixAssemblyAdds": 44,
+        "peakDenseBytes": 512,
+        "pivotComparisons": 7,
+        "matrixSwapEntries": 0,
+        "factorDivisions": 1,
+        "matrixUpdates": 1,
+        "matrixUpdateLimit": 1,
+        "rhsUpdates": 0,
+        "backSubProducts": 0,
+        "backSubDivisions": 0,
+        "maxLinearResidualKg": 0,
+        "closureFaceVisits": 0,
+        "closureTreeVisits": 0
+      }
+    }
+  },
+  {
+    "label": "unknown option",
+    "name": "Error",
+    "message": "supported region work options",
+    "partial": null
+  },
+  {
+    "label": "whole request rejected after one local accepted step",
+    "name": "Error",
+    "message": "request nonlinear evaluation budget",
+    "partial": {
+      "committed": false,
+      "lastLocalState": {
+        "version": "rigid-richards-connected-volume-be-v1",
+        "identity": "{\"version\":\"rigid-richards-connected-volume-be-v1\",\"geometry\":\"{\\\"version\\\":\\\"rigid-soil-voxel-graph-v1\\\",\\\"regionId\\\":\\\"saturated-x-2-path-layer\\\",\\\"revision\\\":0,\\\"spacingM\\\":[1,0.54,1],\\\"exterior\\\":\\\"closed\\\",\\\"definitions\\\":[{\\\"id\\\":\\\"synthetic-low-k-layer-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.000001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000},{\\\"id\\\":\\\"synthetic-rigid-loam-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.0001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000}],\\\"cells\\\":[{\\\"at\\\":[0,0,0],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,0,1],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[1,0,0],\\\"soilId\\\":\\\"synthetic-low-k-layer-si-v1\\\"},{\\\"at\\\":[1,0,1],\\\"soilId\\\":\\\"synthetic-low-k-layer-si-v1\\\"},{\\\"at\\\":[2,0,0],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[2,0,1],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"}],\\\"reservoirs\\\":[{\\\"id\\\":\\\"high-face\\\",\\\"areaM2\\\":1},{\\\"id\\\":\\\"low-face\\\",\\\"areaM2\\\":1}],\\\"ports\\\":[{\\\"cell\\\":[0,0,0],\\\"side\\\":\\\"x-\\\",\\\"reservoirId\\\":\\\"low-face\\\"},{\\\"cell\\\":[0,0,1],\\\"side\\\":\\\"x-\\\",\\\"reservoirId\\\":\\\"low-face\\\"},{\\\"cell\\\":[2,0,0],\\\"side\\\":\\\"x+\\\",\\\"reservoirId\\\":\\\"high-face\\\"},{\\\"cell\\\":[2,0,1],\\\"side\\\":\\\"x+\\\",\\\"reservoirId\\\":\\\"high-face\\\"}],\\\"closedFaces\\\":[]}\",\"faceRule\":\"series-centre-half-trace-quarter-v1\",\"solver\":\"analytic-dense-newton-tree-closure-v1\",\"pressureGuess\":\"stable-id-multisource-bfs-canonical-stock-v1\",\"dryBoundary\":\"single-port-only-v1\"}",
+        "massKg": [
+          243,
+          243,
+          243,
+          243,
+          243,
+          243,
+          3530.004235204431,
+          3929.995764795569
+        ],
+        "initialTotalKg": 8918,
+        "timeS": 10,
+        "steps": 1
+      },
+      "receipt": {
+        "startS": 0,
+        "endS": 10,
+        "faceIds": [
+          "x:0,0,0",
+          "x:0,0,1",
+          "x:1,0,0",
+          "x:1,0,1",
+          "x:2,0,0",
+          "x:2,0,1",
+          "x:3,0,0",
+          "x:3,0,1",
+          "z:0,0,1",
+          "z:1,0,1",
+          "z:2,0,1"
+        ],
+        "faceTransferKg": [
+          0.0021176022156156903,
+          0.002117602215481682,
+          0.0021176022156152107,
+          0.0021176022154821617,
+          0.0021176022156152107,
+          0.0021176022154821617,
+          0.0021176022156152107,
+          0.0021176022154821617,
+          4.796510411075872e-16,
+          0,
+          0
+        ],
+        "steps": [
+          {
+            "startS": 0,
+            "endS": 10,
+            "dtS": 10,
+            "headM": [
+              3.928035022003456,
+              3.928035022003456,
+              3.73,
+              3.73,
+              3.531964977996544,
+              3.531964977996544,
+              3.530004235204431,
+              3.929995764795569
+            ],
+            "massKg": [
+              243,
+              243,
+              243,
+              243,
+              243,
+              243,
+              3530.004235204431,
+              3929.995764795569
+            ],
+            "ledger": {
+              "transferKg": [
+                0.0021176022156156903,
+                0.002117602215481682,
+                0.0021176022156152107,
+                0.0021176022154821617,
+                0.0021176022156152107,
+                0.0021176022154821617,
+                0.0021176022156152107,
+                0.0021176022154821617,
+                4.796510411075872e-16,
+                0,
+                0
+              ],
+              "darcyTransferKg": [
+                0.002117602215481682,
+                0.002117602215481682,
+                0.002117602215482499,
+                0.002117602215482499,
+                0.002117602215482499,
+                0.002117602215482499,
+                0.0021176022154821617,
+                0.0021176022154821617,
+                0,
+                0,
+                0
+              ],
+              "treeCorrectionKg": [
+                1.3400825588094634e-13,
+                0,
+                1.3271155008265367e-13,
+                -3.37403716077489e-16,
+                1.3271155008265367e-13,
+                -3.37403716077489e-16,
+                1.3304895379873116e-13,
+                0,
+                4.796510411075872e-16,
+                0,
+                0
+              ],
+              "initialContinuityKg": 1.3400825588094634e-13,
+              "rootCompatibilityKg": 0
+            },
+            "metrics": {
+              "mixedKg": 1.3400825588094634e-13,
+              "constitutiveKg": 0,
+              "darcyKg": 1.3400825588094634e-13,
+              "darcyM3S": 1.3400825588094634e-17,
+              "pairKg": 0,
+              "totalKg": 0,
+              "treeCorrectionKg": 1.3400825588094634e-13,
+              "rootCompatibilityKg": 0,
+              "initialContinuityKg": 1.3400825588094634e-13,
+              "chordDifferenceKg": 0,
+              "complementarityM2": 0,
+              "boundaries": [
+                {
+                  "nodeId": "reservoir:high-face",
+                  "portCount": 2,
+                  "massKg": 3530.004235204431,
+                  "depthM": 3.530004235204431,
+                  "headM": 3.530004235204431,
+                  "gapM": 0
+                },
+                {
+                  "nodeId": "reservoir:low-face",
+                  "portCount": 2,
+                  "massKg": 3929.995764795569,
+                  "depthM": 3.929995764795569,
+                  "headM": 3.929995764795569,
+                  "gapM": 0
+                }
+              ]
+            },
+            "closure": {
+              "nodeId": null,
+              "correctionKg": 0,
+              "wetBoundaryNormalizations": [
+                {
+                  "nodeId": "reservoir:high-face",
+                  "massKg": 3530.004235204431,
+                  "previousHeadM": 3.530004235204431,
+                  "headM": 3.530004235204431,
+                  "deltaHeadM": 0
+                },
+                {
+                  "nodeId": "reservoir:low-face",
+                  "massKg": 3929.995764795569,
+                  "previousHeadM": 3.929995764795569,
+                  "headM": 3.929995764795569,
+                  "deltaHeadM": 0
+                }
+              ]
+            }
+          }
+        ],
+        "rejectedStages": [],
+        "maxAbsMetrics": {
+          "mixedKg": 1.3400825588094634e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 1.3400825588094634e-13,
+          "darcyM3S": 1.3400825588094634e-17,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 1.3400825588094634e-13,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 1.3400825588094634e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "stockClosureKg": 0
+        }
+      },
+      "work": {
+        "evaluations": 3,
+        "evaluationLimit": 3,
+        "faceEvaluations": 33,
+        "iterations": 1,
+        "lineTrials": 1,
+        "rejected": 0,
+        "guessEdgeVisits": 44,
+        "guessNodeReads": 16,
+        "guessProjections": 0,
+        "matrixBuilds": 1,
+        "matrixAssemblyAdds": 44,
+        "peakDenseBytes": 512,
+        "pivotComparisons": 28,
+        "matrixSwapEntries": 0,
+        "factorDivisions": 28,
+        "matrixUpdates": 140,
+        "matrixUpdateLimit": 30000000,
+        "rhsUpdates": 28,
+        "backSubProducts": 28,
+        "backSubDivisions": 8,
+        "maxLinearResidualKg": 2.6020852139652106e-18,
+        "closureFaceVisits": 11,
+        "closureTreeVisits": 7
+      }
+    }
+  },
+  {
+    "label": "unanchored saturated sealed geometry",
+    "name": "Error",
+    "message": "unanchored fully saturated dry-boundary region",
+    "partial": null
+  },
+  {
+    "label": "disconnected pressure graph",
+    "name": "Error",
+    "message": "one connected admitted soil/reservoir graph required",
+    "partial": null
+  },
+  {
+    "label": "unknown reservoir port cell",
+    "name": "Error",
+    "message": "port has a known porous cell, side and finite reservoir",
+    "partial": null
+  },
+  {
+    "label": "sparse metric array",
+    "name": "Error",
+    "message": "actual voxel metric and explicit closed exterior policy required",
+    "partial": null
+  }
+]

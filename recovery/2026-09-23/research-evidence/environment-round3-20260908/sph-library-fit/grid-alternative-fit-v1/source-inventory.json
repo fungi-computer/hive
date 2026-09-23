@@ -1,0 +1,657 @@
+{
+  "fetchedUtc": "2026-09-08T22:18:46.321065+00:00",
+  "identity": "Per-file source snapshot from authoritative Basilisk site; not an atomic darcs revision.",
+  "files": [
+    {
+      "path": "navier-stokes/centered.h",
+      "url": "https://basilisk.fr/src/navier-stokes/centered.h?raw=",
+      "bytes": 12031,
+      "sha256": "98f132f6902ad4642ab1b431491dc97855b839b9a725d07d5afc5c5dee8b01bd",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "navier-stokes/conserving.h",
+      "url": "https://basilisk.fr/src/navier-stokes/conserving.h?raw=",
+      "bytes": 5025,
+      "sha256": "fd1d666c6f605418429514e586d3b5b577d8314b11aa023bf55c2d8bf732f099",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "two-phase.h",
+      "url": "https://basilisk.fr/src/two-phase.h?raw=",
+      "bytes": 739,
+      "sha256": "11de50ca5054a2c89d47581eec78580d745bd242e18c5b0e84759a86ae9a30e8",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "two-phase-generic.h",
+      "url": "https://basilisk.fr/src/two-phase-generic.h?raw=",
+      "bytes": 2117,
+      "sha256": "df2526e39501bdbd8f9e84d7cf63894327101d0c3dc57c7419a101cfbd430f63",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "vof.h",
+      "url": "https://basilisk.fr/src/vof.h?raw=",
+      "bytes": 11656,
+      "sha256": "d807da67e8b13cb10ea1ec0ba2742394bd5ab7119da7c96736dc992894aedad6",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "poisson.h",
+      "url": "https://basilisk.fr/src/poisson.h?raw=",
+      "bytes": 14079,
+      "sha256": "f7df8d2d0d14bbe1832d4b0cc2fc4ec2fa50f586e80af4f5ecf61af671a333e4",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "timestep.h",
+      "url": "https://basilisk.fr/src/timestep.h?raw=",
+      "bytes": 458,
+      "sha256": "7a728bfe633cac8e6682fd8288ec6296a18d1486fb3c5b4b4019d227fb3947b4",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "run.h",
+      "url": "https://basilisk.fr/src/run.h?raw=",
+      "bytes": 953,
+      "sha256": "3c8d8f5c40fddd013684c67c6824518589039e2035e605e17e249675eedd6ef7",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "output.h",
+      "url": "https://basilisk.fr/src/output.h?raw=",
+      "bytes": 35773,
+      "sha256": "6b4550f142fb992ecc4e945d766849ee5696c360345763194a6dbcb69c7015a2",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/events.h",
+      "url": "https://basilisk.fr/src/grid/events.h?raw=",
+      "bytes": 7584,
+      "sha256": "0e0083811806ae9d37512d24e5b73c2c3c26af10bcf5d106f29c86f4084019a1",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/multigrid.h",
+      "url": "https://basilisk.fr/src/grid/multigrid.h?raw=",
+      "bytes": 24051,
+      "sha256": "0f2a04c68db35eaa012db5ffd1fa64bbf69d71de9823592408ab92f015ad5d6e",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/multigrid3D.h",
+      "url": "https://basilisk.fr/src/grid/multigrid3D.h?raw=",
+      "bytes": 98,
+      "sha256": "a81489d1a42e661e0b1c346f08d41f39d41822d70b8a1a2c2b5162c23ca516e5",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/tree.h",
+      "url": "https://basilisk.fr/src/grid/tree.h?raw=",
+      "bytes": 44876,
+      "sha256": "356de169335d39c3aa9f326f7762d762f1861900ec338234e6c3edb53d247c40",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "embed.h",
+      "url": "https://basilisk.fr/src/embed.h?raw=",
+      "bytes": 29088,
+      "sha256": "606205b8bd9fc748de568fffa2d966ce2546ece56611f52afc81803c0e6f5058",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "INSTALL",
+      "url": "https://basilisk.fr/src/INSTALL?raw=",
+      "bytes": 3717,
+      "sha256": "3d3e9f8a674a3dbeab4991ff49b299d1779031954a96c87b6c9f8c3c7fb6f519",
+      "headers": {
+        "Content-Type": "text/plain"
+      },
+      "ok": true
+    },
+    {
+      "path": "COPYING",
+      "url": "https://basilisk.fr/src/COPYING?raw=",
+      "bytes": 35031,
+      "sha256": "5f6bc79a5d29d49eaa17cc29bedd9c25d572adb648c52f3186b508aec12aaea4",
+      "headers": {
+        "Content-Type": "text/plain"
+      },
+      "ok": true
+    },
+    {
+      "path": "Makefile",
+      "url": "https://basilisk.fr/src/Makefile?raw=",
+      "bytes": 2658,
+      "sha256": "cf2ce855fd8c4e479a95571b937d43cf00685a1c5ffdcf2a7e6ba7bb55fe064e",
+      "headers": {
+        "Content-Type": "text/x-makefile"
+      },
+      "ok": true
+    },
+    {
+      "path": "config.gcc",
+      "url": "https://basilisk.fr/src/config.gcc?raw=",
+      "bytes": 1250,
+      "sha256": "12b97e0b7a4576999289b6d5c601f49b20682c1771f47296f7bf5624920101e6",
+      "headers": {
+        "Content-Type": "text/x-makefile"
+      },
+      "ok": true
+    },
+    {
+      "path": "qcc.lex",
+      "url": "https://basilisk.fr/src/qcc.lex?raw=",
+      "bytes": 78,
+      "sha256": "338178dcce51fd97555d3f89cf0e8bb917cc70992ca9bc97bd92f9cbfe1bd83b",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "ast/Makefile",
+      "url": "https://basilisk.fr/src/ast/Makefile?raw=",
+      "bytes": 1860,
+      "sha256": "da52b2351a8ad04fabb013607489280aa082947ee770b5d000b557856a4636cc",
+      "headers": {
+        "Content-Type": "text/x-makefile"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/hydrostatic2.c",
+      "url": "https://basilisk.fr/src/test/hydrostatic2.c?raw=",
+      "bytes": 2972,
+      "sha256": "18ba4973aab91739f1719cbe928e87bcc1d2f7c5ee2b9019e51a609bfdac73e7",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/hydrostatic3.c",
+      "url": "https://basilisk.fr/src/test/hydrostatic3.c?raw=",
+      "bytes": 4372,
+      "sha256": "e9c1b12435b298a6e0657ea16d133895f400798b22a16f26a298409a0e170aca",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/large.c",
+      "url": "https://basilisk.fr/src/test/large.c?raw=",
+      "bytes": 2522,
+      "sha256": "bf8f3d6445aa4bdb632f8c290f618d8510f36362e8fb6c2535e66fb58bee5bcd",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/poiseuille.c",
+      "url": "https://basilisk.fr/src/test/poiseuille.c?raw=",
+      "bytes": 920,
+      "sha256": "4fb1ebe2a36a8dade3ca1bbc35d38a2569bf53eca72ed2033020b3c14ab245f2",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/momentum.c",
+      "url": "https://basilisk.fr/src/test/momentum.c?raw=",
+      "bytes": 86,
+      "sha256": "2e823b0b7d54e14b8595c0d58026b5463ee55265f42849310ecd0f269c77918a",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "test/restart.c",
+      "url": "https://basilisk.fr/src/test/restart.c?raw=",
+      "bytes": 85,
+      "sha256": "8fb6434c6e2a9fd595a183985a6fea4067662a28e6b87f9a085845bb6bbceb04",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "README",
+      "url": "https://basilisk.fr/src/README?raw=",
+      "bytes": 15040,
+      "sha256": "c443641481ac2b5ace9c678ac784189522cb18db09ef00eebde72ca010614e27",
+      "headers": {
+        "Content-Type": "text/x-tex"
+      },
+      "ok": true
+    },
+    {
+      "path": "Makefile.defs",
+      "url": "https://basilisk.fr/src/Makefile.defs?raw=",
+      "bytes": 7579,
+      "sha256": "c1f76eb0707aeb5d9795e2562c6cd23be3bbd7cbc4a507f94db9d998686c7385",
+      "headers": {
+        "Content-Type": "text/x-makefile"
+      },
+      "ok": true
+    },
+    {
+      "path": "common.h",
+      "url": "https://basilisk.fr/src/common.h?raw=",
+      "bytes": 12559,
+      "sha256": "3eb996a0166ffe44ebd3b43f58fb9971f343d3a5348ed5d20d6bb5680f66fd9b",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "qcc.c",
+      "url": "https://basilisk.fr/src/qcc.c?raw=",
+      "bytes": 14970,
+      "sha256": "c1109463ef8702c033b53243c126f85b933976f86c99ef52123c0a1cb6949335",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "include.c",
+      "url": "https://basilisk.fr/src/include.c?raw=",
+      "bytes": 82660,
+      "sha256": "e3a6fb50564cc6adcf5ed9f482b39ebf76d961c29ee67239b5caf1c5e34a36e5",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "postproc.c",
+      "url": "https://basilisk.fr/src/postproc.c?raw=",
+      "bytes": 60395,
+      "sha256": "80ecd2090abe50d998a155a7a47ad08db49b94a06c3f47c1a28ad67edd015565",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "ast/basilisk.c",
+      "url": "https://basilisk.fr/src/ast/basilisk.c?raw=",
+      "bytes": 184573,
+      "sha256": "c9f52dbb3e12d23b3f3afa70385f22b098da2ef48575327e628243fee51dfd19",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "ast/tokens.c",
+      "url": "https://basilisk.fr/src/ast/tokens.c?raw=",
+      "bytes": 78388,
+      "sha256": "d19249aa56d86cc01bff508e02f38bec35947aab733a0ad34f35ca05c9862134",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "ast/interpreter/Makefile",
+      "url": "https://basilisk.fr/src/ast/interpreter/Makefile?raw=",
+      "bytes": 1345,
+      "sha256": "5580b7dd0e188168bd59e4a7019423e4d7bcf1762ecc19f097216cdf3e9bfcf1",
+      "headers": {
+        "Content-Type": "text/x-makefile"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/cartesian-common.h",
+      "url": "https://basilisk.fr/src/grid/cartesian-common.h?raw=",
+      "bytes": 30316,
+      "sha256": "ec94500a5bfa6be44ee3a555bd30a27371b80fb6b951b8e137def1e1fa09c86c",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/multigrid-common.h",
+      "url": "https://basilisk.fr/src/grid/multigrid-common.h?raw=",
+      "bytes": 12799,
+      "sha256": "d958069efd1c2ea3a9aed2b525c32965f506c801e567a1abdc749a0206817622",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/tree-common.h",
+      "url": "https://basilisk.fr/src/grid/tree-common.h?raw=",
+      "bytes": 22014,
+      "sha256": "9eaeae56e07d4e0e8556490ad0501b84ea634a41b803e0f78468632b9c9cfa32",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/README",
+      "url": "https://basilisk.fr/src/test/README?raw=",
+      "bytes": 13912,
+      "sha256": "3af09111c8acecbfaa2d35c962dbdd9b5547e0a0da6f488c33dfff6e43e66871",
+      "headers": {
+        "Content-Type": "text/plain"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/large-ns.c",
+      "url": "https://basilisk.fr/src/test/large-ns.c?raw=",
+      "bytes": 523,
+      "sha256": "1c07e08329c399665437bc43de87b80771f456287da194f848702fc1c41b724a",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/momentum2.c",
+      "url": "https://basilisk.fr/src/test/momentum2.c?raw=",
+      "bytes": 87,
+      "sha256": "d985f462f089b58c36674fefa133076308bf4d0d054f642e7d0cacd32c03d630",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "test/vof.c",
+      "url": "https://basilisk.fr/src/test/vof.c?raw=",
+      "bytes": 81,
+      "sha256": "66b4f4c9f0e6fd59916561e7811c5e2d1edf2470beaf5a28396d923ceeb0e7eb",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "test/vof-mpi.c",
+      "url": "https://basilisk.fr/src/test/vof-mpi.c?raw=",
+      "bytes": 85,
+      "sha256": "0a2e196a370c662e1ce1fbbe9a0f840fc510c23193b7d7f802266dd3f639329f",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "test/mask.c",
+      "url": "https://basilisk.fr/src/test/mask.c?raw=",
+      "bytes": 616,
+      "sha256": "7a409246f7a7a5807fe86ae8f818a59ab52cff61aff233ec6cb899b0076d2aee",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/mask2.c",
+      "url": "https://basilisk.fr/src/test/mask2.c?raw=",
+      "bytes": 83,
+      "sha256": "bca9d8b3273da3ee26afef58fd80266d189a7e7979a2dd1f300bf82a68031d0c",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "test/restore.c",
+      "url": "https://basilisk.fr/src/test/restore.c?raw=",
+      "bytes": 273,
+      "sha256": "11ffa9ef9eb89f0750dbdaf7f1c5428905076273d21ba04000f684afba87e61d",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/restore-3D.c",
+      "url": "https://basilisk.fr/src/test/restore-3D.c?raw=",
+      "bytes": 88,
+      "sha256": "a54361df7178d32d04189a667d922548dff582ef90b10e932db8432828ff1eb1",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "examples/dam.c",
+      "url": "https://basilisk.fr/src/examples/dam.c?raw=",
+      "bytes": 85,
+      "sha256": "4f10e7150486b04ed6c91f07e4635f8065cbdb297c2d073560df91b15f3d6960",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "examples/dam3D.c",
+      "url": "https://basilisk.fr/src/examples/dam3D.c?raw=",
+      "bytes": 87,
+      "sha256": "6155d0e4f99fcec0f518525923376a313ad93fe7ed881e31ab3bfe6fae17a242",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false,
+      "error": "Basilisk served a 404 body with HTTP success"
+    },
+    {
+      "path": "navier-stokes/perfs.h",
+      "url": "https://basilisk.fr/src/navier-stokes/perfs.h?raw=",
+      "bytes": 1780,
+      "sha256": "91d82c8b3c4577c7ecdaf86be9c992c581ddab8db36ffe1b3145d2124f9c7b6d",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/gravity.c",
+      "url": "https://basilisk.fr/src/test/gravity.c?raw=",
+      "bytes": 3329,
+      "sha256": "ceb079648c8b331c00f61f2c9e433ca064f7a8ac63ef15936acfd42cd2ce9c31",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/reversed.c",
+      "url": "https://basilisk.fr/src/test/reversed.c?raw=",
+      "bytes": 6801,
+      "sha256": "80ea79fc5d13d23ed614402ab85f22cff2c50af13612d86ef76f44531129f05a",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/rising.c",
+      "url": "https://basilisk.fr/src/test/rising.c?raw=",
+      "bytes": 7488,
+      "sha256": "d47183004112d07cce518ee308c069b02a0600ba75303d251a1604575b6b5863",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/missing_metric.c",
+      "url": "https://basilisk.fr/src/test/missing_metric.c?raw=",
+      "bytes": 958,
+      "sha256": "bc43924c496315059787b71d85bc12ed87df93bfd0e76b5fe7658b6e6ae3cd1d",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "test/hydrostatic.c",
+      "url": "https://basilisk.fr/src/test/hydrostatic.c?raw=",
+      "bytes": 531,
+      "sha256": "50fb8c128b58e618142896b6ffbfe8e155ed7da2feaabb865ac22c557786a119",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "reduced.h",
+      "url": "https://basilisk.fr/src/reduced.h?raw=",
+      "bytes": 1254,
+      "sha256": "38772156f798495fd8e9edecfda7a60a27073f580371a550ed8fe0d3d6333af9",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "tension.h",
+      "url": "https://basilisk.fr/src/tension.h?raw=",
+      "bytes": 2164,
+      "sha256": "7ef8a3961c427aab23aa41ce856a46e1bfd2093ca4a43bc125b8d1432e9454a0",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "iforce.h",
+      "url": "https://basilisk.fr/src/iforce.h?raw=",
+      "bytes": 3516,
+      "sha256": "03b39ceb148c1f472181b7c1ee0f8b71af32c7428d054f4a41c6b0d8e25e789d",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "fractions.h",
+      "url": "https://basilisk.fr/src/fractions.h?raw=",
+      "bytes": 18249,
+      "sha256": "fa272694ccd4d11b90b5674d872b4cb308b50b2018eac16209a283bd1a45df0e",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/octree.h",
+      "url": "https://basilisk.fr/src/grid/octree.h?raw=",
+      "bytes": 109,
+      "sha256": "d2809cb89df8de6cf69dd083085ba2d4696cef5621ea0da087f0ac96fc4bad27",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/quadtree.h",
+      "url": "https://basilisk.fr/src/grid/quadtree.h?raw=",
+      "bytes": 113,
+      "sha256": "dc16f63b1f4d8202dbed9960ad048ef44071393b16cfe0ee93f665186e8c8dcd",
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "ok": true
+    },
+    {
+      "path": "examples/README",
+      "url": "https://basilisk.fr/src/examples/README?raw=",
+      "bytes": 2440,
+      "sha256": "d3217dbfefca49f7d7afb0eb98829d136c3461e703d7def37bd20f7d79ce6eee",
+      "headers": {
+        "Content-Type": "text/plain"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/Makefile",
+      "url": "https://basilisk.fr/src/grid/Makefile?raw=",
+      "bytes": 238,
+      "sha256": "445a70e05a0297271118159d8394545b9087ed0871696037c28011a1731a5dd8",
+      "headers": {
+        "Content-Type": "text/x-makefile"
+      },
+      "ok": true
+    },
+    {
+      "path": "grid/metric.h",
+      "url": "https://basilisk.fr/src/grid/metric.h?raw=",
+      "bytes": 84,
+      "sha256": "50a65b52b166380fe21bad55b6794ddfd5c7d64964912512e29b7d0c2d53240b",
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "ok": false
+    }
+  ],
+  "lastFetchedUtc": "2026-09-08T22:21:03.851329+00:00"
+}

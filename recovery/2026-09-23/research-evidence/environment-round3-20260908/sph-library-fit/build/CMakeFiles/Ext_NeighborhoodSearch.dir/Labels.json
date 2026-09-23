@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/CMakeFiles/Ext_NeighborhoodSearch"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/CMakeFiles/Ext_NeighborhoodSearch.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/CMakeFiles/Ext_NeighborhoodSearch-complete.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/CompactNSearch/src/Ext_NeighborhoodSearch-stamp/Ext_NeighborhoodSearch-build.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/CompactNSearch/src/Ext_NeighborhoodSearch-stamp/Ext_NeighborhoodSearch-configure.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/CompactNSearch/src/Ext_NeighborhoodSearch-stamp/Ext_NeighborhoodSearch-download.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/CompactNSearch/src/Ext_NeighborhoodSearch-stamp/Ext_NeighborhoodSearch-install.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/CompactNSearch/src/Ext_NeighborhoodSearch-stamp/Ext_NeighborhoodSearch-mkdir.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/CompactNSearch/src/Ext_NeighborhoodSearch-stamp/Ext_NeighborhoodSearch-patch.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/CompactNSearch/src/Ext_NeighborhoodSearch-stamp/Ext_NeighborhoodSearch-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"Ext_NeighborhoodSearch"
+		],
+		"name" : "Ext_NeighborhoodSearch"
+	}
+}

@@ -1,0 +1,52 @@
+{
+  "sourceOwner": "root",
+  "run": "u3484.scope",
+  "invocationId": "0db25be8426c40fbaa6daf31bc59a0b2",
+  "passed": true,
+  "files": [
+    {
+      "path": "RESULTS.md",
+      "sha256": "3fb6a3513cfd3cab5885a37b73b60c34e55e272bce52ae438010cfcaa482de36"
+    },
+    {
+      "path": "COST-ACCURACY.json",
+      "sha256": "f07855fe413017f79383b6100df650f86d14020ca0e28091b69ee193ee4c205d"
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "4d96a42dc8ddc11fe78944884d789e83c8da457de10e811b49ee78d1e816fc39"
+    },
+    {
+      "path": "generated.patch",
+      "sha256": "c80416ca68ac3827a684fd508bb1e9be53671775d26b821d622afd2cac59baa5"
+    },
+    {
+      "path": "build-v1/receipt.json",
+      "sha256": "4c86e15bb2e3cc0f3f63a60cd40629a8919caa8c7bceef924ccd19a2f77ab96b"
+    },
+    {
+      "path": "result-v1/summary.json",
+      "sha256": "11153a450f5cd3eb749939f33cc28d8f70dfe4789640eb9e349e5ebf8e44477c"
+    },
+    {
+      "path": "result-v1/comparison.json",
+      "sha256": "c2a67b63a11a91c68c1d92ba6bd47d91200b42f35f9ce76fcdedec01f4593c50"
+    },
+    {
+      "path": "result-v1/transport-accounting.json",
+      "sha256": "867047f1846a2fcff13c4600d5233423324a380da530f8aa6cec4f62122bc20f"
+    },
+    {
+      "path": "result-v1/force-accounting.json",
+      "sha256": "1a9a2aea64ad4c1016f95b44a0b9dc52953783c8e52c0227edf6794c3c0a1dd1"
+    },
+    {
+      "path": "result-v1/coarse/capture.json",
+      "sha256": "8796c8171a06939a91476dffd808541b79dae1dc292ba60d1f354d1e484fb53d"
+    },
+    {
+      "path": "result-v1/fine/capture.json",
+      "sha256": "a0c844782a32f6f69147d4835e6b320934a2722f3c43fe7691d5a2be6a6e727d"
+    }
+  ]
+}

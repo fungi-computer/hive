@@ -1,0 +1,41 @@
+{
+  "scope": "Isolated reduced-gravity caller with passive cleanup/physical-pressure observation, before compile; no fluid run authorized.",
+  "originalSourcePinsSha256": "7e5ddf9b809ff75dd79bbca859fe40e3446873f203ff61e1ebe54041f42646f3",
+  "files": [
+    {
+      "path": "wave.c",
+      "bytes": 6615,
+      "sha256": "5795db60c2296d4a0c6a561ddc913fe5ba41ea6edc33138542c72ff0df0c596f"
+    },
+    {
+      "path": "wave-observation.h",
+      "bytes": 9221,
+      "sha256": "8e018f7eaa26a536f7d8e5b3ba30ebff0ab903f950ace30a536bbb2cd7d9d3ea"
+    },
+    {
+      "path": "wave-reduced-observation.h",
+      "bytes": 7214,
+      "sha256": "e0661b2e6abab24ba3a3f0ae940b7d24f21e8261faab7d2c5aedfcbb073254e0"
+    },
+    {
+      "path": "compile-wave.py",
+      "bytes": 2698,
+      "sha256": "ec579ce85cc0e978bd23692e92a735c92a75349c427a388b6945aa1af47808ab"
+    },
+    {
+      "path": "FIRST-SHAPE.md",
+      "bytes": 3870,
+      "sha256": "536816c7d6738b50367e4ee6ed8e2380584f36eb607b2c3fad59f81beea20b91"
+    },
+    {
+      "path": "SOURCE-INVENTORY.json",
+      "bytes": 6961,
+      "sha256": "dddb432660415629bf69925617ff55068c8bbe8344d78cb99fa1dfabbf386da3"
+    },
+    {
+      "path": "caller-observer.patch",
+      "bytes": 10528,
+      "sha256": "bc5fc8d1e52228f20414fe09148f62ff5204688a32c12b2a683b2f7cb278be3c"
+    }
+  ]
+}

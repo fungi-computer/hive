@@ -1,0 +1,86 @@
+{
+  "status": "passed",
+  "actualValidationQueries": 72,
+  "additionalProbeCells": 13,
+  "scope": "one fixed validation query set; exact point/brick/edit/eviction/restore laws, not world capacity",
+  "timing": {
+    "original": {
+      "wallMs": 182.33442800000003,
+      "cpuMicros": {
+        "user": 86167,
+        "system": 7591
+      }
+    },
+    "candidate": {
+      "wallMs": 6.473996,
+      "cpuMicros": {
+        "user": 3451,
+        "system": 18
+      }
+    }
+  },
+  "sparseStats": {
+    "old": {
+      "revision": 1,
+      "changedCells": 1,
+      "changedBricks": 1,
+      "sparseOverlayBytes": 50,
+      "checkpointBytes": 1267,
+      "residentBricks": 7,
+      "residentBytes": 28672,
+      "maxResidentBricks": 8,
+      "residentProjectionCapBytes": 32768,
+      "generatedBricks": 7,
+      "heightSamples": 1793,
+      "caveMetricEvaluations": 11958,
+      "caveFeatures": {
+        "descriptors": 4,
+        "heightSamples": 4,
+        "membershipQueries": 0,
+        "segmentTests": 0,
+        "chamberTests": 0,
+        "evictions": 0,
+        "residentDescriptors": 4,
+        "residentDescriptorCap": 16,
+        "geometryTestsPerCellAtMost": 4
+      },
+      "evictions": 0
+    },
+    "candidate": {
+      "revision": 1,
+      "changedCells": 1,
+      "changedBricks": 1,
+      "sparseOverlayBytes": 50,
+      "checkpointBytes": 1267,
+      "residentBricks": 0,
+      "residentBytes": 0,
+      "maxResidentBricks": 8,
+      "residentProjectionCapBytes": 32768,
+      "generatedBricks": 0,
+      "pointReads": 72,
+      "generatedPointReads": 72,
+      "heightSamples": 73,
+      "caveMetricEvaluations": 0,
+      "caveFeatures": {
+        "descriptors": 4,
+        "heightSamples": 4,
+        "membershipQueries": 0,
+        "segmentTests": 0,
+        "chamberTests": 0,
+        "evictions": 0,
+        "residentDescriptors": 4,
+        "residentDescriptorCap": 16,
+        "geometryTestsPerCellAtMost": 4
+      },
+      "evictions": 0
+    }
+  },
+  "hashes": {
+    "voxel-world.mjs": "b3033ee3369a18600a6ef3dce8b9e83b6165bbaea86d253d59db5268c428e0ea",
+    "check.mjs": "a033d964cb70b3d18c3a26a75915a82997b6ff376dce0daa6dc33128a85b02d7",
+    "../coordinate-hash-v1/voxel-world.mjs": "59a51f9cbb4b4e1229c6aea2cd1956220e0a96d66341feb2841eea08e0b65351",
+    "../coordinate-hash-v1/terrain.js": "66279f7dc089a18b5263dce48c1128413af048e4b68f8b614b75b4feef892f3b",
+    "../coordinate-hash-v1/features.mjs": "247ec9319c9bff937eee385bf540f73e0c9533969e4194cfc04df086d1bc3add",
+    "../coordinate-hash-v1/lattice-hash.mjs": "eae43f3c20f871dca2cd39d7f7c495334eda51b3a17dec35f0739b1dfdd18e24"
+  }
+}

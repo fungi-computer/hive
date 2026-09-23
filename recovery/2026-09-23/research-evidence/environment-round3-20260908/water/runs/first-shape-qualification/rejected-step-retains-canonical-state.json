@@ -1,0 +1,7 @@
+{
+  "name": "rejected-step-retains-canonical-state",
+  "status": "passed",
+  "elapsedMs": 4.765247000001182,
+  "unchangedAfterRejection": true,
+  "retryMatchesDense": true
+}

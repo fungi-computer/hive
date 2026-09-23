@@ -1,0 +1,16 @@
+{
+  "scope": "One original-budget native packet over the frozen compiled reduced-gravity caller; no rerun.",
+  "combinedNativeCeilingSeconds": 28,
+  "files": [
+    {
+      "path": "run-wave.py",
+      "sha256": "e036dba543e4a0d706df3d8b332f2065c51c7acbce3d718bc29686f8e46dc22d",
+      "bytes": 6055
+    },
+    {
+      "path": "force_accounting.py",
+      "sha256": "9b32bbb2ca949ac6b05692e1919c33d04d0e3402ac7a5707616f60a695accd67",
+      "bytes": 5806
+    }
+  ]
+}

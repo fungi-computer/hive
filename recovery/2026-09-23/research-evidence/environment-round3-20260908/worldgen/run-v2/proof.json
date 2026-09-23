@@ -1,0 +1,103 @@
+{
+  "scope": "Node actual generator and isolated voxel-change owner; no game/page storage or physics integration",
+  "node": "v24.20.0",
+  "checks": [
+    {
+      "name": "signed chunk/local identity and integer physical surface candidate",
+      "ms": 231.755468
+    },
+    {
+      "name": "full decoded chunk bytes independent of neighboring request order",
+      "ms": 58.51792799999998
+    },
+    {
+      "name": "fixed map sample work across different physical extents",
+      "ms": 26.36552899999998
+    },
+    {
+      "name": "worker helper cancellation stops before next row batch",
+      "ms": 9.229362000000037
+    },
+    {
+      "name": "baseline cache mutation is discarded: no durable-edit API exists",
+      "ms": 18.17479400000002
+    },
+    {
+      "name": "excavation under intact surface and across signed chunk seam",
+      "ms": 12.13212900000002
+    },
+    {
+      "name": "batch conflicts and stale revisions never partly change terrain",
+      "ms": 0.4955489999999827
+    },
+    {
+      "name": "actual decoded voxel eviction, regeneration and durable file reload",
+      "ms": 67.97626500000001
+    },
+    {
+      "name": "world, source recipe and unit mismatches reject restore",
+      "ms": 2.3431739999999763
+    }
+  ],
+  "errors": [],
+  "timing": {
+    "totalMs": 427.736101
+  },
+  "hashes": {
+    "voxel-world.mjs": "cc7720177e9be419ccb83c2c633905f791b6e0ab60ddc9855b5f24005a23ce54",
+    "probe.mjs": "eea4cc24304b998ef24c817e4bad3a2465d7a3572d37a7aa313d8a6ce12388bb",
+    "reference/terrain.js": "1e0c01b88d6a28e60ef2cd150bf98c085612df3a75a57793a27d5d70c230af34",
+    "reference/worker.js": "5dbb3817947c16bbc387721403070375e5f4e609067b436c021743ee854cbef7"
+  },
+  "overviews": [
+    {
+      "span": 1024,
+      "sampleCount": 1024,
+      "bytes": 4096,
+      "ms": 15.120867999999973,
+      "footprint": 32
+    },
+    {
+      "span": 4096,
+      "sampleCount": 1024,
+      "bytes": 4096,
+      "ms": 11.128055999999958,
+      "footprint": 128
+    }
+  ],
+  "baselineGap": "Mutating a returned render/cache buffer is lost on eviction; no canonical edit record.",
+  "residency": {
+    "revision": 1,
+    "changedCells": 2,
+    "changedBricks": 2,
+    "residentBricks": 2,
+    "residentBytes": 8192,
+    "maxResidentBricks": 2,
+    "generatedBricks": 16,
+    "terrainSamples": 4096,
+    "evictions": 14,
+    "checkpointBytes": 669
+  },
+  "geometry": {
+    "horizontalMetres": 1,
+    "verticalMetres": 0.54,
+    "voxelsPerStorey": 4,
+    "storeyMetres": 2.16,
+    "limits": {
+      "minX": -2048,
+      "maxX": 2048,
+      "minZ": -2048,
+      "maxZ": 2048,
+      "minY": -64,
+      "maxY": 64
+    },
+    "scope": "proposed study geometry; no migration of existing logical levels"
+  },
+  "limitations": [
+    "No page/IndexedDB save, failed-write recovery or stale async worker-result proof.",
+    "Two-soil-layer surface extrusion is a base ownership reference, not a cave/biome/drainage generator.",
+    "Changes persist only when the host writes the checkpoint; in-memory edit is not a durable receipt.",
+    "No actor, support, water-volume, gas-volume, physical feature tombstone or live-world integration.",
+    "Map count comes from inspected bounded sampler; it is not a target-browser capacity benchmark."
+  ]
+}

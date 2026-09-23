@@ -1,0 +1,109 @@
+{
+  "scope": "One actual LI receiver \u2192 an explicitly separate vented-displacement extension.\n\nActual round-two fixed-volume gas API is imported only for rejection at its\nadmission adapter. It does not solve changing gas volume or receive fake air.\n",
+  "water_receipt_sha256": "f3a37020ff4d73d75b8db9a04676d64554455b8e3948afb36a3de375d48e01ee",
+  "water": {
+    "solverSha256": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "cell": 490,
+    "oldWaterM3": 0.7155158603717944,
+    "newWaterM3": 0.724732235500043,
+    "deltaWaterM3": 0.009216375128248577,
+    "dtSeconds": 0.05,
+    "geometryRevision": 0,
+    "physicalCellAreaM2": 4,
+    "faces": [
+      {
+        "id": 505,
+        "a": 489,
+        "b": 490,
+        "integratedM3": 0.025943189463550467
+      },
+      {
+        "id": 506,
+        "a": 490,
+        "b": 491,
+        "integratedM3": 0.016726814335301845
+      },
+      {
+        "id": 1546,
+        "a": 458,
+        "b": 490,
+        "integratedM3": 0
+      },
+      {
+        "id": 1578,
+        "a": 490,
+        "b": 522,
+        "integratedM3": 0
+      }
+    ],
+    "withdrawalM3": 0,
+    "assumption": "Separate fixed-reference-density open exhaust extension; outside pressure fixed; no sealed pressure feedback or coupled momentum solve."
+  },
+  "gas_before": {
+    "model": "vented-piston-reference-density-v1",
+    "geometry_revision": 0,
+    "time_s": 0.0,
+    "forcing_cursor": 0,
+    "void_m3": 2.715515860371794,
+    "water_m3": 0.7155158603717944,
+    "water_anomaly_J": 0.0,
+    "gas_m3": 2.0,
+    "air_kg": 2.4,
+    "smoke_kg": 0.02,
+    "air_anomaly_J": 24120.0,
+    "ledger": {
+      "water_in_m3": 0.0,
+      "water_anomaly_in_J": 0.0,
+      "air_out_kg": 0.0,
+      "smoke_out_kg": 0.0,
+      "air_anomaly_out_J": 0.0
+    },
+    "history": {
+      "last_displacement_m3": 0.0
+    }
+  },
+  "gas_after": {
+    "model": "vented-piston-reference-density-v1",
+    "geometry_revision": 0,
+    "time_s": 0.05,
+    "forcing_cursor": 0,
+    "void_m3": 2.715515860371794,
+    "water_m3": 0.724732235500043,
+    "water_anomaly_J": 0.0,
+    "gas_m3": 1.9907836248717514,
+    "air_kg": 2.3889403498461017,
+    "smoke_kg": 0.019907836248717514,
+    "air_anomaly_J": 24008.850515953323,
+    "ledger": {
+      "water_in_m3": 0.009216375128248577,
+      "water_anomaly_in_J": 0.0,
+      "air_out_kg": 0.011059650153898292,
+      "smoke_out_kg": 9.216375128248577e-05,
+      "air_anomaly_out_J": 111.14948404667784
+    },
+    "history": {
+      "last_displacement_m3": 0.009216375128248577
+    }
+  },
+  "receipt": {
+    "geometry_revision": 0,
+    "from_time_s": 0.0,
+    "to_time_s": 0.05,
+    "forcing_cursor": 0,
+    "base_digest": "22255902912dc063182d59efb9e1d354d258e46787900bdfb8b8d28cfd1f5753",
+    "route": "open",
+    "water_in_m3": 0.009216375128248577,
+    "water_anomaly_in_J": 0.0,
+    "air_out_m3": 0.009216375128248577,
+    "air_out_kg": 0.011059650153898292,
+    "smoke_out_kg": 9.216375128248577e-05,
+    "air_anomaly_out_J": 111.14948404667784,
+    "mechanical_energy_model": "prescribed motion; reference-density thermal anomaly only"
+  },
+  "rejected": [
+    "closed",
+    "unknown",
+    "fixed-volume-model"
+  ],
+  "limitation": "One accepted water substep mapped to a hypothetical vented cavity with2m\u00b3 initial free air. Prescribed linear intrusion and ideal exhaust at ambient pressure; no gas-network dynamics, finite exhaust resistance, sealed/compressible coupling or globally joined environment simulation."
+}

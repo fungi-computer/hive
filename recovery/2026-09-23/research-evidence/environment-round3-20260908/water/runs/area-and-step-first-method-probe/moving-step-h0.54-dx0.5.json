@@ -1,0 +1,35 @@
+{
+  "name": "moving-step-h0.54-dx0.5",
+  "status": "observed-method-failure",
+  "stepHeight": 0.54,
+  "horizontalDx": 0.5,
+  "pair": {
+    "hL": 0.54,
+    "uL": 6,
+    "hR": 0.6809363591767688,
+    "uR": 4.758153910179009,
+    "q": 3.24,
+    "critical": 1.0228383532393008,
+    "energyResidual": 0,
+    "dischargeResidual": 0
+  },
+  "reconstruction": {
+    "ha": 0,
+    "hb": 0.6809363591767688,
+    "mass": -0.8799627626326636,
+    "leftMomentum": -1.6195389771595716,
+    "rightMomentum": -3.049836977159572,
+    "upstreamReconstructionFraction": 0
+  },
+  "actual": {
+    "massFlux": -0.8799627626326636,
+    "leftMomentum": -1.6195389771595607,
+    "rightMomentum": -3.0498369771596536
+  },
+  "relativeSteadyMassError": 1.271593445256995,
+  "directionPreserved": false,
+  "denseMatchesActual": true,
+  "methodFailure": true,
+  "assumption": "Frictionless constant-discharge, supercritical Bernoulli bottom-transition path; not a physically validated exposed waterfall.",
+  "elapsedMs": 21.632678
+}

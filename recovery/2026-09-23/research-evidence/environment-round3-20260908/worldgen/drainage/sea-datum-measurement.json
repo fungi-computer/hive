@@ -1,0 +1,64 @@
+{
+  "scope": "65,536 deterministic 16-cell samples; label/datum diagnostic only",
+  "identity": "world-lab-terrain-landforms-v4:drainage-sea-datum-sample-v1",
+  "sources": {
+    "terrainSha256": "1e0c01b88d6a28e60ef2cd150bf98c085612df3a75a57793a27d5d70c230af34",
+    "voxelSha256": "9677065f5141279d3ca20360873674b634df27166b5feb45cc76bf981541f516"
+  },
+  "labels": {
+    "canyon": {
+      "count": 896,
+      "min": 5,
+      "max": 18,
+      "sum": 11086,
+      "mean": 12.372767857142858
+    },
+    "coast": {
+      "count": 188,
+      "min": 13,
+      "max": 24,
+      "sum": 3553,
+      "mean": 18.898936170212767
+    },
+    "land": {
+      "count": 30988,
+      "min": 10,
+      "max": 31,
+      "sum": 662090,
+      "mean": 21.36601265005809
+    },
+    "ridge": {
+      "count": 715,
+      "min": 23,
+      "max": 32,
+      "sum": 21688,
+      "mean": 30.332867132867133
+    },
+    "water": {
+      "count": 32749,
+      "min": 5,
+      "max": 25,
+      "sum": 486569,
+      "mean": 14.857522367095179
+    }
+  },
+  "thresholdSeparatesWaterFromLand": false,
+  "witnesses": {
+    "waterHigh": {
+      "x": -1968,
+      "z": -2048,
+      "surfaceLevel": 25,
+      "coastDistance": -1700.433771963303
+    },
+    "landLow": {
+      "x": -2000,
+      "z": 160,
+      "surfaceLevel": 10,
+      "coastDistance": 504.0064421264573
+    }
+  },
+  "sourceFacts": {
+    "waterLabel": "terrain.js selects water from coastDistance < -coastBand",
+    "voxelMaterials": "voxel-world base exposes only air, soil, stone from surfaceLevel"
+  }
+}

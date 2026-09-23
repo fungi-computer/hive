@@ -1,0 +1,34 @@
+{
+  "candidate.mjs": {
+    "sha256": "ee49c25ead481a569b8acfef312411502077d3a293e4d10f7774e5402272d8f6",
+    "bytes": 8847
+  },
+  "fixtures.mjs": {
+    "sha256": "d7f53ed6e01fd3c27fabe0f4d5695fc0658a6efb691649f740c9636a7b72c416",
+    "bytes": 2149
+  },
+  "compare.mjs": {
+    "sha256": "ee1b41b67cc6574ce1b10e034de1825c744b2cd9e6a4491c33ca113eb1c9c52b",
+    "bytes": 12992
+  },
+  "ownership-check.mjs": {
+    "sha256": "d4775a2cd1fd8acc4c11849ddf54605e32874ca694b470f4a7f2a471137194d4",
+    "bytes": 3121
+  },
+  "PREDECLARED.md": {
+    "sha256": "9c287550815c86955ed1fb7cccdd7a1a3a4491baec816d8edd70228db2d960fb",
+    "bytes": 5095
+  },
+  "RESULTS.md": {
+    "sha256": "ac9f9f8dc82600475d44679a60c6f6d769e51cba6a3bc99760e10611bab9c2a2",
+    "bytes": 9631
+  },
+  "handoff-inventory.json": {
+    "sha256": "4d6cae70b00ad575f371a3cdf78adcd439a88d379a7f5aec520ce12e66cb36c0",
+    "bytes": 895
+  },
+  "reference/solver.mjs": {
+    "sha256": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "bytes": 12091
+  }
+}

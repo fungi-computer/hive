@@ -1,0 +1,196 @@
+{
+  "scope": "Integrated side boundary only; no physical region advancement",
+  "source": "37d468f546b0818cc59b59d4f40beced449903b7f4d82d8057ee4219216001ca",
+  "cases": [
+    {
+      "soilHeadM": -0.8,
+      "pitHeadM": -0.2,
+      "result": {
+        "volumeRateM3S": 0,
+        "derivativeSoilM2S": 0,
+        "derivativePitM2S": 0,
+        "wetHeightM": 0,
+        "seepageHeightM": 0
+      },
+      "quadratureError": 0,
+      "quadratureBound": 1.79770968426663e-15,
+      "derivativeErrors": {
+        "soilHeadM": 0,
+        "pitHeadM": 0
+      }
+    },
+    {
+      "soilHeadM": -0.8,
+      "pitHeadM": 0.1,
+      "result": {
+        "volumeRateM3S": -4.168604474127266e-7,
+        "derivativeSoilM2S": -0.0000011287091996960886,
+        "derivativePitM2S": -0.000004830287723988737,
+        "wetHeightM": 0.1,
+        "seepageHeightM": 0
+      },
+      "quadratureError": 1.0177257003155097e-11,
+      "quadratureBound": 6.86982825738421e-11,
+      "derivativeErrors": {
+        "soilHeadM": 1.0890726119322167e-17,
+        "pitHeadM": 2.517466622534506e-17
+      }
+    },
+    {
+      "soilHeadM": -0.1,
+      "pitHeadM": -0.2,
+      "result": {
+        "volumeRateM3S": 0.0000022554460759091755,
+        "derivativeSoilM2S": 0.00003325160915049738,
+        "derivativePitM2S": 0,
+        "wetHeightM": 0,
+        "seepageHeightM": 0.17
+      },
+      "quadratureError": 4.65173130456643e-16,
+      "quadratureBound": 4.240665512246016e-14,
+      "derivativeErrors": {
+        "soilHeadM": 4.678942237996975e-16,
+        "pitHeadM": 0
+      }
+    },
+    {
+      "soilHeadM": -0.1,
+      "pitHeadM": 0.07,
+      "result": {
+        "volumeRateM3S": 0.0000018730348035231905,
+        "derivativeSoilM2S": 0.00003211274921187446,
+        "derivativePitM2S": -0.000010926036353885277,
+        "wetHeightM": 0.07,
+        "seepageHeightM": 0.1
+      },
+      "quadratureError": 1.3955344262047429e-15,
+      "quadratureBound": 4.240665512246016e-14,
+      "derivativeErrors": {
+        "soilHeadM": 3.272596495011715e-16,
+        "pitHeadM": 1.6875098594968524e-16
+      }
+    },
+    {
+      "soilHeadM": -0.1,
+      "pitHeadM": 0.3,
+      "result": {
+        "volumeRateM3S": -0.0000060873631114503675,
+        "derivativeSoilM2S": 0.000028697079228367986,
+        "derivativePitM2S": -0.00006711708045958098,
+        "wetHeightM": 0.3,
+        "seepageHeightM": 0
+      },
+      "quadratureError": 1.486172644562565e-10,
+      "quadratureBound": 3.344312494471959e-10,
+      "derivativeErrors": {
+        "soilHeadM": 3.60056765218858e-16,
+        "pitHeadM": 1.7767363101606204e-15
+      }
+    },
+    {
+      "soilHeadM": 0.1,
+      "pitHeadM": -0.2,
+      "result": {
+        "volumeRateM3S": 0.00001369,
+        "derivativeSoilM2S": 0.000074,
+        "derivativePitM2S": 0,
+        "wetHeightM": 0,
+        "seepageHeightM": 0.37
+      },
+      "quadratureError": 5.960452265215896e-16,
+      "quadratureBound": 5.433746991911904e-14,
+      "derivativeErrors": {
+        "soilHeadM": 7.490481759159229e-17,
+        "pitHeadM": 0
+      }
+    },
+    {
+      "soilHeadM": 0.1,
+      "pitHeadM": 0.1,
+      "result": {
+        "volumeRateM3S": 0.000012690000000000002,
+        "derivativeSoilM2S": 0.000074,
+        "derivativePitM2S": -0.00002,
+        "wetHeightM": 0.1,
+        "seepageHeightM": 0.27
+      },
+      "quadratureError": 4.743384504624082e-20,
+      "quadratureBound": 5.433746991911904e-14,
+      "derivativeErrors": {
+        "soilHeadM": 2.4661940241713087e-15,
+        "pitHeadM": 2.949605891564705e-16
+      }
+    },
+    {
+      "soilHeadM": 0.1,
+      "pitHeadM": 0.4,
+      "result": {
+        "volumeRateM3S": -0.0000024000000000000024,
+        "derivativeSoilM2S": 0.00008,
+        "derivativePitM2S": -0.00008600000000000002,
+        "wetHeightM": 0.4,
+        "seepageHeightM": 0
+      },
+      "quadratureError": 5.859374933896632e-11,
+      "quadratureBound": 9.893129059491923e-11,
+      "derivativeErrors": {
+        "soilHeadM": 3.024653010691436e-16,
+        "pitHeadM": 2.0730216588465966e-15
+      }
+    },
+    {
+      "soilHeadM": 0.5,
+      "pitHeadM": 0.2,
+      "result": {
+        "volumeRateM3S": 0.00005,
+        "derivativeSoilM2S": 0.00010800000000000001,
+        "derivativePitM2S": -0.00004,
+        "wetHeightM": 0.2,
+        "seepageHeightM": 0.34
+      },
+      "quadratureError": 2.384878861234896e-15,
+      "quadratureBound": 5.433746991911904e-14,
+      "derivativeErrors": {
+        "soilHeadM": 1.1418370047221182e-14,
+        "pitHeadM": 5.89921178312941e-16
+      }
+    },
+    {
+      "soilHeadM": 0.5,
+      "pitHeadM": 0.6,
+      "result": {
+        "volumeRateM3S": 0.000018360000000000007,
+        "derivativeSoilM2S": 0.00010800000000000001,
+        "derivativePitM2S": -0.00010800000000000001,
+        "wetHeightM": 0.54,
+        "seepageHeightM": 0
+      },
+      "quadratureError": 3.791319471910248e-18,
+      "quadratureBound": 5.433818387245993e-14,
+      "derivativeErrors": {
+        "soilHeadM": 2.948040574678179e-15,
+        "pitHeadM": 2.134157108847623e-15
+      }
+    },
+    {
+      "soilHeadM": -0.4,
+      "pitHeadM": 0.6,
+      "result": {
+        "volumeRateM3S": -0.000017453685583786055,
+        "derivativeSoilM2S": -0.00006243044547056802,
+        "derivativePitM2S": -0.0000239091583339535,
+        "wetHeightM": 0.54,
+        "seepageHeightM": 0
+      },
+      "quadratureError": 2.307317748320714e-18,
+      "quadratureBound": 1.2029288627431966e-14,
+      "derivativeErrors": {
+        "soilHeadM": 1.8701403273202466e-15,
+        "pitHeadM": 4.477721091047243e-16
+      }
+    }
+  ],
+  "quadratureSamples": 16384,
+  "checks": 48,
+  "status": "passed"
+}

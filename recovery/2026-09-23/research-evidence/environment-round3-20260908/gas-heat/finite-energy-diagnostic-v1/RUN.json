@@ -1,0 +1,16 @@
+{
+  "kind": "single numerical diagnostic",
+  "command": "run-proof.sh timeout --signal=TERM --kill-after=5s 30s node qualify.mjs",
+  "scope": "run-u3266.scope",
+  "invocation": "638bce135787466fa9bb1a35ef946e9e",
+  "session": 77477,
+  "exitCode": 0,
+  "sessionTerminal": true,
+  "numericalRuns": 1,
+  "sourceOnlyRun": {
+    "scope": "run-u3262.scope",
+    "invocation": "912c3076a07a418497d5a51171e848fc",
+    "exitCode": 0
+  },
+  "qualificationSHA256": "9bddf3b921eda852af037a373655fe054295eb36b532bdf0061572cd78781f6e"
+}

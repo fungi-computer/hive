@@ -1,0 +1,30 @@
+[
+  {
+    "path": "nd-checkpoint/geometry.mjs",
+    "sha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14"
+  },
+  {
+    "path": "nd-checkpoint/solver.mjs",
+    "sha256": "49114c0ea61680ee36608c4b16283556f83fa003f163819b99eea6fed0fc120d"
+  },
+  {
+    "path": "nd-checkpoint/qualify.mjs",
+    "sha256": "e2ed293cf08638dcd9e6b9f67b888af423dcc51c3a0008ec2b3414e1f80cc8a8"
+  },
+  {
+    "path": "nd-checkpoint/FIRST-SHAPE.md",
+    "sha256": "1fc233b2d3777637ca856c01caca1fd758269efd8d79aa6acb13740e01de90ec"
+  },
+  {
+    "path": "nd-checkpoint/RESULTS.md",
+    "sha256": "ce9245feef9cf65cc3660b6921e2e768a610b990b4f78fde50867d8293f22626"
+  },
+  {
+    "path": "nd-checkpoint/qualification-v1.json",
+    "sha256": "3944d7d62b894a7d8dddc55c0bfe7140931c0c47d5ba6a60ddd771ba88676ce5"
+  },
+  {
+    "path": "binding-checkpoint/solver.mjs",
+    "sha256": "09176c849556cdb01d5b6a63eada6eef9514948fda48f5e225a222a4c865c8d5"
+  }
+]

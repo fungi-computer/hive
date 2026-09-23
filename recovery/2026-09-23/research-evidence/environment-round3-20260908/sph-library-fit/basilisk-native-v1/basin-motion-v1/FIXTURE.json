@@ -1,0 +1,33 @@
+{
+  "note": "Scalar fixture arithmetic for the proposal only; root owns the independent qualified oracle. No solver result.",
+  "widthM": 1.0,
+  "heightM": 1.08,
+  "waterDepthM": 0.54,
+  "airDepthM": 0.54,
+  "amplitudeM": 0.002,
+  "waterDensityKgM3": 1000.0,
+  "airDensityKgM3": 1.2,
+  "gravityMps2": 9.81,
+  "kPerM": 3.141592653589793,
+  "omegaPerSecond": 5.361495919223879,
+  "periodSeconds": 1.171908997384657,
+  "phaseSpeedMps": 1.7066171558230112,
+  "amplitudeTimesK": 0.006283185307179587,
+  "amplitudeOverWaterDepth": 0.0037037037037037034,
+  "initialPerturbationEnergyJPerM": 0.009798227999999999,
+  "commonDtCapSeconds": 0.0007324431233654106,
+  "grids": [
+    {
+      "rootN": 64,
+      "deltaM": 0.02,
+      "activeCells": 2700,
+      "columns": 50
+    },
+    {
+      "rootN": 128,
+      "deltaM": 0.01,
+      "activeCells": 10800,
+      "columns": 100
+    }
+  ]
+}

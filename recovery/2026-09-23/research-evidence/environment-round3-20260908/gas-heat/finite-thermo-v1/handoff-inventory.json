@@ -1,0 +1,62 @@
+{
+  ".fallowrc.json": {
+    "bytes": 31,
+    "sha256": "0c378eaa055443b0cf7a582f6a423ff181b049b53f227f2591dfc290a9b508a2"
+  },
+  "CONTRACT.md": {
+    "bytes": 5673,
+    "sha256": "04c94a20efa85d69b2e10706d0f87e8ffbb8eb4c00e7c71303052cb7457cb9ad"
+  },
+  "RESULTS.md": {
+    "bytes": 9358,
+    "sha256": "9c7191c4a8d6d06af90d652240ff9faa3172b55c24c91c4482a0c325b5f98c3b"
+  },
+  "chamber-state.json": {
+    "bytes": 715,
+    "sha256": "4082dfb5347db6639d8b3cc4518b96046f070e306b262cf290ccb0073664f852"
+  },
+  "checkpoint/definitions.mjs": {
+    "bytes": 869,
+    "sha256": "536a5cd870d3bed14ceda3b21a01110a0b32dcd24b19d93f556d7f5cfca13ff3"
+  },
+  "checkpoint/thermodynamics.mjs": {
+    "bytes": 10123,
+    "sha256": "b2a58ea2488b91c8ca49db32bff6e5bdf2734977cd89b14da198d0289cd6db4c"
+  },
+  "definition.json": {
+    "bytes": 480,
+    "sha256": "9b633214d4a30c6e9d9baf9a83361e188a32bd37dc7caa66dfc5a95fae18bbd9"
+  },
+  "definitions.mjs": {
+    "bytes": 869,
+    "sha256": "536a5cd870d3bed14ceda3b21a01110a0b32dcd24b19d93f556d7f5cfca13ff3"
+  },
+  "fallow-caller.json": {
+    "bytes": 7344,
+    "sha256": "682d13b9d94b15535272809e677d2bcb19ff0c815e225f118ffeb43ec4da7858"
+  },
+  "fallow-definitions.json": {
+    "bytes": 4552,
+    "sha256": "d5032b5080da5b828df84b97b7ec38d43a3e23dfdcd445216aafc5665b925964"
+  },
+  "fallow-owner.json": {
+    "bytes": 9357,
+    "sha256": "4eab21e312fcc333ce4e3f146671b60cc262070e7bac21e33d5a77b66df364d4"
+  },
+  "qualification-v1.json": {
+    "bytes": 7171,
+    "sha256": "a7c0328a5f1c29451ea6d8deac2aa9e9db92222f2d200df48240e2917e77048f"
+  },
+  "qualify.mjs": {
+    "bytes": 14389,
+    "sha256": "2e417a7ca1d07a61a9b5a1bc6056e395cd5d08467b93e4de2f4f1ae98a5d0e46"
+  },
+  "source-inventory.json": {
+    "bytes": 354,
+    "sha256": "0b20f56b31676a23a0c82ecc8a6db9e71b322377eaeb40419f457d85c88c0e28"
+  },
+  "thermodynamics.mjs": {
+    "bytes": 10123,
+    "sha256": "b2a58ea2488b91c8ca49db32bff6e5bdf2734977cd89b14da198d0289cd6db4c"
+  }
+}

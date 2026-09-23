@@ -1,0 +1,91 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/CMakeFiles/Ext_PBD"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/CMakeFiles/Ext_PBD.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/CMakeFiles/Ext_PBD-complete.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/PositionBasedDynamics/src/Ext_PBD-stamp/Ext_PBD-build.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/PositionBasedDynamics/src/Ext_PBD-stamp/Ext_PBD-configure.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/PositionBasedDynamics/src/Ext_PBD-stamp/Ext_PBD-download.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/PositionBasedDynamics/src/Ext_PBD-stamp/Ext_PBD-install.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/PositionBasedDynamics/src/Ext_PBD-stamp/Ext_PBD-mkdir.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/PositionBasedDynamics/src/Ext_PBD-stamp/Ext_PBD-patch.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/PositionBasedDynamics/src/Ext_PBD-stamp/Ext_PBD-update.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/CMakeFiles/Ext_Discregrid-complete.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/CMakeFiles/Ext_GenericParameters-complete.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-build.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-configure.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-download.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-install.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-mkdir.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-patch.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-update.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/GenericParameters/src/Ext_GenericParameters-stamp/Ext_GenericParameters-build.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/GenericParameters/src/Ext_GenericParameters-stamp/Ext_GenericParameters-configure.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/GenericParameters/src/Ext_GenericParameters-stamp/Ext_GenericParameters-download.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/GenericParameters/src/Ext_GenericParameters-stamp/Ext_GenericParameters-install.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/GenericParameters/src/Ext_GenericParameters-stamp/Ext_GenericParameters-mkdir.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/GenericParameters/src/Ext_GenericParameters-stamp/Ext_GenericParameters-patch.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/stable-order-v1/build/extern/GenericParameters/src/Ext_GenericParameters-stamp/Ext_GenericParameters-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"Ext_PBD"
+		],
+		"name" : "Ext_PBD"
+	}
+}

@@ -1,0 +1,299 @@
+{
+  "hashes": {
+    "./check-features.mjs": "a3592ec068db2955e1da228bbabdbfa5b760e4cb8c0cfd77c925df08acbc5b34",
+    "./voxel-world.mjs": "59a51f9cbb4b4e1229c6aea2cd1956220e0a96d66341feb2841eea08e0b65351",
+    "./features.mjs": "247ec9319c9bff937eee385bf540f73e0c9533969e4194cfc04df086d1bc3add",
+    "./terrain.js": "66279f7dc089a18b5263dce48c1128413af048e4b68f8b614b75b4feef892f3b",
+    "./lattice-hash.mjs": "eae43f3c20f871dca2cd39d7f7c495334eda51b3a17dec35f0739b1dfdd18e24",
+    "../connected-caves-v1/voxel-world.mjs": "68dcf790fc56b83cf661ad2a78294860809d98648a321d2c60fa3a4340d54112",
+    "../connected-caves-v1/features.mjs": "b91219b568be736243b80fd16af35473587d3b7ada5819fd51ac2efde1590f48",
+    "../height-sea/terrain.js": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf"
+  },
+  "regions": [
+    {
+      "region": {
+        "x": 0,
+        "z": 4
+      },
+      "featureId": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907/feature/pit-gallery-capsules-v1/0,4",
+      "bricks": [
+        {
+          "at": {
+            "x": 4,
+            "y": -1,
+            "z": 33
+          },
+          "sha256": "cb1509216a525ef218bd77b2cb25d79dcadcb140e1490b7c533254f6b3dc216e"
+        },
+        {
+          "at": {
+            "x": 4,
+            "y": 0,
+            "z": 33
+          },
+          "sha256": "fc057453292dd7260bd17a492aecfa9136c3b16a5183fd8913df5e52888e840e"
+        },
+        {
+          "at": {
+            "x": 4,
+            "y": 1,
+            "z": 33
+          },
+          "sha256": "f99efc23f9d818838a84b10563f98cb6c817eb16fc90c809511a86649e8b1783"
+        },
+        {
+          "at": {
+            "x": 4,
+            "y": -1,
+            "z": 34
+          },
+          "sha256": "3ce145e3d8ad6cbfe556e6be2780b66a9abdaf494c385ff0874b48b4ee39f695"
+        },
+        {
+          "at": {
+            "x": 4,
+            "y": 0,
+            "z": 34
+          },
+          "sha256": "344acb6bd1f2546d61dae727d84e099d88e5ceeae72ce7288dfe2a2ad5abcf18"
+        },
+        {
+          "at": {
+            "x": 4,
+            "y": 1,
+            "z": 34
+          },
+          "sha256": "7b2d9df34b046d0633fc3a376fa8157d923bee7fc241299ddbd8114713c7d9ed"
+        },
+        {
+          "at": {
+            "x": 4,
+            "y": -1,
+            "z": 35
+          },
+          "sha256": "94f2c4f94b49c422b4ff1152dfc144976c2b132f9e764164f4c780a4c42f6cb5"
+        },
+        {
+          "at": {
+            "x": 4,
+            "y": 0,
+            "z": 35
+          },
+          "sha256": "788a48f9da797befb8f2394a95521990da171bbd1a848e37f498cef14596a521"
+        },
+        {
+          "at": {
+            "x": 4,
+            "y": 1,
+            "z": 35
+          },
+          "sha256": "c36e6e9c4c01335ca5975731a760aac3c290eb4e0fec30b8dfda202babf88ebe"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": -1,
+            "z": 33
+          },
+          "sha256": "a07d0c4669943d8c38763e0bbcdd5d82f388e2b9fc5c650e8f75c26a87747e0f"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": 0,
+            "z": 33
+          },
+          "sha256": "4a70fca8572b8abcd56f3168c03fddbe5d98af03fc0ce8545158ef54febd1f1e"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": 1,
+            "z": 33
+          },
+          "sha256": "43b4d6bc10ad851a9d9cb7604a750f45cacd523c658e834435d5b0aacd610e54"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": -1,
+            "z": 34
+          },
+          "sha256": "30d6bc164ea54188aa9df0c14f20c4fbc8a155c5644bcc9ef9eb05901cb07d70"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": 0,
+            "z": 34
+          },
+          "sha256": "1016832e383439e9737d5acbd8ddd76afeec8dc03930ce8be30ff6e78de72b0d"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": 1,
+            "z": 34
+          },
+          "sha256": "626d1442132fdc41317a98faa3cd47e40fc648a874d2fff459085cff5bc754b2"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": -1,
+            "z": 35
+          },
+          "sha256": "30d6bc164ea54188aa9df0c14f20c4fbc8a155c5644bcc9ef9eb05901cb07d70"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": 0,
+            "z": 35
+          },
+          "sha256": "30d6bc164ea54188aa9df0c14f20c4fbc8a155c5644bcc9ef9eb05901cb07d70"
+        },
+        {
+          "at": {
+            "x": 5,
+            "y": 1,
+            "z": 35
+          },
+          "sha256": "9ff2196c9fcdf591ec866bde7510f10f0313ed9e1dc12bd16ac37034a5271667"
+        }
+      ]
+    },
+    {
+      "region": {
+        "x": -1,
+        "z": 4
+      },
+      "featureId": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907/feature/pit-gallery-capsules-v1/-1,4",
+      "bricks": [
+        {
+          "at": {
+            "x": -5,
+            "y": 0,
+            "z": 35
+          },
+          "sha256": "30d6bc164ea54188aa9df0c14f20c4fbc8a155c5644bcc9ef9eb05901cb07d70"
+        },
+        {
+          "at": {
+            "x": -5,
+            "y": 1,
+            "z": 35
+          },
+          "sha256": "1b645e51588ad1a8c3985cfeb9194f391d7ec9d46eaf5d1cb31e220ca04db05e"
+        },
+        {
+          "at": {
+            "x": -5,
+            "y": 0,
+            "z": 36
+          },
+          "sha256": "c54714b4508d10f8a924c6de05ce12552735ed1defeaec78d496b8eab60d9b48"
+        },
+        {
+          "at": {
+            "x": -5,
+            "y": 1,
+            "z": 36
+          },
+          "sha256": "1b645e51588ad1a8c3985cfeb9194f391d7ec9d46eaf5d1cb31e220ca04db05e"
+        },
+        {
+          "at": {
+            "x": -5,
+            "y": 0,
+            "z": 37
+          },
+          "sha256": "ac284d5f3883c4dc1f2f06ac47656880eb7e147720ccb968b1e403ac3fc9bf80"
+        },
+        {
+          "at": {
+            "x": -5,
+            "y": 1,
+            "z": 37
+          },
+          "sha256": "1b645e51588ad1a8c3985cfeb9194f391d7ec9d46eaf5d1cb31e220ca04db05e"
+        },
+        {
+          "at": {
+            "x": -4,
+            "y": 0,
+            "z": 35
+          },
+          "sha256": "8dc2e9357fcac103ed553be829296c6078a9857863447f327449c9665506f0fe"
+        },
+        {
+          "at": {
+            "x": -4,
+            "y": 1,
+            "z": 35
+          },
+          "sha256": "1ad0779b6038ca949c13f985395961c420183ee0bfd7d619bf7abdad2f2a559a"
+        },
+        {
+          "at": {
+            "x": -4,
+            "y": 0,
+            "z": 36
+          },
+          "sha256": "450681c04c704a173e25b1bcc84293899c07f88e4336b0bb60e11fb983af4dc3"
+        },
+        {
+          "at": {
+            "x": -4,
+            "y": 1,
+            "z": 36
+          },
+          "sha256": "1b645e51588ad1a8c3985cfeb9194f391d7ec9d46eaf5d1cb31e220ca04db05e"
+        },
+        {
+          "at": {
+            "x": -4,
+            "y": 0,
+            "z": 37
+          },
+          "sha256": "ba59e16eec62d0aa09386e3c0b554adb0ec805085c398425f6d083166606555f"
+        },
+        {
+          "at": {
+            "x": -4,
+            "y": 1,
+            "z": 37
+          },
+          "sha256": "1b645e51588ad1a8c3985cfeb9194f391d7ec9d46eaf5d1cb31e220ca04db05e"
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "work": {
+    "revision": 0,
+    "changedCells": 0,
+    "changedBricks": 0,
+    "sparseOverlayBytes": 2,
+    "checkpointBytes": 1221,
+    "residentBricks": 8,
+    "residentBytes": 32768,
+    "maxResidentBricks": 8,
+    "residentProjectionCapBytes": 32768,
+    "generatedBricks": 30,
+    "heightSamples": 7680,
+    "caveMetricEvaluations": 78389,
+    "caveFeatures": {
+      "descriptors": 2,
+      "heightSamples": 2,
+      "membershipQueries": 21807,
+      "segmentTests": 48208,
+      "chamberTests": 15610,
+      "evictions": 0,
+      "residentDescriptors": 2,
+      "residentDescriptorCap": 16,
+      "geometryTestsPerCellAtMost": 4
+    },
+    "evictions": 22
+  }
+}

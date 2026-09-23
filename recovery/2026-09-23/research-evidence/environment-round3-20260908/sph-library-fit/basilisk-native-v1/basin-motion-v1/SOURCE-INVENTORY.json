@@ -1,0 +1,108 @@
+{
+  "scope": "Read-only existing maintained sources and accepted fixed-basin caller. No new compiler or numerical execution.",
+  "archiveSha256": "a629017cabad6626d71c782510f1d70b078eae44cc1c594c3e6b6fbb808164ae",
+  "files": [
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/test/gravity.c",
+      "officialUrl": "https://basilisk.fr/src/test/gravity.c",
+      "sha256": "ceb079648c8b331c00f61f2c9e433ca064f7a8ac63ef15936acfd42cd2ce9c31",
+      "bytes": 3329
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/test/prosperetti-gravity.h",
+      "officialUrl": "https://basilisk.fr/src/test/prosperetti-gravity.h",
+      "sha256": "665af5fc0c95a1901152584b390d35aac48b9c457db87d93d802ee6499e08d85",
+      "bytes": 18614
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/test/stokes-ns.c",
+      "officialUrl": "https://basilisk.fr/src/test/stokes-ns.c",
+      "sha256": "b354fa9cbda498b8a814432faed9792a830d00b55c7b0fd489e905d2ac970c01",
+      "bytes": 3186
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/test/dispersion_gravitocap.c",
+      "officialUrl": "https://basilisk.fr/src/test/dispersion_gravitocap.c",
+      "sha256": "23af5065184c5bcbeda22f6096e60203958ae175814b233be8398b24a667322c",
+      "bytes": 6595
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/navier-stokes/centered.h",
+      "officialUrl": "https://basilisk.fr/src/navier-stokes/centered.h",
+      "sha256": "98f132f6902ad4642ab1b431491dc97855b839b9a725d07d5afc5c5dee8b01bd",
+      "bytes": 12031
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/navier-stokes/conserving.h",
+      "officialUrl": "https://basilisk.fr/src/navier-stokes/conserving.h",
+      "sha256": "fd1d666c6f605418429514e586d3b5b577d8314b11aa023bf55c2d8bf732f099",
+      "bytes": 5025
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/two-phase.h",
+      "officialUrl": "https://basilisk.fr/src/two-phase.h",
+      "sha256": "11de50ca5054a2c89d47581eec78580d745bd242e18c5b0e84759a86ae9a30e8",
+      "bytes": 739
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/two-phase-generic.h",
+      "officialUrl": "https://basilisk.fr/src/two-phase-generic.h",
+      "sha256": "df2526e39501bdbd8f9e84d7cf63894327101d0c3dc57c7419a101cfbd430f63",
+      "bytes": 2117
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/vof.h",
+      "officialUrl": "https://basilisk.fr/src/vof.h",
+      "sha256": "d807da67e8b13cb10ea1ec0ba2742394bd5ab7119da7c96736dc992894aedad6",
+      "bytes": 11656
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/fractions.h",
+      "officialUrl": "https://basilisk.fr/src/fractions.h",
+      "sha256": "fa272694ccd4d11b90b5674d872b4cb308b50b2018eac16209a283bd1a45df0e",
+      "bytes": 18249
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/geometry.h",
+      "officialUrl": "https://basilisk.fr/src/geometry.h",
+      "sha256": "c34fd6d451b2f9bb930e62f22f78d9222022ffd54205b6f960a2193080704434",
+      "bytes": 13806
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/timestep.h",
+      "officialUrl": "https://basilisk.fr/src/timestep.h",
+      "sha256": "7a728bfe633cac8e6682fd8288ec6296a18d1486fb3c5b4b4019d227fb3947b4",
+      "bytes": 458
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/reduced.h",
+      "officialUrl": "https://basilisk.fr/src/reduced.h",
+      "sha256": "38772156f798495fd8e9edecfda7a60a27073f580371a550ed8fe0d3d6333af9",
+      "bytes": 1254
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-caller-audit-v1/source-v2/basin.c",
+      "sha256": "43e3273fdce3f677c47d8c576123a9b077ebb83aa4c7107d01a94848e52a8cda",
+      "bytes": 3348
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-caller-audit-v1/source-v2/basin-observation.h",
+      "sha256": "0544aa933596eec97403d8df452a77a6dfea579fbe7eed987be10419f261e1d8",
+      "bytes": 5322
+    },
+    {
+      "path": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-caller-audit-v1/RESULT-V2-HANDOFF.json",
+      "sha256": "aab195a6a0bd73e6be85cd205f22718131a81316c3a4520ea05513916d140a58",
+      "bytes": 3376
+    }
+  ],
+  "externalPrimarySource": {
+    "title": "Flow underlying coupled surface and internal waves",
+    "authors": "David Henry and Gabriele Villari",
+    "year": 2022,
+    "doi": "10.1016/j.jde.2021.11.009",
+    "url": "https://cora.ucc.ie/bitstreams/8db8b778-ea58-4eab-99cd-91fc91d6ca5c/download",
+    "anchor": "Remark 6, equation (43), journal author manuscript page 20; rigid-lid finite-depth dispersion.",
+    "use": "Independent formula source, not its different coupled-free-surface geometry."
+  }
+}

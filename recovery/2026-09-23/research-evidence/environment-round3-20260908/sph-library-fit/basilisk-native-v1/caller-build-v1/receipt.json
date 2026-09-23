@@ -1,0 +1,72 @@
+{
+  "scope": "Compile only; basin binary not executed.",
+  "invocationId": "7ae6c1976eeb4d01bcd4e1514078578b",
+  "commands": [
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-events",
+        "-source",
+        "basin.c"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 3.187889874971006,
+      "log": "command-1.log"
+    },
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "basin.c",
+        "-o",
+        "basin",
+        "-lm"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 11.858585326001048,
+      "log": "command-2.log"
+    }
+  ],
+  "exitCode": 0,
+  "wallSeconds": 15.046903024951462,
+  "files": [
+    {
+      "path": "_basin.c",
+      "sha256": "b489bcccaca60665da2cd9435a89b82971d1c2529a9513e9f2d78bf0f7aa97bd",
+      "bytes": 1816383
+    },
+    {
+      "path": "basin",
+      "sha256": "08bfb3585a886a4cf1f78b7e5ae3b87a9a4c36f5155adb34d0a1c778779fcc6b",
+      "bytes": 381160
+    },
+    {
+      "path": "basin-observation.h",
+      "sha256": "0544aa933596eec97403d8df452a77a6dfea579fbe7eed987be10419f261e1d8",
+      "bytes": 5322
+    },
+    {
+      "path": "basin.c",
+      "sha256": "d9c156d9d6ff1d1aa763daf1f7976c8a36d922029bc3cd4e124192017c8a66b0",
+      "bytes": 3418
+    },
+    {
+      "path": "command-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "command-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "compile-basin.py",
+      "sha256": "46323b7093fe1950faf07c2d76c3330e0d81e7a629e157d76b74d98a8d508e90",
+      "bytes": 1841
+    }
+  ]
+}

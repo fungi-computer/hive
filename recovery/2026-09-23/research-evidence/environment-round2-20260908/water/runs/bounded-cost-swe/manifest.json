@@ -1,0 +1,67 @@
+{
+  "suite": "cost-swe",
+  "stamp": "bounded",
+  "hashes": {
+    "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "experiment.mjs": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+    "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+  },
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "x64",
+  "timestamp": "2026-09-08T06:31:33.207Z",
+  "outcomes": [
+    {
+      "name": "cost-swe",
+      "status": "completed",
+      "summary": {
+        "time": 600,
+        "reservoir": 6.956266896323554,
+        "reach": 3.430520162180081,
+        "diversion": 2.623384837204658,
+        "pond": 70.62852475382516,
+        "user": 0,
+        "collected": 31.561303350467696,
+        "total": 83.6386966495334,
+        "balanceError": 9.947598300641403e-13,
+        "arrivalSeconds": 32.80000000000004,
+        "steps": 6000,
+        "minDt": 0.099999999997749,
+        "maxMassError": 1.1510792319313623e-12,
+        "maxFrAbove1cm": 1.3685257264047188,
+        "wetFaceTimeFractionFrAboveHalf": 0.0021348445056532687,
+        "wetFaceTimeFractionFrAboveOne": 0.0000040034589885668384,
+        "maxGradient": 0.302,
+        "limitedDonors": 3800,
+        "minFactor": 0,
+        "minDepth": 0,
+        "gateBeforeOpen": 0,
+        "cost": {
+          "cells": 1024,
+          "faces": 2112,
+          "faceEvaluations": 12672000,
+          "persistentFieldBytes": 41472,
+          "geometryTypedBytes": 18688,
+          "scratchTypedArrayBytesPerStep": 183808,
+          "decodedJsonBytes": 321884,
+          "before": {
+            "rss": 55050240,
+            "heapTotal": 8421376,
+            "heapUsed": 6329512,
+            "external": 2362521,
+            "arrayBuffers": 203807
+          },
+          "after": {
+            "rss": 118312960,
+            "heapTotal": 43810816,
+            "heapUsed": 15034768,
+            "external": 3709121,
+            "arrayBuffers": 1550367
+          },
+          "processPeakRssKiB": 116308
+        }
+      },
+      "elapsedMs": 6891.017576
+    }
+  ]
+}

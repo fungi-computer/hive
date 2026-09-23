@@ -1,0 +1,11 @@
+{
+  "terrain": {
+    "path": "../reference/terrain.js",
+    "sha256": "1e0c01b88d6a28e60ef2cd150bf98c085612df3a75a57793a27d5d70c230af34"
+  },
+  "voxel": {
+    "path": "../voxel-world.mjs",
+    "sha256": "9677065f5141279d3ca20360873674b634df27166b5feb45cc76bf981541f516"
+  },
+  "scope": "deterministic drainage diagnostic only; no terrain or water mutation"
+}

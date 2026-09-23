@@ -1,0 +1,79 @@
+{
+  "source": "Derived only from preserved result-v2/result.json; no new numerical invocation.",
+  "actualRun": {
+    "unit": "run-u3241.scope",
+    "invocationId": "ae681f2583e84b7faca0e6e69df16865",
+    "exitCode": 0
+  },
+  "cells": 2700,
+  "steps": 111,
+  "simulationSeconds": 0.1,
+  "dtRangeSeconds": [
+    9.09090909090909e-05,
+    0.0009856999793840249
+  ],
+  "maxCellSpeedMps": 9.898614313289354e-08,
+  "maxFaceSpeedMps": 9.902072890936738e-08,
+  "maxHydrostaticPressureErrorPa": 0.0005176192602400209,
+  "maxRelativeSupportError": 2.9877591592483456e-08,
+  "maxWaterStockDriftFromInitialM3PerMetre": 2.275957200481571e-14,
+  "maxAirStockDriftFromInitialM3PerMetre": 2.3092638912203256e-14,
+  "maxWaterComDriftFromInitialM": 1.1657341758564144e-14,
+  "fractionBounds": [
+    -2.752088001691876e-13,
+    1
+  ],
+  "maxProjectionResidualOverTarget": 0.9893606594531513,
+  "projectionIterationsRange": [
+    1,
+    20
+  ],
+  "expectedSupportNPerMetre": 5303.756880000001,
+  "final": {
+    "kind": "observation",
+    "phase": "completed-timestep",
+    "step": 111,
+    "intervalBeginSeconds": 0.09901430002061598,
+    "velocityTimeSeconds": 0.1,
+    "fractionTimeSeconds": 0.099507150010308,
+    "dtSeconds": 0.0009856999793840249,
+    "cells": 2700,
+    "nonfiniteCount": 0,
+    "areaM2": 1.0799999999999463,
+    "waterM3PerMetre": 0.5400000000000169,
+    "airM3PerMetre": 0.5399999999999942,
+    "waterComYM": 0.27000000000000324,
+    "fractionMin": -1.4140119265194656e-13,
+    "fractionMax": 1,
+    "cellSpeedMps": 9.919833688667164e-09,
+    "faceSpeedMps": 9.937568496626735e-09,
+    "gaugePa": 0.34901787710786,
+    "maxPressureErrorPa": 1.0729447836865802e-05,
+    "bottomTractionNPerMetre": 5304.105896340216,
+    "topTractionNPerMetre": 0.349018837483225,
+    "netSupportNPerMetre": 5303.756877502732,
+    "bottomLengthM": 1.0000000000000004,
+    "topLengthM": 1.0000000000000004,
+    "wallCoordinateErrorM": 0,
+    "deltaErrorM": 0,
+    "projectionIterations": 1,
+    "projectionResidual": 7.442416855142552e-05,
+    "projectionTarget": 0.00010292254226101018,
+    "projectionRelaxations": 5,
+    "projectionSeconds": 0.0006270459853112698,
+    "vofSeconds": 0.09211380284978077,
+    "valid": true
+  },
+  "terminal": {
+    "kind": "terminal",
+    "exitCode": 0,
+    "completedInterval": true,
+    "steps": 111,
+    "completedSeconds": 0.1,
+    "wallSecondsIncludingObservation": 0.23066518601262942,
+    "projectionSeconds": 0.10749507695436478,
+    "vofSeconds": 0.09211380284978077
+  },
+  "nativePeakRssKiB": 16768,
+  "captureWallSeconds": 0.2667727689840831
+}

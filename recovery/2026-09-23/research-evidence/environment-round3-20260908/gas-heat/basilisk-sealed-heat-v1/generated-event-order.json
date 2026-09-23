@@ -1,0 +1,257 @@
+{
+  "scope": "Static extraction from generated C, interpreted using checked event_register/event_do; no native event execution",
+  "generatedSha256": "87381d4b1a6cd1dd6f3b12c5f333f16adfa83f3bc31c00edbb92605f597bf403",
+  "eventOrder": [
+    "defaults",
+    "init",
+    "initial_observation",
+    "heater_cutoff",
+    "stop",
+    "cleanup",
+    "set_dtmax",
+    "stability",
+    "vof",
+    "tracer_advection",
+    "properties",
+    "acceleration",
+    "pressure",
+    "end_timestep",
+    "completed_observation"
+  ],
+  "chains": {
+    "defaults": [
+      {
+        "action": "defaults_3",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/two-phase.h",
+        "sourceLine": 146,
+        "generatedRegistrationLine": 52169
+      },
+      {
+        "action": "defaults_2",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/vof.h",
+        "sourceLine": 127,
+        "generatedRegistrationLine": 52167
+      },
+      {
+        "action": "defaults_1",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 66,
+        "generatedRegistrationLine": 52163
+      },
+      {
+        "action": "defaults_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/run.h",
+        "sourceLine": 42,
+        "generatedRegistrationLine": 52161
+      },
+      {
+        "action": "defaults",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/thermal.h",
+        "sourceLine": 90,
+        "generatedRegistrationLine": 52159
+      }
+    ],
+    "init": [
+      {
+        "action": "init_1",
+        "source": "sealed-heat.c",
+        "sourceLine": 78,
+        "generatedRegistrationLine": 52173
+      },
+      {
+        "action": "init_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/two-phase.h",
+        "sourceLine": 197,
+        "generatedRegistrationLine": 52171
+      },
+      {
+        "action": "init",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 84,
+        "generatedRegistrationLine": 52165
+      }
+    ],
+    "initial_observation": [
+      {
+        "action": "initial_observation",
+        "source": "sealed-heat.c",
+        "sourceLine": 91,
+        "generatedRegistrationLine": 52175
+      }
+    ],
+    "heater_cutoff": [
+      {
+        "action": "heater_cutoff",
+        "source": "sealed-heat.c",
+        "sourceLine": 167,
+        "generatedRegistrationLine": 52177
+      }
+    ],
+    "stop": [
+      {
+        "action": "stop",
+        "source": "sealed-heat.c",
+        "sourceLine": 178,
+        "generatedRegistrationLine": 52179
+      }
+    ],
+    "cleanup": [
+      {
+        "action": "cleanup_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/two-phase.h",
+        "sourceLine": 544,
+        "generatedRegistrationLine": 52257
+      },
+      {
+        "action": "cleanup",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/run.h",
+        "sourceLine": 50,
+        "generatedRegistrationLine": 52203
+      }
+    ],
+    "set_dtmax": [
+      {
+        "action": "set_dtmax",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 103,
+        "generatedRegistrationLine": 52205
+      }
+    ],
+    "stability": [
+      {
+        "action": "stability_1",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/two-phase.h",
+        "sourceLine": 111,
+        "generatedRegistrationLine": 52239
+      },
+      {
+        "action": "stability_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/vof.h",
+        "sourceLine": 140,
+        "generatedRegistrationLine": 52235
+      },
+      {
+        "action": "stability",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 105,
+        "generatedRegistrationLine": 52207
+      }
+    ],
+    "vof": [
+      {
+        "action": "vof_1",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/two-phase.h",
+        "sourceLine": 232,
+        "generatedRegistrationLine": 52241
+      },
+      {
+        "action": "vof_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/vof.h",
+        "sourceLine": 380,
+        "generatedRegistrationLine": 52237
+      },
+      {
+        "action": "vof",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 112,
+        "generatedRegistrationLine": 52214
+      }
+    ],
+    "tracer_advection": [
+      {
+        "action": "tracer_advection_1",
+        "source": "sealed-heat.c",
+        "sourceLine": 110,
+        "generatedRegistrationLine": 52263
+      },
+      {
+        "action": "tracer_advection_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/two-phase.h",
+        "sourceLine": 326,
+        "generatedRegistrationLine": 52243
+      },
+      {
+        "action": "tracer_advection",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 113,
+        "generatedRegistrationLine": 52215
+      }
+    ],
+    "properties": [
+      {
+        "action": "properties_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/two-phase.h",
+        "sourceLine": 336,
+        "generatedRegistrationLine": 52253
+      },
+      {
+        "action": "properties",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 119,
+        "generatedRegistrationLine": 52221
+      }
+    ],
+    "acceleration": [
+      {
+        "action": "acceleration_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/thermal.h",
+        "sourceLine": 250,
+        "generatedRegistrationLine": 52259
+      },
+      {
+        "action": "acceleration",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 135,
+        "generatedRegistrationLine": 52223
+      }
+    ],
+    "pressure": [
+      {
+        "action": "pressure_0",
+        "source": "sealed-heat.c",
+        "sourceLine": 141,
+        "generatedRegistrationLine": 52265
+      },
+      {
+        "action": "pressure",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 143,
+        "generatedRegistrationLine": 52231
+      }
+    ],
+    "end_timestep": [
+      {
+        "action": "end_timestep_2",
+        "source": "sealed-heat.c",
+        "sourceLine": 144,
+        "generatedRegistrationLine": 52268
+      },
+      {
+        "action": "end_timestep_1",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/thermal.h",
+        "sourceLine": 287,
+        "generatedRegistrationLine": 52261
+      },
+      {
+        "action": "end_timestep_0",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/compressible/two-phase.h",
+        "sourceLine": 395,
+        "generatedRegistrationLine": 52255
+      },
+      {
+        "action": "end_timestep",
+        "source": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/all-mach.h",
+        "sourceLine": 262,
+        "generatedRegistrationLine": 52233
+      }
+    ],
+    "completed_observation": [
+      {
+        "action": "completed_observation",
+        "source": "sealed-heat.c",
+        "sourceLine": 152,
+        "generatedRegistrationLine": 52276
+      }
+    ]
+  }
+}

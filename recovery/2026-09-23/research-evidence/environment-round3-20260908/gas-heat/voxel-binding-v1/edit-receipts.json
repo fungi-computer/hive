@@ -1,0 +1,23 @@
+{
+  "sourceAt": {
+    "x": 19,
+    "y": -47,
+    "z": -62
+  },
+  "fill": {
+    "ok": true,
+    "revision": 1,
+    "changedBricks": [
+      "1,-3,-4"
+    ]
+  },
+  "reopen": {
+    "ok": true,
+    "revision": 2,
+    "changedBricks": [
+      "1,-3,-4"
+    ]
+  },
+  "gasRemapped": false,
+  "newGasInitialized": false
+}

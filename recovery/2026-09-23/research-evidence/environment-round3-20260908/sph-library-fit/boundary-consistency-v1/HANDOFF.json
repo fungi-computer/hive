@@ -1,0 +1,30 @@
+{
+  "status": "cold oracle qualified; thin normalized surface inconsistent with literal solid measure/gradient; no dynamic qualification",
+  "sourceAndEvidenceSha256": {
+    "PROPOSAL.md": "82654a41cb10099fb123bd892a4f46172c91306e231b2b41fc4a9586265069c9",
+    "RESULTS.md": "d1ed14b215605ad17762060069c18fe0ef63ad3ddd8171ec3dac985753b33ad6",
+    "geometry.h": "7e5e8181d94e54e7fed574c53fa582a89feae7a9ab485eb01b33ce48ada18396",
+    "continuum.h": "012d85f997c78d48a148b6f54d5a86bd727f2b5936725842984018de9821181e",
+    "reference.cpp": "5d07558eb71af4564b7455c5c32e5910a68ada9d06c94fc50f63aada7307f57e",
+    "reference": "11c9d11ee00434dee1fabb8dca58b10ac5295c23af7765b55c1e1c71f1d26c1c",
+    "compile-reference.py": "d468096f115bf3a14cf6ecd41a6b537885c9df7192a6a1a272fb30ddcd358f6f",
+    "compile-command.json": "1a66396f63b3fa1f24c23be4337f92dfe3b92c3be46ceda48ee1f50c579b10f7",
+    "run-proof.py": "5861ddc7262b22e18bcf26bd641d20894ce2ca9021f441c83347ad948e9779bf",
+    "result-v1/result.json": "cde1510068aa9ec58502b81f5f167829030a37d1c0683238fbd90824075401c7",
+    "result-v1/stdout": "5e7ff736ee1559830b2a81dfeb186e460a80db32bb22a05421222b0982d32f37",
+    "result-v1/stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "result-v1/initialization.csv": "79eb55f7355639d261e02067c46352ba87737625a7931f44da1419860f47e7ad"
+  },
+  "compile": {
+    "scope": "run-u2981.scope",
+    "invocation": "19314b7148a74d139f4308df291b0dba",
+    "exit": 0
+  },
+  "static": {
+    "scope": "run-u2983.scope",
+    "invocation": "0f1a81fc89404c4fa119fefa28729102",
+    "exit": 0,
+    "nativeCaptureParseSeconds": 0.06459986697882414
+  },
+  "nextDecision": "cold maintained Bender2019 volume-map and actual contact-path fit to unchanged mass/wall/corner contract; no dynamic or port authorization implied"
+}

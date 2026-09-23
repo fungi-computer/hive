@@ -1,0 +1,292 @@
+{
+  "pins": [
+    {
+      "path": "../nd-checkpoint/geometry.mjs",
+      "sha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14"
+    },
+    {
+      "path": "../nd-checkpoint/solver.mjs",
+      "sha256": "49114c0ea61680ee36608c4b16283556f83fa003f163819b99eea6fed0fc120d"
+    },
+    {
+      "path": "reference.mjs",
+      "sha256": "e2ea94bad8f5ae143e52f2e486aa457d7054bd78abd15b33eac74b2dd01f8e36"
+    },
+    {
+      "path": "CONTRACT.md",
+      "sha256": "660c28f8919a57f68adb3717185a19b9b001e9b8bc136744252ebc911b3bd6e2"
+    },
+    {
+      "path": "qualify.mjs",
+      "sha256": "b7ed501a68e99326580e047f76c518b4ebecd463e4a0e8f599e545c4aa10d5eb"
+    }
+  ],
+  "wallMs": 1283.155978,
+  "cpuMs": 841.825,
+  "rssBytes": 89444352,
+  "rows": [
+    {
+      "name": "independent reference PDE, walls, initial residual and truncation",
+      "status": "pass",
+      "initialResiduals": [
+        {
+          "cutoff": 15,
+          "error": 0.0002817353952316026
+        },
+        {
+          "cutoff": 31,
+          "error": 0.00009153177818350781
+        },
+        {
+          "cutoff": 63,
+          "error": 0.000005437612890374366
+        },
+        {
+          "cutoff": 127,
+          "error": 0.0000012832567668191047
+        },
+        {
+          "cutoff": 255,
+          "error": 1.0720328439198235e-7
+        }
+      ],
+      "truncationDifference": 0,
+      "wallResidual": 5.857503981854251e-9,
+      "modalMaximumResidual": 1.734723475976807e-17,
+      "numericalPdeResidual": -5.492728417932913e-9,
+      "centerSteadySpeed": 0.31717939374428106,
+      "centerStartupSpeed": 0.1762305215269668,
+      "wallMs": 39.93205699999999
+    },
+    {
+      "name": "3D solid-wall rectangular startup Poiseuille refinement",
+      "status": "pass",
+      "cases": [
+        {
+          "crossSection": [
+            4,
+            4
+          ],
+          "fluidDimensions": [
+            2,
+            2.16,
+            2
+          ],
+          "spacing": [
+            1,
+            0.54,
+            0.5
+          ],
+          "fluidCells": 32,
+          "allCells": 72,
+          "faces": 80,
+          "velocityRmsError": 0.013872170559614894,
+          "relativeRmsError": 0.12713456081141963,
+          "maxTransverseSpeed": 0,
+          "cornerRows": 8,
+          "maxDivergence": 0,
+          "maxMomentumCourant": 0.01252008048770847,
+          "steps": 410,
+          "rejected": 0,
+          "wallMs": 161.89549700000003,
+          "pressureSolves": 410,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 7744
+        },
+        {
+          "crossSection": [
+            8,
+            8
+          ],
+          "fluidDimensions": [
+            2,
+            2.16,
+            2
+          ],
+          "spacing": [
+            1,
+            0.27,
+            0.25
+          ],
+          "fluidCells": 128,
+          "allCells": 200,
+          "faces": 352,
+          "velocityRmsError": 0.004514252905023536,
+          "relativeRmsError": 0.041934136546477756,
+          "maxTransverseSpeed": 0,
+          "cornerRows": 8,
+          "maxDivergence": 0,
+          "maxMomentumCourant": 0.04571249341825318,
+          "steps": 410,
+          "rejected": 0,
+          "wallMs": 358.091796,
+          "pressureSolves": 410,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 25664
+        },
+        {
+          "crossSection": [
+            12,
+            12
+          ],
+          "fluidDimensions": [
+            2,
+            2.16,
+            2
+          ],
+          "spacing": [
+            1,
+            0.18000000000000002,
+            0.16666666666666666
+          ],
+          "fluidCells": 288,
+          "allCells": 392,
+          "faces": 816,
+          "velocityRmsError": 0.002113154872536141,
+          "relativeRmsError": 0.01964559283952561,
+          "maxTransverseSpeed": 0,
+          "cornerRows": 8,
+          "maxDivergence": 0,
+          "maxMomentumCourant": 0.10136690196921849,
+          "steps": 410,
+          "rejected": 0,
+          "wallMs": 444.5117479999999,
+          "pressureSolves": 410,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 54336
+        }
+      ],
+      "wallMs": 965.9414859999999
+    },
+    {
+      "name": "finite open straight duct volume and scalar transport refinement",
+      "status": "pass",
+      "cases": [
+        {
+          "nx": 8,
+          "fluidDimensions": [
+            4,
+            1.08,
+            1
+          ],
+          "spacing": [
+            0.5,
+            0.54,
+            0.5
+          ],
+          "inletArea": 1.08,
+          "outletArea": 1.08,
+          "expectedAir": 1.62,
+          "airImport": 1.6200000000000048,
+          "airExport": 1.6200000000000048,
+          "airError": 4.6629367034256575e-15,
+          "initialSmoke": 0.00108,
+          "expectedSmokeExport": 0.00054,
+          "actualSmokeExport": 0.0005034982711382137,
+          "smokeExportError": 0.000036501728861786337,
+          "expectedHeatExport": 3256.2000000000003,
+          "actualHeatExport": 3036.094574963431,
+          "heatExportError": 220.10542503656916,
+          "l1RelativeFieldError": 0.5819368732023764,
+          "massError": 2.168404344971009e-19,
+          "heatError": 2.7284841053187847e-12,
+          "speedError": 0,
+          "maxDivergence": 0,
+          "maxCourant": 0.025,
+          "steps": 139,
+          "wallMs": 89.98865599999999,
+          "pressureSolves": 139,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 11392
+        },
+        {
+          "nx": 16,
+          "fluidDimensions": [
+            4,
+            1.08,
+            1
+          ],
+          "spacing": [
+            0.25,
+            0.54,
+            0.5
+          ],
+          "inletArea": 1.08,
+          "outletArea": 1.08,
+          "expectedAir": 1.62,
+          "airImport": 1.6200000000000048,
+          "airExport": 1.6200000000000048,
+          "airError": 4.6629367034256575e-15,
+          "initialSmoke": 0.0010799999999999998,
+          "expectedSmokeExport": 0.0005399999999999999,
+          "actualSmokeExport": 0.0005201107557480027,
+          "smokeExportError": 0.000019889244251997248,
+          "expectedHeatExport": 3256.1999999999994,
+          "actualHeatExport": 3136.2678571604556,
+          "heatExportError": 119.93214283954376,
+          "l1RelativeFieldError": 0.44241025867754313,
+          "massError": 8.673617379884035e-19,
+          "heatError": 3.637978807091713e-12,
+          "speedError": 0,
+          "maxDivergence": 0,
+          "maxCourant": 0.05,
+          "steps": 139,
+          "wallMs": 68.86082499999998,
+          "pressureSolves": 139,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 22656
+        },
+        {
+          "nx": 32,
+          "fluidDimensions": [
+            4,
+            1.08,
+            1
+          ],
+          "spacing": [
+            0.125,
+            0.54,
+            0.5
+          ],
+          "inletArea": 1.08,
+          "outletArea": 1.08,
+          "expectedAir": 1.62,
+          "airImport": 1.6200000000000048,
+          "airExport": 1.6200000000000048,
+          "airError": 4.6629367034256575e-15,
+          "initialSmoke": 0.00108,
+          "expectedSmokeExport": 0.00054,
+          "actualSmokeExport": 0.0005315057636602012,
+          "smokeExportError": 0.00000849423633979881,
+          "expectedHeatExport": 3256.1999999999985,
+          "actualHeatExport": 3204.9797548710135,
+          "heatExportError": 51.22024512898497,
+          "l1RelativeFieldError": 0.31711778938941276,
+          "massError": 2.168404344971009e-19,
+          "heatError": 4.547473508864641e-12,
+          "speedError": 0,
+          "maxDivergence": 0,
+          "maxCourant": 0.1,
+          "steps": 139,
+          "wallMs": 114.428764,
+          "pressureSolves": 139,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 45184
+        }
+      ],
+      "wallMs": 274.30933099999993
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "version": "inert-air-helium-constant-capacity-v1",
+  "energyConvention": "constant-cv-u-zero-at-zero-k",
+  "species": [
+    {
+      "id": "inert-air",
+      "molarMassKgPerMol": 0.02897,
+      "cvJPerKgK": 717.5062666683846,
+      "minTemperatureK": 200,
+      "maxTemperatureK": 600
+    },
+    {
+      "id": "inert-helium",
+      "molarMassKgPerMol": 0.004002602,
+      "cvJPerKgK": 3115.8965910749703,
+      "minTemperatureK": 200,
+      "maxTemperatureK": 600
+    }
+  ]
+}

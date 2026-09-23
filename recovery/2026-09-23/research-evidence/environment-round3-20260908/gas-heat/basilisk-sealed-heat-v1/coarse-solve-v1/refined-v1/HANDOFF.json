@@ -1,0 +1,59 @@
+{
+  "status": "Preserved compile checkpoint; no native regression or physical run",
+  "custody": "Only ignored refined-v1; no active process; native window released",
+  "compile": {
+    "scope": "run-u3530.scope",
+    "invocationId": "1f2e7876b4be4322a0c2a29e9cb0e2ee",
+    "sessionId": 57361,
+    "terminalExit": 0,
+    "elapsedSeconds": 60.58203075802885
+  },
+  "sourceAndUpstreamUnchanged": true,
+  "physicalCallerOverlayObserverByteEqual": true,
+  "generatedEventRegistrationsEqual": 34,
+  "compilerWarnings": {
+    "regressionPreC2XArrayQualifier": 8,
+    "physicalPreC2XArrayQualifier": 4,
+    "dimensionalAnalysis": "Disabled for local generic dense algebra; not mechanically qualified"
+  },
+  "numericalRegression": "Not run",
+  "physicalRun": "Not started per root fidelity reset",
+  "files": {
+    "CHECKPOINT.md": {
+      "bytes": 4124,
+      "sha256": "6ee2bd7f08ce414d89803d6f740eb0b49b7908c58b5021e2ab79bdb79abae38b"
+    },
+    "EXECUTABLE-CHECKPOINT.json": {
+      "bytes": 2762,
+      "sha256": "5f830177d4a0bb35fa05e4e1e831351ad3026891bc560d2b0314818674e049e7"
+    },
+    "build-v1/receipt.json": {
+      "bytes": 3841,
+      "sha256": "340c69ef2372e7898907c1600654c202a2b9406acd06f87169e084c4c5f34750"
+    },
+    "build-v1/_sealed-heat.c": {
+      "bytes": 1898501,
+      "sha256": "200e7f52212c3e93df0b01299562b746bee46229df3b760278246361050476d0"
+    },
+    "build-v1/captured-regression": {
+      "bytes": 724648,
+      "sha256": "c8ea0a88b7702cde9bdfb0fc0ab003fff30ba293dc5d482e6d6daf93b8784451"
+    },
+    "build-v1/sealed-heat": {
+      "bytes": 774512,
+      "sha256": "7ae3da73fd6f507c2dc85a16581a9bfa6d843720336ed1cbeb4531604db60503"
+    },
+    "build-v1/command-1.log": {
+      "bytes": 1262,
+      "sha256": "99fd654006e9a736abca1d7ac3b9bbecf66d2ab08df734581d900974f4881844"
+    },
+    "build-v1/command-2.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build-v1/command-3.log": {
+      "bytes": 691,
+      "sha256": "0167f6d2c9d4f9eedf09378434db9ec89ee4c704b0512b59add8d42cb15bb966"
+    }
+  }
+}

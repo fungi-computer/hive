@@ -1,0 +1,62 @@
+{
+  "scope": "Read-only arithmetic on saved fields and operation totals; no geometry compiler, solver, advance or Euler invocation. Final instantaneous rates are not time integrals.",
+  "sources": {
+    "finite-momentum-v1/momentum.mjs": "4c7af4ed79d2c64079c5d981257efee0ce31f7d7799ac2fd4a42e7820dae1674",
+    "finite-momentum-v1/finite-gas.mjs": "8d24cb07f9e9b19a1f2766d34c84e30e60ad26c3e22eef150b24da9887e2ae5a",
+    "finite-momentum-v1/projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+    "finite-buoyancy-v1/qualification-v1.json": "85becba337ee625c96c2d74004ea1138232a816607514ad6b9701d064a80c09d",
+    "finite-buoyancy-v1/moving-4-32.json": "5498c93197f3ece54415e92e27d2389ea2a0308cd1aa9061721895ffe56db190",
+    "finite-buoyancy-v1/moving-8-16.json": "a815507afce57f9dfc1ad9c02220c285a6c166c9bc0331a6cba16cc77626a806",
+    "finite-buoyancy-v1/moving-8-32.json": "ab797f31684c081da7bfeccf264fc2a090524b21185ba9305712a7b0ef32a944"
+  },
+  "records": [
+    {
+      "source": "finite-buoyancy-v1/moving-4-32.json",
+      "finalTimeS": 1,
+      "n": 4,
+      "dtS": 0.03125,
+      "advectionDeltaKJ": -0.049720925280053535,
+      "gravityWallPressureAndPotentialChangeJ": 0.04338605454535127,
+      "rkAveragingDeltaKJ": -0.022989888895033127,
+      "totalMechanicalChangeJ": -0.02932475962973058,
+      "groupedSumDifferenceJ": -4.812122922359663e-15,
+      "finalGravityPowerW": 1.4223387469659414,
+      "finalPotentialEnergyRateW": -1.3447572261996956,
+      "finalGravityPotentialPairResidualW": 0.0775815207662458,
+      "independentDonorGapFormulaW": 0.07758152076624641,
+      "formulaGroupingDifferenceW": -6.106226635438361e-16
+    },
+    {
+      "source": "finite-buoyancy-v1/moving-8-16.json",
+      "finalTimeS": 1,
+      "n": 8,
+      "dtS": 0.0625,
+      "advectionDeltaKJ": -0.08946412522973657,
+      "gravityWallPressureAndPotentialChangeJ": 0.09682146328937336,
+      "rkAveragingDeltaKJ": -0.07736140739690488,
+      "totalMechanicalChangeJ": -0.07000406933724435,
+      "groupedSumDifferenceJ": -2.3744894939170536e-14,
+      "finalGravityPowerW": 2.394900802704747,
+      "finalPotentialEnergyRateW": -2.3095924327570136,
+      "finalGravityPotentialPairResidualW": 0.08530836994773328,
+      "independentDonorGapFormulaW": 0.08530836994773185,
+      "formulaGroupingDifferenceW": 1.429412144204889e-15
+    },
+    {
+      "source": "finite-buoyancy-v1/moving-8-32.json",
+      "finalTimeS": 1,
+      "n": 8,
+      "dtS": 0.03125,
+      "advectionDeltaKJ": -0.09081405093360653,
+      "gravityWallPressureAndPotentialChangeJ": 0.05976946942697481,
+      "rkAveragingDeltaKJ": -0.03868051164194129,
+      "totalMechanicalChangeJ": -0.06972509314857689,
+      "groupedSumDifferenceJ": 3.8719027983802334e-15,
+      "finalGravityPowerW": 2.394988036496651,
+      "finalPotentialEnergyRateW": -2.3096959665231966,
+      "finalGravityPotentialPairResidualW": 0.08529206997345451,
+      "independentDonorGapFormulaW": 0.08529206997345581,
+      "formulaGroupingDifferenceW": -1.304512053934559e-15
+    }
+  ]
+}

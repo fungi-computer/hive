@@ -1,0 +1,4450 @@
+[
+  {
+    "first": {
+      "forceTime": 0,
+      "constraintTime": 0.03125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0,
+          "forwardRemainderJ": 0,
+          "linearWorkJ": 0,
+          "kineticChangeJ": 0,
+          "donorPairingResidualJ": 0,
+          "finiteIdentityResidualJ": 0,
+          "combinedResidualJ": 0
+        },
+        "body": {
+          "oldVelocityWorkJ": 0,
+          "timeRemainderJ": 1.8861440228723088,
+          "wallRemovalNormJ": 0.23576800285903882,
+          "kineticChangeJ": 1.8861440228723088,
+          "finiteIdentityResidualJ": 0
+        },
+        "wallKChangeJ": -0.23576800285903676,
+        "wallResidualJ": 2.0539125955565396e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.648977319953059,
+        "afterImpulseWorkJ": 2.2241463126803935e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 2.2241801353425342e-15,
+        "residualWorkBoundJ": 9.020826026083539e-13,
+        "pinResidualM3S": 1.6740081543176188e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024575844512062992,
+        "kineticChangeJ": -1.648977319953065,
+        "gradientPairingResidualJ": -3.382266214071975e-20,
+        "finiteIdentityResidualJ": -8.215650382226158e-15,
+        "combinedResidualJ": -8.215650382226158e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": 0,
+        "observedPotentialChangeJ": 0,
+        "oldVelocityWorkJ": 0,
+        "donorGapJ": 0,
+        "pairedGapJ": 0,
+        "donorGapResidualJ": 0,
+        "potentialResidualJ": 0,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.03125,
+      "constraintTime": 0.0625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 4.090550933033615e-7,
+          "forwardRemainderJ": 3.17837876736879e-10,
+          "linearWorkJ": -4.0905509330335863e-7,
+          "kineticChangeJ": -4.0873725542633216e-7,
+          "donorPairingResidualJ": 2.8587361969832636e-21,
+          "finiteIdentityResidualJ": 2.895918482505405e-19,
+          "combinedResidualJ": 2.9245058444752377e-19
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.0027974001204114115,
+          "timeRemainderJ": 1.8861444612154206,
+          "wallRemovalNormJ": 0.23576802994313673,
+          "kineticChangeJ": 1.8889418613358273,
+          "finiteIdentityResidualJ": -4.6629367034256575e-15
+        },
+        "wallKChangeJ": -0.23576802994313661,
+        "wallResidualJ": 1.1102230246251565e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6489781425132914,
+        "afterImpulseWorkJ": 7.75711926062541e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 7.781877936127153e-16,
+        "residualWorkBoundJ": 9.030006195841262e-13,
+        "pinResidualM3S": 2.7566924437616436e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457588109457193,
+        "kineticChangeJ": -1.6489781425132883,
+        "gradientPairingResidualJ": -2.4758675501742627e-18,
+        "finiteIdentityResidualJ": 2.4424906541753444e-15,
+        "combinedResidualJ": 2.220446049250313e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.002797400120411478,
+        "observedPotentialChangeJ": -0.002797400120414295,
+        "oldVelocityWorkJ": 0.0027974001204114115,
+        "donorGapJ": -6.918607464820488e-17,
+        "pairedGapJ": -6.635317295611287e-17,
+        "donorGapResidualJ": 2.8329016920920075e-18,
+        "potentialResidualJ": -2.8171909249863347e-15,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 8.987709618209217e-14,
+      "afterImpulseWorkJ": -9.455549241914109e-21,
+      "targetWorkJ": 0,
+      "residualWorkJ": 1.3716721881774336e-25,
+      "residualWorkBoundJ": 3.1616807135987304e-19,
+      "pinResidualM3S": 1.059926885843554e-14,
+      "impulseMetricResidualKgMS": 2.0404891350458087e-19,
+      "impulseMagnitudeKgMS": 1.277650095920721e-8,
+      "kineticChangeJ": -8.987884221600684e-14,
+      "gradientPairingResidualJ": -9.455686409132927e-21,
+      "finiteIdentityResidualJ": -1.73657836542945e-18,
+      "combinedResidualJ": -1.7460340518448094e-18,
+      "weight": 1,
+      "constraintTime": 0.03125,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013984945462078434,
+      "kineticChangeJ": -0.0013984945462078408,
+      "residualJ": 2.6020852139652106e-18
+    },
+    "start": 0,
+    "end": 0.03125,
+    "rejected": 0,
+    "kineticChangeJ": 0.0013984955548791008,
+    "potentialChangeJ": -0.0013987000602355693,
+    "mechanicalChangeJ": -2.0450534066185355e-7,
+    "donorDissipationJ": 2.0452754665168074e-7,
+    "forwardRemainderJ": 1.589189383684395e-10,
+    "gravityGapJ": -3.3176586478056436e-17,
+    "gravityTimeRemainderJ": 1.8861442420438648,
+    "wallKChangeJ": -0.2357680164010867,
+    "projectionKChangeJ": -1.6489777312332667,
+    "timeSplitRemainderJ": 2.222237628288215e-11,
+    "reconstructedMechanicalJ": -2.0450532430857445e-7,
+    "mechanicalResidualJ": -1.6353279103842845e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.03125,
+      "constraintTime": 0.0625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 4.0896290009795736e-7,
+          "forwardRemainderJ": 3.1772784769709075e-10,
+          "linearWorkJ": -4.08962900097938e-7,
+          "kineticChangeJ": -4.086451722506122e-7,
+          "donorPairingResidualJ": 1.937587866844212e-20,
+          "finiteIdentityResidualJ": -3.713292351908734e-19,
+          "combinedResidualJ": -3.5195335652243126e-19
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.002796975855182684,
+          "timeRemainderJ": 1.8861444613892058,
+          "wallRemovalNormJ": 0.23576802468158448,
+          "kineticChangeJ": 1.8889414372443911,
+          "finiteIdentityResidualJ": 2.6645352591003757e-15
+        },
+        "wallKChangeJ": -0.2357680246815843,
+        "wallResidualJ": 1.6653345369377348e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6489783676156495,
+        "afterImpulseWorkJ": -1.2777712237897407e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.2762824947940953e-15,
+        "residualWorkBoundJ": 9.090942131030747e-13,
+        "pinResidualM3S": 1.6445178552260131e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457583482663643,
+        "kineticChangeJ": -1.6489783676156466,
+        "gradientPairingResidualJ": -1.4887289956453523e-18,
+        "finiteIdentityResidualJ": 4.218847493575595e-15,
+        "combinedResidualJ": 4.218847493575595e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.0027968783525822794,
+        "observedPotentialChangeJ": -0.0027968783525693652,
+        "oldVelocityWorkJ": 0.002796975855182684,
+        "donorGapJ": 9.750260040226572e-8,
+        "pairedGapJ": 9.750260040455525e-8,
+        "donorGapResidualJ": 2.289530056428374e-18,
+        "potentialResidualJ": 1.291414891690934e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.0625,
+      "constraintTime": 0.09375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0000032709412484686832,
+          "forwardRemainderJ": 5.081786738032173e-9,
+          "linearWorkJ": -0.000003270941248468705,
+          "kineticChangeJ": -0.000003265859461709826,
+          "donorPairingResidualJ": -2.159934015498466e-20,
+          "finiteIdentityResidualJ": 2.084662399553488e-17,
+          "combinedResidualJ": 2.0825024655379895e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.005592647188932739,
+          "timeRemainderJ": 1.8861457759005678,
+          "wallRemovalNormJ": 0.23576807429252006,
+          "kineticChangeJ": 1.8917384230894925,
+          "finiteIdentityResidualJ": -7.993605777301127e-15
+        },
+        "wallKChangeJ": -0.235768074292521,
+        "wallResidualJ": -9.43689570931383e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6489813057759826,
+        "afterImpulseWorkJ": 1.9411725102769922e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.941240710109421e-15,
+        "residualWorkBoundJ": 9.003939832414523e-13,
+        "pinResidualM3S": 3.685853705581721e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024575836849673304,
+        "kineticChangeJ": -1.6489813057759741,
+        "gradientPairingResidualJ": -6.819983242893175e-20,
+        "finiteIdentityResidualJ": 6.439293542825908e-15,
+        "combinedResidualJ": 6.439293542825908e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.005592022021616491,
+        "observedPotentialChangeJ": -0.0055920220216307825,
+        "oldVelocityWorkJ": 0.005592647188932739,
+        "donorGapJ": 6.251673162518966e-7,
+        "pairedGapJ": 6.251673162482874e-7,
+        "donorGapResidualJ": -3.609207388250574e-18,
+        "potentialResidualJ": -1.4291519356834925e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 8.072397109311872e-13,
+      "afterImpulseWorkJ": -1.1419030931546785e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 4.066046539328639e-25,
+      "residualWorkBoundJ": 1.0164724542162686e-18,
+      "pinResidualM3S": 2.157779163680651e-15,
+      "impulseMetricResidualKgMS": 4.983366143937966e-19,
+      "impulseMagnitudeKgMS": 3.8295526138664576e-8,
+      "kineticChangeJ": -8.072370896727854e-13,
+      "gradientPairingResidualJ": -1.1419071592012178e-19,
+      "finiteIdentityResidualJ": 2.735448711094122e-18,
+      "combinedResidualJ": 2.6212579951555672e-18,
+      "weight": 1,
+      "constraintTime": 0.0625,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013972343050635304,
+      "kineticChangeJ": -0.0013972343050635211,
+      "residualJ": 9.324138683375338e-18
+    },
+    "start": 0.03125,
+    "end": 0.0625,
+    "rejected": 0,
+    "kineticChangeJ": 0.004192972425890967,
+    "potentialChangeJ": -0.004194450187128496,
+    "mechanicalChangeJ": -0.0000014777612591387879,
+    "donorDissipationJ": 0.0000018399520742833204,
+    "forwardRemainderJ": 2.6997572928646323e-9,
+    "gravityGapJ": 3.613349583264213e-7,
+    "gravityTimeRemainderJ": 1.8861451186448868,
+    "wallKChangeJ": -0.23576804948705266,
+    "projectionKChangeJ": -1.6489798366966175,
+    "timeSplitRemainderJ": 8.559103671038765e-10,
+    "reconstructedMechanicalJ": -0.0000014777612055897952,
+    "mechanicalResidualJ": -5.354899263267966e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.0625,
+      "constraintTime": 0.09375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.000003269437583684114,
+          "forwardRemainderJ": 5.078226918775236e-9,
+          "linearWorkJ": -0.0000032694375836840994,
+          "kineticChangeJ": -0.0000032643593567676515,
+          "donorPairingResidualJ": 1.4399560103323106e-20,
+          "finiteIdentityResidualJ": -2.3273429637700104e-18,
+          "combinedResidualJ": -2.3129434036666873e-18
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.00559137467713267,
+          "timeRemainderJ": 1.886145776111718,
+          "wallRemovalNormJ": 0.2357680689507376,
+          "kineticChangeJ": 1.8917371507888492,
+          "finiteIdentityResidualJ": -1.5543122344752192e-15
+        },
+        "wallKChangeJ": -0.2357680689507371,
+        "wallResidualJ": 4.996003610813204e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6489815312301357,
+        "afterImpulseWorkJ": -7.5099296356281875e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -7.49831715335633e-16,
+        "residualWorkBoundJ": 9.047749736926748e-13,
+        "pinResidualM3S": 2.2230481344642783e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024575789752776186,
+        "kineticChangeJ": -1.648981531230133,
+        "gradientPairingResidualJ": -1.1612482271857632e-18,
+        "finiteIdentityResidualJ": 3.3306690738754696e-15,
+        "combinedResidualJ": 3.3306690738754696e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.005590593692779884,
+        "observedPotentialChangeJ": -0.005590593692772927,
+        "oldVelocityWorkJ": 0.005591374677132672,
+        "donorGapJ": 7.80984352791752e-7,
+        "pairedGapJ": 7.809843527873533e-7,
+        "donorGapResidualJ": -4.398642095091582e-18,
+        "potentialResidualJ": 6.957108500404985e-15,
+        "externalBodyWorkJ": -1.734723475976807e-18
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.09375,
+      "constraintTime": 0.125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.000011027549136507614,
+          "forwardRemainderJ": 2.5683959296400377e-8,
+          "linearWorkJ": -0.000011027549136507626,
+          "kineticChangeJ": -0.000011001865177212924,
+          "donorPairingResidualJ": -1.1858461261560205e-20,
+          "finiteIdentityResidualJ": -1.6985922268204908e-18,
+          "combinedResidualJ": -1.710450688082051e-18
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.008382738566184933,
+          "timeRemainderJ": 1.8861479687687703,
+          "wallRemovalNormJ": 0.2357681411171149,
+          "kineticChangeJ": 1.8945307073349558,
+          "finiteIdentityResidualJ": 4.440892098500626e-16
+        },
+        "wallKChangeJ": -0.23576814111711308,
+        "wallResidualJ": 1.8041124150158794e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6489865927963674,
+        "afterImpulseWorkJ": -4.447837768668111e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -4.525509720132855e-16,
+        "residualWorkBoundJ": 9.16636233967599e-13,
+        "pinResidualM3S": 1.551710149261254e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024575754890987008,
+        "kineticChangeJ": -1.6489865927963678,
+        "gradientPairingResidualJ": 7.76719514647435e-18,
+        "finiteIdentityResidualJ": 0,
+        "combinedResidualJ": 0
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.00838031749511582,
+        "observedPotentialChangeJ": -0.008380317495095824,
+        "oldVelocityWorkJ": 0.008382738566184935,
+        "donorGapJ": 0.000002421071069115008,
+        "pairedGapJ": 0.0000024210710691148496,
+        "donorGapResidualJ": -1.5839516113655416e-19,
+        "potentialResidualJ": 1.9996157507584655e-14,
+        "externalBodyWorkJ": -1.734723475976807e-18
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 2.2334204351805777e-12,
+      "afterImpulseWorkJ": -7.832721854280937e-20,
+      "targetWorkJ": 0,
+      "residualWorkJ": 3.439369504364362e-24,
+      "residualWorkBoundJ": 1.5490576709125927e-18,
+      "pinResidualM3S": 3.922426619618058e-14,
+      "impulseMetricResidualKgMS": 6.179899443608172e-19,
+      "impulseMagnitudeKgMS": 6.371308694649511e-8,
+      "kineticChangeJ": -2.2334148419567157e-12,
+      "gradientPairingResidualJ": -7.833065791231374e-20,
+      "finiteIdentityResidualJ": 5.6715510805781856e-18,
+      "combinedResidualJ": 5.593220422854265e-18,
+      "weight": 1,
+      "constraintTime": 0.09375,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013947186958871934,
+      "kineticChangeJ": -0.0013947186958871913,
+      "residualJ": 2.168404344971009e-18
+    },
+    "start": 0.0625,
+    "end": 0.09375,
+    "rejected": 0,
+    "kineticChangeJ": 0.006979910204339413,
+    "potentialChangeJ": -0.006985455593905954,
+    "mechanicalChangeJ": -0.000005545389569761028,
+    "donorDissipationJ": 0.0000071484933600958645,
+    "forwardRemainderJ": 1.5381093107587806e-8,
+    "gravityGapJ": 0.0000016010277109511015,
+    "gravityTimeRemainderJ": 1.8861468724402441,
+    "wallKChangeJ": -0.2357681050339251,
+    "projectionKChangeJ": -1.6489840620154839,
+    "timeSplitRemainderJ": 2.0760410660534967e-9,
+    "reconstructedMechanicalJ": -0.0000055453896080787096,
+    "mechanicalResidualJ": 3.831768175053662e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.09375,
+      "constraintTime": 0.125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.000011021665395297279,
+          "forwardRemainderJ": 2.566294528117244e-8,
+          "linearWorkJ": -0.000011021665395297141,
+          "kineticChangeJ": -0.000010996002450013379,
+          "donorPairingResidualJ": 1.3721933745519665e-19,
+          "finiteIdentityResidualJ": 2.5905543162262214e-18,
+          "combinedResidualJ": 2.727773653681418e-18
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.008380615366381424,
+          "timeRemainderJ": 1.8861479688710585,
+          "wallRemovalNormJ": 0.2357681355381071,
+          "kineticChangeJ": 1.8945285842374464,
+          "finiteIdentityResidualJ": 6.439293542825908e-15
+        },
+        "wallKChangeJ": -0.23576813553810716,
+        "wallResidualJ": -5.551115123125783e-17
+      },
+      "projection": {
+        "correctionNormJ": 1.64898681908768,
+        "afterImpulseWorkJ": -1.574280189173792e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.577795189801141e-15,
+        "residualWorkBoundJ": 9.035606226285773e-13,
+        "pinResidualM3S": 3.099083489832566e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457570596772102,
+        "kineticChangeJ": -1.6489868190876886,
+        "gradientPairingResidualJ": 3.5150006273489505e-18,
+        "finiteIdentityResidualJ": -7.105427357601002e-15,
+        "combinedResidualJ": -7.105427357601002e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.008377980925470088,
+        "observedPotentialChangeJ": -0.008377980925502015,
+        "oldVelocityWorkJ": 0.008380615366381423,
+        "donorGapJ": 0.0000026344409113342684,
+        "pairedGapJ": 0.0000026344409113348427,
+        "donorGapResidualJ": 5.742883382384156e-19,
+        "potentialResidualJ": -3.1927585575353135e-14,
+        "externalBodyWorkJ": 1.734723475976807e-18
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.125,
+      "constraintTime": 0.15625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.00002609850752776867,
+          "forwardRemainderJ": 8.097758299453e-8,
+          "linearWorkJ": -0.000026098507527769187,
+          "kineticChangeJ": -0.000026017529944789147,
+          "donorPairingResidualJ": -5.183841637196318e-19,
+          "finiteIdentityResidualJ": -1.4490073514671108e-17,
+          "combinedResidualJ": -1.500845767839074e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.011165087412465496,
+          "timeRemainderJ": 1.8861510457134296,
+          "wallRemovalNormJ": 0.23576823014511397,
+          "kineticChangeJ": 1.8973161331259008,
+          "finiteIdentityResidualJ": 5.551115123125783e-15
+        },
+        "wallKChangeJ": -0.23576823014511472,
+        "wallResidualJ": -7.494005416219807e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6489940202838889,
+        "afterImpulseWorkJ": -1.5377984801355493e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.5371189270231728e-15,
+        "residualWorkBoundJ": 9.061114936216669e-13,
+        "pinResidualM3S": 2.306314861311165e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024575629541461978,
+        "kineticChangeJ": -1.648994020283893,
+        "gradientPairingResidualJ": -6.79553112376475e-19,
+        "finiteIdentityResidualJ": -2.6645352591003757e-15,
+        "combinedResidualJ": -2.6645352591003757e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.011159119224430051,
+        "observedPotentialChangeJ": -0.01115911922443047,
+        "oldVelocityWorkJ": 0.011165087412465495,
+        "donorGapJ": 0.0000059681880354458915,
+        "pairedGapJ": 0.000005968188035443411,
+        "donorGapResidualJ": -2.4801124695605914e-18,
+        "potentialResidualJ": -4.180683577104105e-16,
+        "externalBodyWorkJ": 1.734723475976807e-18
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 4.3515335650608754e-12,
+      "afterImpulseWorkJ": -1.1122649210012195e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 4.573060681217094e-24,
+      "residualWorkBoundJ": 1.3942006128134492e-18,
+      "pinResidualM3S": 4.037698994596717e-14,
+      "impulseMetricResidualKgMS": 1.1713870090485936e-18,
+      "impulseMagnitudeKgMS": 8.896034292202315e-8,
+      "kineticChangeJ": -4.3514913894426854e-12,
+      "gradientPairingResidualJ": -1.1123106516080317e-19,
+      "finiteIdentityResidualJ": 4.2286844682088975e-17,
+      "combinedResidualJ": 4.217561361706947e-17,
+      "weight": 1,
+      "constraintTime": 0.125,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013909544097172738,
+      "kineticChangeJ": -0.0013909544097172911,
+      "residualJ": -1.734723475976807e-17
+    },
+    "start": 0.09375,
+    "end": 0.125,
+    "rejected": 0,
+    "kineticChangeJ": 0.009754294974005484,
+    "potentialChangeJ": -0.009768550074966242,
+    "mechanicalChangeJ": -0.00001425510095032223,
+    "donorDissipationJ": 0.000018560086461532973,
+    "forwardRemainderJ": 5.332026413785122e-8,
+    "gravityGapJ": 0.000004301314473389127,
+    "gravityTimeRemainderJ": 1.886149507292244,
+    "wallKChangeJ": -0.23576818284161094,
+    "projectionKChangeJ": -1.6489904196901424,
+    "timeSplitRemainderJ": 3.6710376821735835e-9,
+    "reconstructedMechanicalJ": -0.000014255100950461672,
+    "mechanicalResidualJ": 1.3944195190879194e-16
+  },
+  {
+    "first": {
+      "forceTime": 0.125,
+      "constraintTime": 0.15625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.000026083569523115928,
+          "forwardRemainderJ": 8.090652408936622e-8,
+          "linearWorkJ": -0.00002608356952311597,
+          "kineticChangeJ": -0.000026002662999041748,
+          "donorPairingResidualJ": -4.404571325722362e-20,
+          "finiteIdentityResidualJ": -1.5142527112073335e-17,
+          "combinedResidualJ": -1.5186572825330558e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.011162109117240393,
+          "timeRemainderJ": 1.8861510455389363,
+          "wallRemovalNormJ": 0.23576822417378207,
+          "kineticChangeJ": 1.8973131546561761,
+          "finiteIdentityResidualJ": -6.661338147750939e-16
+        },
+        "wallKChangeJ": -0.2357682241737804,
+        "wallResidualJ": 1.6653345369377348e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.648994247832648,
+        "afterImpulseWorkJ": 2.0145848558155224e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 2.0137534402174284e-15,
+        "residualWorkBoundJ": 8.961640189571241e-13,
+        "pinResidualM3S": 3.1762786845135338e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457557784450492,
+        "kineticChangeJ": -1.6489942478326438,
+        "gradientPairingResidualJ": 8.314155980940225e-19,
+        "finiteIdentityResidualJ": 2.220446049250313e-15,
+        "combinedResidualJ": 2.220446049250313e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.011155871195337532,
+        "observedPotentialChangeJ": -0.011155871195342115,
+        "oldVelocityWorkJ": 0.01116210911724039,
+        "donorGapJ": 0.000006237921902854466,
+        "pairedGapJ": 0.000006237921902857088,
+        "donorGapResidualJ": 2.622414004699314e-18,
+        "potentialResidualJ": -4.583139423530724e-15,
+        "externalBodyWorkJ": 3.469446951953614e-18
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.15625,
+      "constraintTime": 0.1875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.00005086983962180156,
+          "forwardRemainderJ": 1.9707662417959377e-7,
+          "linearWorkJ": -0.00005086983962180113,
+          "kineticChangeJ": -0.00005067276299754869,
+          "donorPairingResidualJ": 4.2690460541616737e-19,
+          "finiteIdentityResidualJ": 7.28458657852743e-17,
+          "combinedResidualJ": 7.327277039069046e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.013937095431041033,
+          "timeRemainderJ": 1.8861550165557062,
+          "wallRemovalNormJ": 0.2357683409727585,
+          "kineticChangeJ": 1.9000921119867462,
+          "finiteIdentityResidualJ": -8.881784197001252e-16
+        },
+        "wallKChangeJ": -0.23576834097275823,
+        "wallResidualJ": 2.7755575615628914e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6490036129597643,
+        "afterImpulseWorkJ": -1.0519505459858497e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.0555645818821773e-15,
+        "residualWorkBoundJ": 8.994989997306842e-13,
+        "pinResidualM3S": 3.0600522116230877e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457545302619838,
+        "kineticChangeJ": -1.649003612959766,
+        "gradientPairingResidualJ": 3.614035896327561e-18,
+        "finiteIdentityResidualJ": -6.661338147750939e-16,
+        "combinedResidualJ": -6.661338147750939e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.013925254350211632,
+        "observedPotentialChangeJ": -0.013925254350226624,
+        "oldVelocityWorkJ": 0.013937095431041033,
+        "donorGapJ": 0.000011841080829396855,
+        "pairedGapJ": 0.000011841080829400746,
+        "donorGapResidualJ": 3.891269359686256e-18,
+        "potentialResidualJ": -1.4991480279391567e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 7.136637698264059e-12,
+      "afterImpulseWorkJ": 3.2474583521191364e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 5.485852063962938e-24,
+      "residualWorkBoundJ": 2.283171714758235e-18,
+      "pinResidualM3S": 5.20503778966841e-14,
+      "impulseMetricResidualKgMS": 1.2351593255539818e-18,
+      "impulseMagnitudeKgMS": 1.1396583528625048e-7,
+      "kineticChangeJ": -7.136534418972218e-12,
+      "gradientPairingResidualJ": 3.247403493598497e-19,
+      "finiteIdentityResidualJ": 1.0295454600577694e-16,
+      "combinedResidualJ": 1.0327928635526274e-16,
+      "weight": 1,
+      "constraintTime": 0.15625,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013859514358305282,
+      "kineticChangeJ": -0.001385951435830604,
+      "residualJ": -7.589415207398531e-17
+    },
+    "start": 0.125,
+    "end": 0.15625,
+    "rejected": 0,
+    "kineticChangeJ": 0.012511131196021565,
+    "potentialChangeJ": -0.012540562772755948,
+    "mechanicalChangeJ": -0.00002943157670642904,
+    "donorDissipationJ": 0.00003847670457245874,
+    "forwardRemainderJ": 1.3899157413448e-7,
+    "gravityGapJ": 0.000009039501366128917,
+    "gravityTimeRemainderJ": 1.8861530310473213,
+    "wallKChangeJ": -0.23576828257326932,
+    "projectionKChangeJ": -1.6489989304033414,
+    "timeSplitRemainderJ": 5.626454197948244e-9,
+    "reconstructedMechanicalJ": -0.000029431576752131876,
+    "mechanicalResidualJ": 4.5702834962704775e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.15625,
+      "constraintTime": 0.1875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.000050839509813340665,
+          "forwardRemainderJ": 1.9689657388056678e-7,
+          "linearWorkJ": -0.00005083950981334076,
+          "kineticChangeJ": -0.000050642613239552936,
+          "donorPairingResidualJ": -9.486769009248164e-20,
+          "finiteIdentityResidualJ": -9.274319911186984e-17,
+          "combinedResidualJ": -9.283806680196233e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.01393325579237141,
+          "timeRemainderJ": 1.886155015903333,
+          "wallRemovalNormJ": 0.23576833445715759,
+          "kineticChangeJ": 1.9000882716957068,
+          "finiteIdentityResidualJ": 2.4424906541753444e-15
+        },
+        "wallKChangeJ": -0.23576833445715906,
+        "wallResidualJ": -1.4710455076283324e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.649003842114576,
+        "afterImpulseWorkJ": -2.6885571134845077e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -2.689123052305439e-15,
+        "residualWorkBoundJ": 8.950632023106044e-13,
+        "pinResidualM3S": 5.3550913703404035e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457539763596155,
+        "kineticChangeJ": -1.649003842114577,
+        "gradientPairingResidualJ": 5.659388209312851e-19,
+        "finiteIdentityResidualJ": 1.7763568394002505e-15,
+        "combinedResidualJ": 1.7763568394002505e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.013921090230546919,
+        "observedPotentialChangeJ": -0.013921090230553546,
+        "oldVelocityWorkJ": 0.013933255792371405,
+        "donorGapJ": 0.000012165561824503401,
+        "pairedGapJ": 0.000012165561824485985,
+        "donorGapResidualJ": -1.7416691461442924e-17,
+        "potentialResidualJ": -6.626643678231403e-15,
+        "externalBodyWorkJ": 5.204170427930421e-18
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.1875,
+      "constraintTime": 0.21875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.00008768311529658706,
+          "forwardRemainderJ": 4.070781650623257e-7,
+          "linearWorkJ": -0.00008768311529658654,
+          "kineticChangeJ": -0.00008727603713160059,
+          "donorPairingResidualJ": 5.285485590866834e-19,
+          "finiteIdentityResidualJ": -7.638289008455104e-17,
+          "combinedResidualJ": -7.585434152546436e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.016696149524521406,
+          "timeRemainderJ": 1.8861598948581215,
+          "wallRemovalNormJ": 0.23576847308009027,
+          "kineticChangeJ": 1.902856044382643,
+          "finiteIdentityResidualJ": 0
+        },
+        "wallKChangeJ": -0.23576847308009108,
+        "wallResidualJ": -8.049116928532385e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6490154032084063,
+        "afterImpulseWorkJ": 2.3464066247706056e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 2.349280829607156e-15,
+        "residualWorkBoundJ": 8.987106979443172e-13,
+        "pinResidualM3S": 4.350686477749832e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024575215460243216,
+        "kineticChangeJ": -1.6490154032084092,
+        "gradientPairingResidualJ": -2.8742048365504043e-18,
+        "finiteIdentityResidualJ": -5.329070518200751e-15,
+        "combinedResidualJ": -5.329070518200751e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.016675543090020468,
+        "observedPotentialChangeJ": -0.016675543090059364,
+        "oldVelocityWorkJ": 0.016696149524521402,
+        "donorGapJ": 0.00002060643450090962,
+        "pairedGapJ": 0.000020606434500934634,
+        "donorGapResidualJ": 2.5014576998313998e-17,
+        "potentialResidualJ": -3.889596977835197e-14,
+        "externalBodyWorkJ": 3.469446951953614e-18
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.0556172242167623e-11,
+      "afterImpulseWorkJ": -5.982484518616266e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 1.2313546711958095e-24,
+      "residualWorkBoundJ": 3.3716919631643003e-18,
+      "pinResidualM3S": 6.355246190414832e-14,
+      "impulseMetricResidualKgMS": 1.241432663319584e-18,
+      "impulseMagnitudeKgMS": 1.3865464572153374e-7,
+      "kineticChangeJ": -1.055614623490797e-11,
+      "gradientPairingResidualJ": -5.982496832162978e-19,
+      "finiteIdentityResidualJ": 2.6605508104425495e-17,
+      "combinedResidualJ": 2.6007258421486472e-17,
+      "weight": 1,
+      "constraintTime": 0.1875,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013797230023638726,
+      "kineticChangeJ": -0.0013797230023638585,
+      "residualJ": 1.4094628242311558e-17
+    },
+    "start": 0.15625,
+    "end": 0.1875,
+    "rejected": 0,
+    "kineticChangeJ": 0.015245449270951172,
+    "potentialChangeJ": -0.015298316660278033,
+    "mechanicalChangeJ": -0.000052867389342736715,
+    "donorDissipationJ": 0.00006926131255496386,
+    "forwardRemainderJ": 3.0198736947144626e-7,
+    "gravityGapJ": 0.00001638599816271031,
+    "gravityTimeRemainderJ": 1.8861574553807272,
+    "wallKChangeJ": -0.23576840376862507,
+    "projectionKChangeJ": -1.6490096226720492,
+    "timeSplitRemainderJ": 7.92505851199797e-9,
+    "reconstructedMechanicalJ": -0.00005286738933374155,
+    "mechanicalResidualJ": -8.995164639188924e-15
+  },
+  {
+    "first": {
+      "forceTime": 0.1875,
+      "constraintTime": 0.21875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.00008763000840975183,
+          "forwardRemainderJ": 4.0669691083183985e-7,
+          "linearWorkJ": -0.0000876300084097531,
+          "kineticChangeJ": -0.00008722331149892126,
+          "donorPairingResidualJ": -1.2739375526704677e-18,
+          "finiteIdentityResidualJ": 1.4293680984916318e-21,
+          "combinedResidualJ": -1.272508184571976e-18
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.01669144055310661,
+          "timeRemainderJ": 1.8861598934821158,
+          "wallRemovalNormJ": 0.23576846587262174,
+          "kineticChangeJ": 1.9028513340352184,
+          "finiteIdentityResidualJ": -3.9968028886505635e-15
+        },
+        "wallKChangeJ": -0.23576846587262157,
+        "wallResidualJ": 1.6653345369377348e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6490156343191023,
+        "afterImpulseWorkJ": -4.861020440338759e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -4.928718791281345e-16,
+        "residualWorkBoundJ": 8.960669969229685e-13,
+        "pinResidualM3S": 3.015816762985679e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024575154674577673,
+        "kineticChangeJ": -1.6490156343191023,
+        "gradientPairingResidualJ": 6.7698350942585635e-18,
+        "finiteIdentityResidualJ": 4.440892098500626e-16,
+        "combinedResidualJ": 4.440892098500626e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.016670456937353962,
+        "observedPotentialChangeJ": -0.016670456937390554,
+        "oldVelocityWorkJ": 0.016691440553106625,
+        "donorGapJ": 0.00002098361575265063,
+        "pairedGapJ": 0.00002098361575266286,
+        "donorGapResidualJ": 1.2231155758352097e-17,
+        "potentialResidualJ": -3.659225700225477e-14,
+        "externalBodyWorkJ": -1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.21875,
+      "constraintTime": 0.25,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0001388407861001195,
+          "forwardRemainderJ": 7.507314267814514e-7,
+          "linearWorkJ": -0.00013884078610012067,
+          "kineticChangeJ": -0.00013809005467359248,
+          "donorPairingResidualJ": -1.1655173354219173e-18,
+          "finiteIdentityResidualJ": -2.532562867236946e-16,
+          "combinedResidualJ": -2.544218040591165e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.01943961858574359,
+          "timeRemainderJ": 1.886165697672083,
+          "wallRemovalNormJ": 0.23576862585107794,
+          "kineticChangeJ": 1.9056053162578304,
+          "finiteIdentityResidualJ": 3.774758283725532e-15
+        },
+        "wallKChangeJ": -0.23576862585107827,
+        "wallResidualJ": -3.3306690738754696e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6490294328368222,
+        "afterImpulseWorkJ": -2.907457532109331e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -2.8055423198106345e-16,
+        "residualWorkBoundJ": 9.15161277494086e-13,
+        "pinResidualM3S": 1.5352302762394743e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024574886105513366,
+        "kineticChangeJ": -1.6490294328368251,
+        "gradientPairingResidualJ": -1.0191521229869646e-17,
+        "finiteIdentityResidualJ": -2.6645352591003757e-15,
+        "combinedResidualJ": -2.6645352591003757e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.019406797486407067,
+        "observedPotentialChangeJ": -0.019406797486396954,
+        "oldVelocityWorkJ": 0.019439618585743598,
+        "donorGapJ": 0.000032821099336549406,
+        "pairedGapJ": 0.00003282109933653091,
+        "donorGapResidualJ": -1.849919956803392e-17,
+        "potentialResidualJ": 1.0113437864944785e-14,
+        "externalBodyWorkJ": -6.938893903907228e-18
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.4570495726212526e-11,
+      "afterImpulseWorkJ": -4.0760436207498557e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 1.961501589078694e-25,
+      "residualWorkBoundJ": 4.635028088456808e-18,
+      "pinResidualM3S": 7.463907963911609e-14,
+      "impulseMetricResidualKgMS": 1.3776990887091195e-18,
+      "impulseMagnitudeKgMS": 1.6294778650179087e-7,
+      "kineticChangeJ": -1.4570372686151245e-11,
+      "gradientPairingResidualJ": -4.076045582251445e-19,
+      "finiteIdentityResidualJ": 1.2344766564317456e-16,
+      "combinedResidualJ": 1.2304006108399794e-16,
+      "weight": 1,
+      "constraintTime": 0.21875,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013722842876060795,
+      "kineticChangeJ": -0.0013722842876061903,
+      "residualJ": -1.1080546202801855e-16
+    },
+    "start": 0.1875,
+    "end": 0.21875,
+    "rejected": 0,
+    "kineticChangeJ": 0.01795230472144807,
+    "potentialChangeJ": -0.018038627211922176,
+    "mechanicalChangeJ": -0.0000863224904605886,
+    "donorDissipationJ": 0.00011323539725493568,
+    "forwardRemainderJ": 5.787141688066456e-7,
+    "gravityGapJ": 0.000026902357544596883,
+    "gravityTimeRemainderJ": 1.8861627955770994,
+    "wallKChangeJ": -0.23576854586184992,
+    "projectionKChangeJ": -1.6490225335925341,
+    "timeSplitRemainderJ": 1.0549278089749467e-8,
+    "reconstructedMechanicalJ": -0.00008632249043224904,
+    "mechanicalResidualJ": -2.8339554010783918e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.21875,
+      "constraintTime": 0.25,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.00013875832400579016,
+          "forwardRemainderJ": 7.500188289251586e-7,
+          "linearWorkJ": -0.0001387583240057911,
+          "kineticChangeJ": -0.0001380083051769898,
+          "donorPairingResidualJ": -9.486769009248164e-19,
+          "finiteIdentityResidualJ": -1.238564398001944e-16,
+          "combinedResidualJ": -1.2480511670111922e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.019434029608205363,
+          "timeRemainderJ": 1.8861656952667367,
+          "wallRemovalNormJ": 0.23576861780655703,
+          "kineticChangeJ": 1.9055997248749421,
+          "finiteIdentityResidualJ": 0
+        },
+        "wallKChangeJ": -0.23576861780655833,
+        "wallResidualJ": -1.304512053934559e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6490296664354709,
+        "afterImpulseWorkJ": 1.694133657144381e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.6330155032907947e-16,
+        "residualWorkBoundJ": 9.013521209336464e-13,
+        "pinResidualM3S": 7.693498615957139e-16,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457481572193374,
+        "kineticChangeJ": -1.6490296664354658,
+        "gradientPairingResidualJ": 6.111815385358634e-18,
+        "finiteIdentityResidualJ": 4.884981308350689e-15,
+        "combinedResidualJ": 4.884981308350689e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.019400781108676872,
+        "observedPotentialChangeJ": -0.01940078110868626,
+        "oldVelocityWorkJ": 0.019434029608205363,
+        "donorGapJ": 0.000033248499528474036,
+        "pairedGapJ": 0.0000332484995284911,
+        "donorGapResidualJ": 1.7062631689490626e-17,
+        "potentialResidualJ": -9.38832345198648e-15,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.25,
+      "constraintTime": 0.28125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.00020657202438918395,
+          "forwardRemainderJ": 0.0000012739934849825094,
+          "linearWorkJ": -0.00020657202438918254,
+          "kineticChangeJ": -0.000205298030904022,
+          "donorPairingResidualJ": 1.4094628242311558e-18,
+          "finiteIdentityResidualJ": 1.7804314913930173e-16,
+          "combinedResidualJ": 1.7945261196353288e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.02216484723092986,
+          "timeRemainderJ": 1.8861724452246704,
+          "wallRemovalNormJ": 0.23576879858640157,
+          "kineticChangeJ": 1.908337292455606,
+          "finiteIdentityResidualJ": 5.551115123125783e-15
+        },
+        "wallKChangeJ": -0.23576879858640232,
+        "wallResidualJ": -7.494005416219807e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6490457480448804,
+        "afterImpulseWorkJ": -1.2828042935623257e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.2857271355135581e-15,
+        "residualWorkBoundJ": 9.082067449045535e-13,
+        "pinResidualM3S": 2.899590290095233e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457444926937871,
+        "kineticChangeJ": -1.6490457480448808,
+        "gradientPairingResidualJ": 2.922841951232399e-18,
+        "finiteIdentityResidualJ": 8.881784197001252e-16,
+        "combinedResidualJ": 8.881784197001252e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.022115817096848824,
+        "observedPotentialChangeJ": -0.022115817096846513,
+        "oldVelocityWorkJ": 0.022164847230929853,
+        "donorGapJ": 0.00004903013408104137,
+        "pairedGapJ": 0.00004903013408102952,
+        "donorGapResidualJ": -1.185168499798217e-17,
+        "potentialResidualJ": 2.310651670001107e-15,
+        "externalBodyWorkJ": 6.938893903907228e-18
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.913353044179614e-11,
+      "afterImpulseWorkJ": 9.46926379953501e-20,
+      "targetWorkJ": 0,
+      "residualWorkJ": -5.578513804168156e-23,
+      "residualWorkBoundJ": 2.6954012348913936e-18,
+      "pinResidualM3S": 2.7097248056495715e-14,
+      "impulseMetricResidualKgMS": 2.2821185181398987e-18,
+      "impulseMagnitudeKgMS": 1.8676184805957452e-7,
+      "kineticChangeJ": -1.913363911754118e-11,
+      "gradientPairingResidualJ": 9.474842313339178e-20,
+      "finiteIdentityResidualJ": -1.0877043767784545e-16,
+      "combinedResidualJ": -1.0867568925362636e-16,
+      "weight": 1,
+      "constraintTime": 0.25,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013636533202049256,
+      "kineticChangeJ": -0.0013636533202049522,
+      "residualJ": -2.667137344314341e-17
+    },
+    "start": 0.21875,
+    "end": 0.25,
+    "rejected": 0,
+    "kineticChangeJ": 0.020626786721241228,
+    "potentialChangeJ": -0.020758299102737965,
+    "mechanicalChangeJ": -0.00013151238147202093,
+    "donorDissipationJ": 0.00017266517419748707,
+    "forwardRemainderJ": 0.000001012006156953834,
+    "gravityGapJ": 0.00004113931680476031,
+    "gravityTimeRemainderJ": 1.8861690702457037,
+    "wallKChangeJ": -0.23576870819648033,
+    "projectionKChangeJ": -1.649037707259307,
+    "timeSplitRemainderJ": 1.347586832292462e-8,
+    "reconstructedMechanicalJ": -0.00013151238152440384,
+    "mechanicalResidualJ": 5.23829027029854e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.25,
+      "constraintTime": 0.28125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0002064473225540315,
+          "forwardRemainderJ": 0.0000012727658346676084,
+          "linearWorkJ": -0.0002064473225540295,
+          "kineticChangeJ": -0.0002051745567193397,
+          "donorPairingResidualJ": 2.0057740190981832e-18,
+          "finiteIdentityResidualJ": 2.2188451569800025e-17,
+          "combinedResidualJ": 2.4194225588898208e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.022158367377072326,
+          "timeRemainderJ": 1.8861724414235486,
+          "wallRemovalNormJ": 0.23576878956855382,
+          "kineticChangeJ": 1.9083308088006148,
+          "finiteIdentityResidualJ": -5.995204332975845e-15
+        },
+        "wallKChangeJ": -0.23576878956855118,
+        "wallResidualJ": 2.6367796834847468e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6490459837777804,
+        "afterImpulseWorkJ": 7.389888126343308e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 7.46442974079213e-16,
+        "residualWorkBoundJ": 9.167200852614081e-13,
+        "pinResidualM3S": 9.358833152894874e-16,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457437122369424,
+        "kineticChangeJ": -1.6490459837777776,
+        "gradientPairingResidualJ": -7.454161444882163e-18,
+        "finiteIdentityResidualJ": 2.220446049250313e-15,
+        "combinedResidualJ": 2.220446049250313e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.02210886253972177,
+        "observedPotentialChangeJ": -0.022108862539710117,
+        "oldVelocityWorkJ": 0.02215836737707234,
+        "donorGapJ": 0.000049504837350534084,
+        "pairedGapJ": 0.00004950483735056965,
+        "donorGapResidualJ": 3.556860752110258e-17,
+        "potentialResidualJ": 1.165387231161219e-14,
+        "externalBodyWorkJ": -1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.28125,
+      "constraintTime": 0.3125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0002930319246901717,
+          "forwardRemainderJ": 0.0000020285483681615053,
+          "linearWorkJ": -0.00029303192469017287,
+          "kineticChangeJ": -0.000291003376322152,
+          "donorPairingResidualJ": -1.1926223897340549e-18,
+          "finiteIdentityResidualJ": -1.4064431517741942e-16,
+          "combinedResidualJ": -1.4183693756715347e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.024869159059796562,
+          "timeRemainderJ": 1.8861801605702109,
+          "wallRemovalNormJ": 0.23576899054431733,
+          "kineticChangeJ": 1.9110493196300147,
+          "finiteIdentityResidualJ": 7.327471962526033e-15
+        },
+        "wallKChangeJ": -0.23576899054432476,
+        "wallResidualJ": -7.438494264988549e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.649064400871315,
+        "afterImpulseWorkJ": -7.084583570834968e-17,
+        "targetWorkJ": 0,
+        "residualWorkJ": -7.285723739003266e-17,
+        "residualWorkBoundJ": 8.991550470106552e-13,
+        "pinResidualM3S": 3.469446951953614e-16,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02457388651736106,
+        "kineticChangeJ": -1.6490644008713111,
+        "gradientPairingResidualJ": 2.0114016816829803e-18,
+        "finiteIdentityResidualJ": 3.774758283725532e-15,
+        "combinedResidualJ": 3.774758283725532e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.024799394187543542,
+        "observedPotentialChangeJ": -0.024799394187539292,
+        "oldVelocityWorkJ": 0.024869159059796562,
+        "donorGapJ": 0.00006976487225304505,
+        "pairedGapJ": 0.00006976487225301975,
+        "donorGapResidualJ": -2.530256820038046e-17,
+        "potentialResidualJ": 4.250072516143177e-15,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 2.41935587831073e-11,
+      "afterImpulseWorkJ": 8.370911668696021e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 3.320651819993693e-23,
+      "residualWorkBoundJ": 3.3302571861410784e-18,
+      "pinResidualM3S": 2.929340797708235e-14,
+      "impulseMetricResidualKgMS": 2.2397139312179803e-18,
+      "impulseMagnitudeKgMS": 2.1000893478916038e-7,
+      "kineticChangeJ": -2.4193494430058138e-11,
+      "gradientPairingResidualJ": 8.370579603514021e-19,
+      "finiteIdentityResidualJ": 6.351595799534019e-17,
+      "combinedResidualJ": 6.435301595543184e-17,
+      "weight": 1,
+      "constraintTime": 0.28125,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.001353852566521368,
+      "kineticChangeJ": -0.0013538525665214712,
+      "residualJ": -1.0321604682062002e-16
+    },
+    "start": 0.25,
+    "end": 0.28125,
+    "rejected": 0,
+    "kineticChangeJ": 0.023264040277096734,
+    "potentialChangeJ": -0.023454128363653126,
+    "mechanicalChangeJ": -0.00019008808658327325,
+    "donorDissipationJ": 0.00024973962362210157,
+    "forwardRemainderJ": 0.0000016506571014145568,
+    "gravityGapJ": 0.0000596348548017947,
+    "gravityTimeRemainderJ": 1.8861763009968797,
+    "wallKChangeJ": -0.23576889005643797,
+    "projectionKChangeJ": -1.649055192348738,
+    "timeSplitRemainderJ": 1.66822839492084e-8,
+    "reconstructedMechanicalJ": -0.00019008808653635766,
+    "mechanicalResidualJ": -4.691559640779275e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.28125,
+      "constraintTime": 0.3125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.00029285259341373646,
+          "forwardRemainderJ": 0.0000020265693208971717,
+          "linearWorkJ": -0.00029285259341373945,
+          "kineticChangeJ": -0.0002908260240926802,
+          "donorPairingResidualJ": -2.9815559743351372e-18,
+          "finiteIdentityResidualJ": 1.620615432487444e-16,
+          "combinedResidualJ": 1.5907998727440927e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.02486177585536596,
+          "timeRemainderJ": 1.8861801549295398,
+          "wallRemovalNormJ": 0.23576898042327413,
+          "kineticChangeJ": 1.9110419307849054,
+          "finiteIdentityResidualJ": -4.440892098500626e-16
+        },
+        "wallKChangeJ": -0.2357689804232761,
+        "wallResidualJ": -1.970645868709653e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6490646385578533,
+        "afterImpulseWorkJ": -7.968445510635885e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -8.067388368784797e-16,
+        "residualWorkBoundJ": 9.089775318014099e-13,
+        "pinResidualM3S": 3.552713678800501e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024573799990956578,
+        "kineticChangeJ": -1.6490646385578502,
+        "gradientPairingResidualJ": 9.894285814891211e-18,
+        "finiteIdentityResidualJ": 3.9968028886505635e-15,
+        "combinedResidualJ": 3.9968028886505635e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.024791492333007467,
+        "observedPotentialChangeJ": -0.02479149233300859,
+        "oldVelocityWorkJ": 0.024861775855365968,
+        "donorGapJ": 0.00007028352235848956,
+        "pairedGapJ": 0.00007028352235850105,
+        "donorGapResidualJ": 1.1492543028346347e-17,
+        "potentialResidualJ": -1.124100812432971e-15,
+        "externalBodyWorkJ": -6.938893903907228e-18
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.3125,
+      "constraintTime": 0.34375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0004003032057940994,
+          "forwardRemainderJ": 0.000003071277953285512,
+          "linearWorkJ": -0.00040030320579409955,
+          "kineticChangeJ": -0.0003972319278407743,
+          "donorPairingResidualJ": -1.6263032587282567e-19,
+          "finiteIdentityResidualJ": 3.9718645446175024e-17,
+          "combinedResidualJ": 3.95560151203022e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.027549852213683945,
+          "timeRemainderJ": 1.8861888691657156,
+          "wallRemovalNormJ": 0.23576920096661244,
+          "kineticChangeJ": 1.9137387213793997,
+          "finiteIdentityResidualJ": 2.220446049250313e-16
+        },
+        "wallKChangeJ": -0.23576920096660592,
+        "wallResidualJ": 6.522560269672795e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6490854494345295,
+        "afterImpulseWorkJ": -2.0665571033931518e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -2.002996736611557e-16,
+        "residualWorkBoundJ": 9.062972773894114e-13,
+        "pinResidualM3S": 9.315465065995454e-16,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024575955221820767,
+        "kineticChangeJ": -1.6490854494345264,
+        "gradientPairingResidualJ": -6.356036678159475e-18,
+        "finiteIdentityResidualJ": 3.3306690738754696e-15,
+        "combinedResidualJ": 3.3306690738754696e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.027454311223639893,
+        "observedPotentialChangeJ": -0.02745431122360742,
+        "oldVelocityWorkJ": 0.027549852213683945,
+        "donorGapJ": 0.00009554099004406328,
+        "pairedGapJ": 0.00009554099004405181,
+        "donorGapResidualJ": -1.146543797403421e-17,
+        "potentialResidualJ": 3.247402347028583e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 2.9693993285502675e-11,
+      "afterImpulseWorkJ": 2.119530688671043e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -2.2783499728161285e-23,
+      "residualWorkBoundJ": 3.848183131193509e-18,
+      "pinResidualM3S": 3.0709809695217416e-14,
+      "impulseMetricResidualKgMS": 3.1311102290847246e-18,
+      "impulseMagnitudeKgMS": 2.325968419640556e-7,
+      "kineticChangeJ": -2.969402501662444e-11,
+      "gradientPairingResidualJ": 2.119553472170771e-18,
+      "finiteIdentityResidualJ": -3.3850652450170643e-17,
+      "combinedResidualJ": -3.1731098975258664e-17,
+      "weight": 1,
+      "constraintTime": 0.3125,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.001342906105688231,
+      "kineticChangeJ": -0.0013429061056884073,
+      "residualJ": -1.7629127324614302e-16
+    },
+    "start": 0.28125,
+    "end": 0.3125,
+    "rejected": 0,
+    "kineticChangeJ": 0.025859256279673948,
+    "potentialChangeJ": -0.026122901778308005,
+    "mechanicalChangeJ": -0.00026364549864865694,
+    "donorDissipationJ": 0.00034657789960391793,
+    "forwardRemainderJ": 0.000002548923637091342,
+    "gravityGapJ": 0.00008291225620127643,
+    "gravityTimeRemainderJ": 1.8861845120476277,
+    "wallKChangeJ": -0.235769090694941,
+    "projectionKChangeJ": -1.6490750440258823,
+    "timeSplitRemainderJ": 2.0144753180894107e-8,
+    "reconstructedMechanicalJ": -0.0002636454986494606,
+    "mechanicalResidualJ": 8.036648603548802e-16
+  },
+  {
+    "first": {
+      "forceTime": 0.3125,
+      "constraintTime": 0.34375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0004000587718778237,
+          "forwardRemainderJ": 0.000003068256447703721,
+          "linearWorkJ": -0.000400058771877823,
+          "kineticChangeJ": -0.0003969905154299347,
+          "donorPairingResidualJ": 7.047314121155779e-19,
+          "finiteIdentityResidualJ": 1.8459981942576045e-16,
+          "combinedResidualJ": 1.8530455083787603e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.0275415518208358,
+          "timeRemainderJ": 1.886188861156975,
+          "wallRemovalNormJ": 0.23576918960754162,
+          "kineticChangeJ": 1.9137304129778094,
+          "finiteIdentityResidualJ": -1.3322676295501878e-15
+        },
+        "wallKChangeJ": -0.23576918960754578,
+        "wallResidualJ": -4.163336342344337e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6490856890637018,
+        "afterImpulseWorkJ": 4.0862224628263055e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 4.109884015036457e-16,
+        "residualWorkBoundJ": 9.169896167215767e-13,
+        "pinResidualM3S": 4.0766001685454967e-16,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024576060464393118,
+        "kineticChangeJ": -1.6490856890637042,
+        "gradientPairingResidualJ": -2.3661552210151392e-18,
+        "finiteIdentityResidualJ": -2.886579864025407e-15,
+        "combinedResidualJ": -2.886579864025407e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.02744545203323928,
+        "observedPotentialChangeJ": -0.02744545203324833,
+        "oldVelocityWorkJ": 0.027541551820835806,
+        "donorGapJ": 0.00009609978759652542,
+        "pairedGapJ": 0.00009609978759652499,
+        "donorGapResidualJ": -4.336808689942018e-19,
+        "potentialResidualJ": -9.048317650695026e-15,
+        "externalBodyWorkJ": -6.938893903907228e-18
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.34375,
+      "constraintTime": 0.375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0005303894697945517,
+          "forwardRemainderJ": 0.000004463670163855483,
+          "linearWorkJ": -0.0005303894697945485,
+          "kineticChangeJ": -0.0005259257996305944,
+          "donorPairingResidualJ": 3.2526065174565133e-18,
+          "finiteIdentityResidualJ": 9.859294099450605e-17,
+          "combinedResidualJ": 1.0184554751196256e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.030204197161206488,
+          "timeRemainderJ": 1.8861985984060583,
+          "wallRemovalNormJ": 0.23576942905749698,
+          "kineticChangeJ": 1.9164027955672722,
+          "finiteIdentityResidualJ": 7.327471962526033e-15
+        },
+        "wallKChangeJ": -0.23576942905750142,
+        "wallResidualJ": -4.440892098500626e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6491089567286594,
+        "afterImpulseWorkJ": 1.5098870504576256e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.490457351697537e-16,
+        "residualWorkBoundJ": 9.117945556220654e-13,
+        "pinResidualM3S": 3.639449852599341e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024583629082614973,
+        "kineticChangeJ": -1.6491089567286545,
+        "gradientPairingResidualJ": 1.94296987600886e-18,
+        "finiteIdentityResidualJ": 4.6629367034256575e-15,
+        "combinedResidualJ": 4.6629367034256575e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.030077340566032798,
+        "observedPotentialChangeJ": -0.030077340566037947,
+        "oldVelocityWorkJ": 0.030204197161206495,
+        "donorGapJ": 0.0001268565951737067,
+        "pairedGapJ": 0.00012685659517369663,
+        "donorGapResidualJ": -1.0083080204115191e-17,
+        "potentialResidualJ": -5.1486592766991635e-15,
+        "externalBodyWorkJ": -6.938893903907228e-18
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 3.557422609326348e-11,
+      "afterImpulseWorkJ": -8.713801814041862e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 1.6001473646771327e-23,
+      "residualWorkBoundJ": 4.619815203439793e-18,
+      "pinResidualM3S": 3.3395161636029513e-14,
+      "impulseMetricResidualKgMS": 2.5226361704907174e-18,
+      "impulseMagnitudeKgMS": 2.544295813408648e-7,
+      "kineticChangeJ": -3.5574210244249116e-11,
+      "gradientPairingResidualJ": -8.71396182877833e-19,
+      "finiteIdentityResidualJ": 1.672039454507726e-17,
+      "combinedResidualJ": 1.58489983628981e-17,
+      "weight": 1,
+      "constraintTime": 0.34375,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013308396421345002,
+      "kineticChangeJ": -0.0013308396421346513,
+      "residualJ": -1.5113778284447932e-16
+    },
+    "start": 0.3125,
+    "end": 0.34375,
+    "rejected": 0,
+    "kineticChangeJ": 0.028407674208598716,
+    "potentialChangeJ": -0.028761396299614717,
+    "mechanicalChangeJ": -0.0003537220910061478,
+    "donorDissipationJ": 0.0004652241208361877,
+    "forwardRemainderJ": 0.000003765963305779602,
+    "gravityGapJ": 0.00011147819138511081,
+    "gravityTimeRemainderJ": 1.8861937297815166,
+    "wallKChangeJ": -0.2357693093325236,
+    "projectionKChangeJ": -1.6490973229317536,
+    "timeSplitRemainderJ": 2.3838410618962427e-8,
+    "reconstructedMechanicalJ": -0.00035372209104045794,
+    "mechanicalResidualJ": 3.431011984939003e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.34375,
+      "constraintTime": 0.375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0005300620751130391,
+          "forwardRemainderJ": 0.000004459237329186928,
+          "linearWorkJ": -0.0005300620751130403,
+          "kineticChangeJ": -0.0005256028377836897,
+          "donorPairingResidualJ": -1.1926223897340549e-18,
+          "finiteIdentityResidualJ": 1.6374840936320134e-16,
+          "combinedResidualJ": 1.6255578697346729e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.03019496480626638,
+          "timeRemainderJ": 1.8861985874083302,
+          "wallRemovalNormJ": 0.23576941631778311,
+          "kineticChangeJ": 1.9163935522145934,
+          "finiteIdentityResidualJ": -3.3306690738754696e-15
+        },
+        "wallKChangeJ": -0.23576941631778525,
+        "wallResidualJ": -2.1371793224034263e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6491091974672787,
+        "afterImpulseWorkJ": 1.3666707197358685e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.367841748067788e-15,
+        "residualWorkBoundJ": 9.186203692080028e-13,
+        "pinResidualM3S": 2.230854390106174e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024583722891092473,
+        "kineticChangeJ": -1.6491091974672756,
+        "gradientPairingResidualJ": -1.171028331919487e-18,
+        "finiteIdentityResidualJ": 1.7763568394002505e-15,
+        "combinedResidualJ": 1.7763568394002505e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.030067513512485707,
+        "observedPotentialChangeJ": -0.03006751351250614,
+        "oldVelocityWorkJ": 0.03019496480626638,
+        "donorGapJ": 0.00012745129378071145,
+        "pairedGapJ": 0.00012745129378067405,
+        "donorGapResidualJ": -3.74049749507499e-17,
+        "potentialResidualJ": -2.0431573100054834e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.375,
+      "constraintTime": 0.40625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.000685167571246548,
+          "forwardRemainderJ": 0.000006271083919511368,
+          "linearWorkJ": -0.0006851675712465456,
+          "kineticChangeJ": -0.0006788964873268022,
+          "donorPairingResidualJ": 2.3852447794681098e-18,
+          "finiteIdentityResidualJ": 2.3204128776852656e-16,
+          "combinedResidualJ": 2.3442653254799467e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.032829436609126295,
+          "timeRemainderJ": 1.8862093771151298,
+          "wallRemovalNormJ": 0.23576967398949333,
+          "kineticChangeJ": 1.9190388137242544,
+          "finiteIdentityResidualJ": -1.7763568394002505e-15
+        },
+        "wallKChangeJ": -0.23576967398949233,
+        "wallResidualJ": 9.992007221626409e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6491349859955151,
+        "afterImpulseWorkJ": -1.5736787957812415e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.5602895041248681e-15,
+        "residualWorkBoundJ": 9.151855799458711e-13,
+        "pinResidualM3S": 4.772224282412196e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024591914159266596,
+        "kineticChangeJ": -1.6491349859955213,
+        "gradientPairingResidualJ": -1.338929165637335e-17,
+        "finiteIdentityResidualJ": -4.6629367034256575e-15,
+        "combinedResidualJ": -4.6629367034256575e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.03266524627655322,
+        "observedPotentialChangeJ": -0.032665246276565085,
+        "oldVelocityWorkJ": 0.032829436609126295,
+        "donorGapJ": 0.0001641903325731002,
+        "pairedGapJ": 0.0001641903325730748,
+        "donorGapResidualJ": -2.539743589047294e-17,
+        "potentialResidualJ": -1.186550857568136e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 4.177055007867786e-11,
+      "afterImpulseWorkJ": 1.042476700846492e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": 6.228864015799536e-23,
+      "residualWorkBoundJ": 5.7535317801564335e-18,
+      "pinResidualM3S": 3.859759734048396e-14,
+      "impulseMetricResidualKgMS": 3.0458775387672606e-18,
+      "impulseMagnitudeKgMS": 2.754084538793278e-7,
+      "kineticChangeJ": -4.177019841122842e-11,
+      "gradientPairingResidualJ": 1.042414412206334e-18,
+      "finiteIdentityResidualJ": 3.506249727398457e-16,
+      "combinedResidualJ": 3.516673871501147e-16,
+      "weight": 1,
+      "constraintTime": 0.375,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013176827608558574,
+      "kineticChangeJ": -0.0013176827608560038,
+      "residualJ": -1.463672932855431e-16
+    },
+    "start": 0.34375,
+    "end": 0.375,
+    "rejected": 0,
+    "kineticChangeJ": 0.030904613619205185,
+    "potentialChangeJ": -0.031366379894564034,
+    "mechanicalChangeJ": -0.0004617662753503282,
+    "donorDissipationJ": 0.0006076148231797936,
+    "forwardRemainderJ": 0.000005365160624349148,
+    "gravityGapJ": 0.00014582081317687443,
+    "gravityTimeRemainderJ": 1.88620398226173,
+    "wallKChangeJ": -0.2357695451536388,
+    "projectionKChangeJ": -1.6491220917731686,
+    "timeSplitRemainderJ": 2.7734691217902105e-8,
+    "reconstructedMechanicalJ": -0.00046176627531170124,
+    "mechanicalResidualJ": -3.8626979219358315e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.375,
+      "constraintTime": 0.40625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0006847402196666171,
+          "forwardRemainderJ": 0.000006264802963229864,
+          "linearWorkJ": -0.0006847402196666186,
+          "kineticChangeJ": -0.0006784754167037388,
+          "donorPairingResidualJ": -1.5178830414797062e-18,
+          "finiteIdentityResidualJ": -3.500092603985275e-16,
+          "combinedResidualJ": -3.515271434400072e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.03281925819194571,
+          "timeRemainderJ": 1.8862093624109362,
+          "wallRemovalNormJ": 0.2357696597580681,
+          "kineticChangeJ": 1.919028620602882,
+          "finiteIdentityResidualJ": 0
+        },
+        "wallKChangeJ": -0.2357696597580694,
+        "wallResidualJ": -1.304512053934559e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6491352270307542,
+        "afterImpulseWorkJ": 1.2093326557174877e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.2162358190764638e-15,
+        "residualWorkBoundJ": 9.204223710224865e-13,
+        "pinResidualM3S": 1.6653345369377348e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024591995363306356,
+        "kineticChangeJ": -1.6491352270307442,
+        "gradientPairingResidualJ": -6.903163358976042e-18,
+        "finiteIdentityResidualJ": 8.881784197001252e-15,
+        "combinedResidualJ": 8.881784197001252e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.032654441957321506,
+        "observedPotentialChangeJ": -0.03265444195727696,
+        "oldVelocityWorkJ": 0.03281925819194571,
+        "donorGapJ": 0.00016481623462418992,
+        "pairedGapJ": 0.00016481623462420714,
+        "donorGapResidualJ": 1.7211709488207383e-17,
+        "potentialResidualJ": 4.4547698863084406e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.40625,
+      "constraintTime": 0.4375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0008664155920587625,
+          "forwardRemainderJ": 0.000008562117908377644,
+          "linearWorkJ": -0.0008664155920587621,
+          "kineticChangeJ": -0.0008578534741501553,
+          "donorPairingResidualJ": 4.336808689942018e-19,
+          "finiteIdentityResidualJ": 2.2910716563923766e-16,
+          "combinedResidualJ": 2.2954084650823187e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.03542278903276773,
+          "timeRemainderJ": 1.8862212350043086,
+          "wallRemovalNormJ": 0.2357699350250241,
+          "kineticChangeJ": 1.921644024037078,
+          "finiteIdentityResidualJ": 1.7763568394002505e-15
+        },
+        "wallKChangeJ": -0.23576993502502508,
+        "wallResidualJ": -9.71445146547012e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6491636033737127,
+        "afterImpulseWorkJ": 1.282082621491265e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.2752471815659781e-15,
+        "residualWorkBoundJ": 9.302003946011059e-13,
+        "pinResidualM3S": 2.5136143166903935e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024600777286816176,
+        "kineticChangeJ": -1.6491636033737223,
+        "gradientPairingResidualJ": 6.8354399252869455e-18,
+        "finiteIdentityResidualJ": -1.0880185641326534e-14,
+        "combinedResidualJ": -1.0880185641326534e-14
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.035214789522102004,
+        "observedPotentialChangeJ": -0.0352147895221151,
+        "oldVelocityWorkJ": 0.03542278903276773,
+        "donorGapJ": 0.00020799951066570802,
+        "pairedGapJ": 0.00020799951066572536,
+        "donorGapResidualJ": 1.734723475976807e-17,
+        "potentialResidualJ": -1.309369279667294e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 4.821704614029079e-11,
+      "afterImpulseWorkJ": 1.6708088844060598e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -1.4797026321313357e-23,
+      "residualWorkBoundJ": 6.820199703323507e-18,
+      "pinResidualM3S": 4.3744521893707144e-14,
+      "impulseMetricResidualKgMS": 2.494564969223118e-18,
+      "impulseMagnitudeKgMS": 2.954331650897174e-7,
+      "kineticChangeJ": -4.821679167044124e-11,
+      "gradientPairingResidualJ": 1.6708236814323811e-18,
+      "finiteIdentityResidualJ": 2.5279904066812087e-16,
+      "combinedResidualJ": 2.544698643513051e-16,
+      "weight": 1,
+      "constraintTime": 0.40625,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0013034677182413715,
+      "kineticChangeJ": -0.0013034677182410526,
+      "residualJ": 3.189722791452354e-16
+    },
+    "start": 0.375,
+    "end": 0.40625,
+    "rejected": 0,
+    "kineticChangeJ": 0.03334547751431474,
+    "potentialChangeJ": -0.033934615739667606,
+    "mechanicalChangeJ": -0.0005891382253366828,
+    "donorDissipationJ": 0.0007755779058626898,
+    "forwardRemainderJ": 0.000007413460435803754,
+    "gravityGapJ": 0.00018640787264496625,
+    "gravityTimeRemainderJ": 1.8862152987076224,
+    "wallKChangeJ": -0.23576979739154724,
+    "projectionKChangeJ": -1.64914941525045,
+    "timeSplitRemainderJ": 3.1807819642288085e-8,
+    "reconstructedMechanicalJ": -0.0005891382253980813,
+    "mechanicalResidualJ": 6.139847744807136e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.40625,
+      "constraintTime": 0.4375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0008658698200951096,
+          "forwardRemainderJ": 0.00000855347453364929,
+          "linearWorkJ": -0.0008658698200951096,
+          "kineticChangeJ": -0.0008573163455620758,
+          "donorPairingResidualJ": 0,
+          "finiteIdentityResidualJ": -6.15535454637911e-16,
+          "combinedResidualJ": -6.15535454637911e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.03541164997850933,
+          "timeRemainderJ": 1.8862212157718314,
+          "wallRemovalNormJ": 0.23576991920242063,
+          "kineticChangeJ": 1.9216328657503454,
+          "finiteIdentityResidualJ": 4.6629367034256575e-15
+        },
+        "wallKChangeJ": -0.2357699192024194,
+        "wallResidualJ": 1.2212453270876722e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.649163843653896,
+        "afterImpulseWorkJ": -7.392768038363973e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -7.537438633414507e-16,
+        "residualWorkBoundJ": 9.399492151870625e-13,
+        "pinResidualM3S": 2.6489227478165844e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02460084473304664,
+        "kineticChangeJ": -1.6491638436538998,
+        "gradientPairingResidualJ": 1.4467059505053436e-17,
+        "finiteIdentityResidualJ": -3.1086244689504383e-15,
+        "combinedResidualJ": -3.1086244689504383e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.0352029985147364,
+        "observedPotentialChangeJ": -0.035202998514762385,
+        "oldVelocityWorkJ": 0.03541164997850932,
+        "donorGapJ": 0.00020865146377293357,
+        "pairedGapJ": 0.00020865146377292004,
+        "donorGapResidualJ": -1.3525422101756668e-17,
+        "potentialResidualJ": -2.598615767013257e-14,
+        "externalBodyWorkJ": 1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.4375,
+      "constraintTime": 0.46875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0010757944635453266,
+          "forwardRemainderJ": 0.000011407850567793813,
+          "linearWorkJ": -0.0010757944635453305,
+          "kineticChangeJ": -0.0010643866129775859,
+          "donorPairingResidualJ": -3.903127820947816e-18,
+          "finiteIdentityResidualJ": -4.914993379737803e-17,
+          "combinedResidualJ": -5.305306161832585e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.0379814475370351,
+          "timeRemainderJ": 1.8862342020878602,
+          "wallRemovalNormJ": 0.23577021153951444,
+          "kineticChangeJ": 1.9242156496248946,
+          "finiteIdentityResidualJ": -6.661338147750939e-16
+        },
+        "wallKChangeJ": -0.23577021153950906,
+        "wallResidualJ": 5.384581669432009e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6491948755608692,
+        "afterImpulseWorkJ": 4.4715004810826076e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 4.460137613306884e-15,
+        "residualWorkBoundJ": 9.373243331186333e-13,
+        "pinResidualM3S": 4.697631172945194e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024610182417663096,
+        "kineticChangeJ": -1.6491948755608687,
+        "gradientPairingResidualJ": 1.1362867775723578e-17,
+        "finiteIdentityResidualJ": -3.9968028886505635e-15,
+        "combinedResidualJ": -3.9968028886505635e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.037722729287486934,
+        "observedPotentialChangeJ": -0.03772272928750908,
+        "oldVelocityWorkJ": 0.037981447537035154,
+        "donorGapJ": 0.0002587182495482037,
+        "pairedGapJ": 0.0002587182495482204,
+        "donorGapResidualJ": 1.6750923564901044e-17,
+        "potentialResidualJ": -2.2148949341271873e-14,
+        "externalBodyWorkJ": -5.551115123125783e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 5.484644803000559e-11,
+      "afterImpulseWorkJ": 8.675296556527518e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 1.7974073317063913e-23,
+      "residualWorkBoundJ": 7.704369124596163e-18,
+      "pinResidualM3S": 4.7416931492350045e-14,
+      "impulseMetricResidualKgMS": 3.160332865764998e-18,
+      "impulseMagnitudeKgMS": 3.144031987256657e-7,
+      "kineticChangeJ": -5.484757092943937e-11,
+      "gradientPairingResidualJ": 8.675116815794348e-19,
+      "finiteIdentityResidualJ": -1.1237669634363438e-15,
+      "combinedResidualJ": -1.1228994517524824e-15,
+      "weight": 1,
+      "constraintTime": 0.4375,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0012882285281943357,
+      "kineticChangeJ": -0.0012882285281935468,
+      "residualJ": 7.88865500700453e-16
+    },
+    "start": 0.40625,
+    "end": 0.4375,
+    "rejected": 0,
+    "kineticChangeJ": 0.035725752646960485,
+    "potentialChangeJ": -0.036462863901135734,
+    "mechanicalChangeJ": -0.0007371112541818547,
+    "donorDissipationJ": 0.0009708321418202181,
+    "forwardRemainderJ": 0.00000998066255072155,
+    "gravityGapJ": 0.00023368485666057023,
+    "gravityTimeRemainderJ": 1.8862277089298458,
+    "wallKChangeJ": -0.23577006537096423,
+    "projectionKChangeJ": -1.6491793596622317,
+    "timeSplitRemainderJ": 3.6031006166951235e-8,
+    "reconstructedMechanicalJ": -0.000737111254153481,
+    "mechanicalResidualJ": -2.8373787694380148e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.4375,
+      "constraintTime": 0.46875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0010751102980619744,
+          "forwardRemainderJ": 0.000011396249063528154,
+          "linearWorkJ": -0.0010751102980619707,
+          "kineticChangeJ": -0.0010637140489979657,
+          "donorPairingResidualJ": 3.686287386450715e-18,
+          "finiteIdentityResidualJ": 4.7683211545912485e-16,
+          "combinedResidualJ": 4.805184028455756e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.037969333578463785,
+          "timeRemainderJ": 1.8862341773979774,
+          "wallRemovalNormJ": 0.23577019402882957,
+          "kineticChangeJ": 1.924203510976442,
+          "finiteIdentityResidualJ": 6.661338147750939e-16
+        },
+        "wallKChangeJ": -0.23577019402883215,
+        "wallResidualJ": -2.581268532253489e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6491951137878365,
+        "afterImpulseWorkJ": -1.4535220900155355e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.4718887118447581e-15,
+        "residualWorkBoundJ": 9.29838749931641e-13,
+        "pinResidualM3S": 5.800915303666443e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024610234978568683,
+        "kineticChangeJ": -1.6491951137878318,
+        "gradientPairingResidualJ": 1.8366621829222656e-17,
+        "finiteIdentityResidualJ": 6.217248937900877e-15,
+        "combinedResidualJ": 6.217248937900877e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.037709942930153506,
+        "observedPotentialChangeJ": -0.03770994293017793,
+        "oldVelocityWorkJ": 0.03796933357846377,
+        "donorGapJ": 0.00025939064831028476,
+        "pairedGapJ": 0.0002593906483102648,
+        "donorGapResidualJ": -1.9949319973733282e-17,
+        "potentialResidualJ": -2.4424906541753444e-14,
+        "externalBodyWorkJ": 1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.46875,
+      "constraintTime": 0.5,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0013148580418338043,
+          "forwardRemainderJ": 0.00001488108541919364,
+          "linearWorkJ": -0.0013148580418338074,
+          "kineticChangeJ": -0.0012999769564140395,
+          "donorPairingResidualJ": -3.0357660829594124e-18,
+          "finiteIdentityResidualJ": 5.741985527460067e-16,
+          "combinedResidualJ": 5.711627866630473e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.040502582349340094,
+          "timeRemainderJ": 1.8862483080763037,
+          "wallRemovalNormJ": 0.2357705030372355,
+          "kineticChangeJ": 1.9267508904256487,
+          "finiteIdentityResidualJ": 4.884981308350689e-15
+        },
+        "wallKChangeJ": -0.23577050303724012,
+        "wallResidualJ": -4.6074255521944e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6492288697125506,
+        "afterImpulseWorkJ": -7.989350283774121e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -7.99935720444849e-16,
+        "residualWorkBoundJ": 9.509142522449394e-13,
+        "pinResidualM3S": 4.0609876572617054e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024620091168334874,
+        "kineticChangeJ": -1.6492288697125503,
+        "gradientPairingResidualJ": 1.0006920674368889e-18,
+        "finiteIdentityResidualJ": 1.1102230246251565e-15,
+        "combinedResidualJ": 1.1102230246251565e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.04018582667721196,
+        "observedPotentialChangeJ": -0.040185826677202385,
+        "oldVelocityWorkJ": 0.04050258234934011,
+        "donorGapJ": 0.0003167556721281782,
+        "pairedGapJ": 0.0003167556721281467,
+        "donorGapResidualJ": -3.1496073110703904e-17,
+        "potentialResidualJ": 9.575673587391975e-15,
+        "externalBodyWorkJ": -1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 6.159097757955874e-11,
+      "afterImpulseWorkJ": 2.6711800241220713e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -7.152456815778638e-23,
+      "residualWorkBoundJ": 8.520317281064266e-18,
+      "pinResidualM3S": 4.963737754160036e-14,
+      "impulseMetricResidualKgMS": 3.283814387606914e-18,
+      "impulseMagnitudeKgMS": 3.3221943846611923e-7,
+      "kineticChangeJ": -6.159073251410518e-11,
+      "gradientPairingResidualJ": 2.671251548690229e-18,
+      "finiteIdentityResidualJ": 2.423942735297743e-16,
+      "combinedResidualJ": 2.4506552507916996e-16,
+      "weight": 1,
+      "constraintTime": 0.46875,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0012720006791971587,
+      "kineticChangeJ": -0.0012720006791973604,
+      "residualJ": -2.0166160408230382e-16
+    },
+    "start": 0.4375,
+    "end": 0.46875,
+    "rejected": 0,
+    "kineticChangeJ": 0.03804101417432404,
+    "potentialChangeJ": -0.03894788480369016,
+    "mechanicalChangeJ": -0.0009068706293646756,
+    "donorDissipationJ": 0.0011949841699478894,
+    "forwardRemainderJ": 0.000013138667241360896,
+    "gravityGapJ": 0.00028807316021920576,
+    "gravityTimeRemainderJ": 1.8862412427371407,
+    "wallKChangeJ": -0.23577034853303613,
+    "projectionKChangeJ": -1.6492119918117818,
+    "timeSplitRemainderJ": 4.038036675218029e-8,
+    "reconstructedMechanicalJ": -0.0009068706293619314,
+    "mechanicalResidualJ": -2.7441156985608117e-15
+  },
+  {
+    "first": {
+      "forceTime": 0.46875,
+      "constraintTime": 0.5,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0013140167052295897,
+          "forwardRemainderJ": 0.000014865847473849754,
+          "linearWorkJ": -0.0013140167052295916,
+          "kineticChangeJ": -0.0012991508577557265,
+          "donorPairingResidualJ": -1.951563910473908e-18,
+          "finiteIdentityResidualJ": 1.5392282717505146e-17,
+          "combinedResidualJ": 1.3440718807031238e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.040489479295466285,
+          "timeRemainderJ": 1.8862482768858257,
+          "wallRemovalNormJ": 0.23577048375617327,
+          "kineticChangeJ": 1.926737756181293,
+          "finiteIdentityResidualJ": 1.1102230246251565e-15
+        },
+        "wallKChangeJ": -0.2357704837561756,
+        "wallResidualJ": -2.3314683517128287e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.649229104491749,
+        "afterImpulseWorkJ": 2.451042298810824e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 2.524222454513139e-16,
+        "residualWorkBoundJ": 9.522053515775128e-13,
+        "pinResidualM3S": 3.193625919273302e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02462012782910814,
+        "kineticChangeJ": -1.6492291044917513,
+        "gradientPairingResidualJ": -7.318015570231508e-18,
+        "finiteIdentityResidualJ": -2.4424906541753444e-15,
+        "combinedResidualJ": -2.4424906541753444e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.0401720368431046,
+        "observedPotentialChangeJ": -0.04017203684310289,
+        "oldVelocityWorkJ": 0.04048947929546631,
+        "donorGapJ": 0.00031744245236167625,
+        "pairedGapJ": 0.0003174424523617117,
+        "donorGapResidualJ": 3.5453411040275995e-17,
+        "potentialResidualJ": 1.7139067942650854e-15,
+        "externalBodyWorkJ": -2.7755575615628914e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.5,
+      "constraintTime": 0.53125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0015850154833314983,
+          "forwardRemainderJ": 0.000019055543872795968,
+          "linearWorkJ": -0.0015850154833315032,
+          "kineticChangeJ": -0.0015659599394582946,
+          "donorPairingResidualJ": -4.9873299934333204e-18,
+          "finiteIdentityResidualJ": 4.1268122816587316e-16,
+          "combinedResidualJ": 4.0769389817243984e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.04298334180076079,
+          "timeRemainderJ": 1.8862635817320341,
+          "wallRemovalNormJ": 0.23577080921145985,
+          "kineticChangeJ": 1.929246923532792,
+          "finiteIdentityResidualJ": -2.886579864025407e-15
+        },
+        "wallKChangeJ": -0.23577080921145477,
+        "wallResidualJ": 5.079270337660091e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6492656499086324,
+        "afterImpulseWorkJ": -9.660647932660527e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -9.65105157786996e-16,
+        "residualWorkBoundJ": 9.523272927031723e-13,
+        "pinResidualM3S": 5.2111093218343285e-15,
+        "impulseMetricResidualKgMS": 1.0408340855860843e-17,
+        "impulseMagnitudeKgMS": 0.024630462139001455,
+        "kineticChangeJ": -1.6492656499086338,
+        "gradientPairingResidualJ": -9.596354790566762e-19,
+        "finiteIdentityResidualJ": -4.440892098500626e-16,
+        "combinedResidualJ": -4.440892098500626e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.042600847693689985,
+        "observedPotentialChangeJ": -0.042600847693677224,
+        "oldVelocityWorkJ": 0.042983341800760765,
+        "donorGapJ": 0.00038249410707079606,
+        "pairedGapJ": 0.0003824941070707799,
+        "donorGapResidualJ": -1.6154612370034016e-17,
+        "potentialResidualJ": 1.2760625889285393e-14,
+        "externalBodyWorkJ": 2.7755575615628914e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 6.838314605455709e-11,
+      "afterImpulseWorkJ": -1.8246909481205246e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": 3.159224090283078e-23,
+      "residualWorkBoundJ": 9.225995452465849e-18,
+      "pinResidualM3S": 5.033647110241901e-14,
+      "impulseMetricResidualKgMS": 4.7016681319718076e-18,
+      "impulseMagnitudeKgMS": 3.4878600772142443e-7,
+      "kineticChangeJ": -6.838440924639144e-11,
+      "gradientPairingResidualJ": -1.8247225403614275e-18,
+      "finiteIdentityResidualJ": -1.2613671434017094e-15,
+      "combinedResidualJ": -1.2631918659377895e-15,
+      "weight": 1,
+      "constraintTime": 0.5,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0012548214250307286,
+      "kineticChangeJ": -0.0012548214250303613,
+      "residualJ": 3.673276960380889e-16
+    },
+    "start": 0.46875,
+    "end": 0.5,
+    "rejected": 0,
+    "kineticChangeJ": 0.04028693928101296,
+    "potentialChangeJ": -0.041386442268390056,
+    "mechanicalChangeJ": -0.0010995029873583917,
+    "donorDissipationJ": 0.001449516094280544,
+    "forwardRemainderJ": 0.000016960695673322863,
+    "gravityGapJ": 0.0003499682797162458,
+    "gravityTimeRemainderJ": 1.88625592930893,
+    "wallKChangeJ": -0.23577064648381518,
+    "projectionKChangeJ": -1.649247377268577,
+    "timeSplitRemainderJ": 4.482718043334957e-8,
+    "reconstructedMechanicalJ": -0.0010995029873838648,
+    "mechanicalResidualJ": 2.547311320211243e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.5,
+      "constraintTime": 0.53125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0015839956318584585,
+          "forwardRemainderJ": 0.00001903591003780084,
+          "linearWorkJ": -0.0015839956318584602,
+          "kineticChangeJ": -0.0015649597218205802,
+          "donorPairingResidualJ": -1.734723475976807e-18,
+          "finiteIdentityResidualJ": 7.921113309543315e-17,
+          "combinedResidualJ": 7.747640961945634e-17
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.04296923713115496,
+          "timeRemainderJ": 1.8862635428858272,
+          "wallRemovalNormJ": 0.23577078807734547,
+          "kineticChangeJ": 1.9292327800169842,
+          "finiteIdentityResidualJ": 1.9984014443252818e-15
+        },
+        "wallKChangeJ": -0.23577078807734564,
+        "wallResidualJ": -1.6653345369377348e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6492658794897244,
+        "afterImpulseWorkJ": -3.4314863233894655e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -3.4156722506055873e-15,
+        "residualWorkBoundJ": 9.586902880652751e-13,
+        "pinResidualM3S": 1.176836406102666e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024630481920115053,
+        "kineticChangeJ": -1.6492658794897377,
+        "gradientPairingResidualJ": -1.5814072783878116e-17,
+        "finiteIdentityResidualJ": -9.992007221626409e-15,
+        "combinedResidualJ": -9.992007221626409e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.04258604838604577,
+        "observedPotentialChangeJ": -0.04258604838605606,
+        "oldVelocityWorkJ": 0.04296923713115503,
+        "donorGapJ": 0.0003831887451092927,
+        "pairedGapJ": 0.0003831887451092586,
+        "donorGapResidualJ": -3.4098158324669114e-17,
+        "potentialResidualJ": -1.029037965949442e-14,
+        "externalBodyWorkJ": -6.938893903907228e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.53125,
+      "constraintTime": 0.5625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.001887572094481955,
+          "forwardRemainderJ": 0.00002400517922995713,
+          "linearWorkJ": -0.0018875720944819614,
+          "kineticChangeJ": -0.001863566915252135,
+          "donorPairingResidualJ": -6.5052130349130266e-18,
+          "finiteIdentityResidualJ": -1.3071751255207265e-16,
+          "combinedResidualJ": -1.3722272558698567e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.045420858744332375,
+          "timeRemainderJ": 1.8862800502276653,
+          "wallRemovalNormJ": 0.23577112995453586,
+          "kineticChangeJ": 1.9317009089719983,
+          "finiteIdentityResidualJ": 6.661338147750939e-16
+        },
+        "wallKChangeJ": -0.2357711299545362,
+        "wallResidualJ": -3.3306690738754696e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.649305278897678,
+        "afterImpulseWorkJ": 1.792416584080192e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.7758966138619245e-15,
+        "residualWorkBoundJ": 9.684118878782966e-13,
+        "pinResidualM3S": 8.795048023202412e-16,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02464125250000765,
+        "kineticChangeJ": -1.6493052788976756,
+        "gradientPairingResidualJ": 1.6519970218267484e-17,
+        "finiteIdentityResidualJ": 6.661338147750939e-16,
+        "combinedResidualJ": 6.661338147750939e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.04496457141090371,
+        "observedPotentialChangeJ": -0.044964571410901044,
+        "oldVelocityWorkJ": 0.04542085874433242,
+        "donorGapJ": 0.00045628733342871345,
+        "pairedGapJ": 0.0004562873334287079,
+        "donorGapResidualJ": -5.5294310796760726e-18,
+        "potentialResidualJ": 2.6645352591003757e-15,
+        "externalBodyWorkJ": -4.163336342344337e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 7.515653635807755e-11,
+      "afterImpulseWorkJ": 2.7280648212570368e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": 1.953152311996957e-22,
+      "residualWorkBoundJ": 9.799225210070006e-18,
+      "pinResidualM3S": 4.9547171920849564e-14,
+      "impulseMetricResidualKgMS": 5.117799537090084e-18,
+      "impulseMagnitudeKgMS": 3.6401228193511104e-7,
+      "kineticChangeJ": -7.515643662969751e-11,
+      "gradientPairingResidualJ": 2.727869506025837e-18,
+      "finiteIdentityResidualJ": 9.700031521827046e-17,
+      "combinedResidualJ": 9.972818472150535e-17,
+      "weight": 1,
+      "constraintTime": 0.53125,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0012367294652402886,
+      "kineticChangeJ": -0.0012367294652398386,
+      "residualJ": 4.499439015814843e-16
+    },
+    "start": 0.5,
+    "end": 0.53125,
+    "rejected": 0,
+    "kineticChangeJ": 0.04245931342591103,
+    "potentialChangeJ": -0.043775309898478554,
+    "mechanicalChangeJ": -0.0013159964725559803,
+    "donorDissipationJ": 0.0017357838631702066,
+    "forwardRemainderJ": 0.000021520544633878985,
+    "gravityGapJ": 0.00041973803926898326,
+    "gravityTimeRemainderJ": 1.8862717965567461,
+    "wallKChangeJ": -0.23577095901594092,
+    "projectionKChangeJ": -1.649285579268863,
+    "timeSplitRemainderJ": 4.9351335845411806e-8,
+    "reconstructedMechanicalJ": -0.001315996472565378,
+    "mechanicalResidualJ": 9.397647590669855e-15
+  },
+  {
+    "first": {
+      "forceTime": 0.53125,
+      "constraintTime": 0.5625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0018863461816027087,
+          "forwardRemainderJ": 0.000023980281644814598,
+          "linearWorkJ": -0.001886346181602708,
+          "kineticChangeJ": -0.001862365899958307,
+          "donorPairingResidualJ": 6.505213034913027e-19,
+          "finiteIdentityResidualJ": -4.1360280001248584e-16,
+          "combinedResidualJ": -4.1295227870899454e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.045405740301118366,
+          "timeRemainderJ": 1.8862800024589876,
+          "wallRemovalNormJ": 0.2357711069543942,
+          "kineticChangeJ": 1.9316857427601035,
+          "finiteIdentityResidualJ": -2.4424906541753444e-15
+        },
+        "wallKChangeJ": -0.23577110695439218,
+        "wallResidualJ": 2.0261570199409107e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6493055009032191,
+        "afterImpulseWorkJ": -4.590918574118308e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -4.4313630507614126e-16,
+        "residualWorkBoundJ": 9.633115685250684e-13,
+        "pinResidualM3S": 6.316128176031555e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02464125430335249,
+        "kineticChangeJ": -1.6493055009032194,
+        "gradientPairingResidualJ": -1.5955552335689522e-17,
+        "finiteIdentityResidualJ": 2.220446049250313e-16,
+        "combinedResidualJ": 2.220446049250313e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.0449487574582032,
+        "observedPotentialChangeJ": -0.044948757458200816,
+        "oldVelocityWorkJ": 0.04540574030111835,
+        "donorGapJ": 0.0004569828429151016,
+        "pairedGapJ": 0.000456982842915149,
+        "donorGapResidualJ": 4.743384504624082e-17,
+        "potentialResidualJ": 2.3869795029440866e-15,
+        "externalBodyWorkJ": 1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.5625,
+      "constraintTime": 0.59375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0022236136362605184,
+          "forwardRemainderJ": 0.00002980299566407447,
+          "linearWorkJ": -0.002223613636260511,
+          "kineticChangeJ": -0.0021938106405970936,
+          "donorPairingResidualJ": 7.37257477290143e-18,
+          "finiteIdentityResidualJ": -6.57090891030207e-16,
+          "combinedResidualJ": -6.497183162573056e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.047812251787926995,
+          "timeRemainderJ": 1.8862977384933828,
+          "wallRemovalNormJ": 0.23577146558340367,
+          "kineticChangeJ": 1.9341099902813104,
+          "finiteIdentityResidualJ": 6.661338147750939e-16
+        },
+        "wallKChangeJ": -0.235771465583404,
+        "wallResidualJ": -3.3306690738754696e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.649347809922245,
+        "afterImpulseWorkJ": -1.0754201348883718e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.070482694967953e-15,
+        "residualWorkBoundJ": 9.97773568748162e-13,
+        "pinResidualM3S": 7.5842110369706e-15,
+        "impulseMetricResidualKgMS": 1.0408340855860843e-17,
+        "impulseMagnitudeKgMS": 0.02465241445134755,
+        "kineticChangeJ": -1.649347809922248,
+        "gradientPairingResidualJ": -4.937439920418829e-18,
+        "finiteIdentityResidualJ": -1.9984014443252818e-15,
+        "combinedResidualJ": -1.9984014443252818e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.04727379292891065,
+        "observedPotentialChangeJ": -0.047273792928933744,
+        "oldVelocityWorkJ": 0.04781225178792702,
+        "donorGapJ": 0.0005384588590163925,
+        "pairedGapJ": 0.0005384588590163705,
+        "donorGapResidualJ": -2.200930410145574e-17,
+        "potentialResidualJ": -2.3092638912203256e-14,
+        "externalBodyWorkJ": -2.7755575615628914e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 8.18466463217764e-11,
+      "afterImpulseWorkJ": 2.340730881984181e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 1.4567767722785983e-23,
+      "residualWorkBoundJ": 1.0215630580671137e-17,
+      "pinResidualM3S": 4.732846059507523e-14,
+      "impulseMetricResidualKgMS": 5.7457421185811396e-18,
+      "impulseMagnitudeKgMS": 3.778149958687249e-7,
+      "kineticChangeJ": -8.184730670990348e-11,
+      "gradientPairingResidualJ": 2.340585204306953e-19,
+      "finiteIdentityResidualJ": -6.606222001706106e-16,
+      "combinedResidualJ": -6.6038814164854575e-16,
+      "weight": 1,
+      "constraintTime": 0.5625,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.001217766432770153,
+      "kineticChangeJ": -0.0012177664327694404,
+      "residualJ": 7.125376677574735e-16
+    },
+    "start": 0.53125,
+    "end": 0.5625,
+    "rejected": 0,
+    "kineticChangeJ": 0.04455407005418066,
+    "potentialChangeJ": -0.04611127519353886,
+    "mechanicalChangeJ": -0.0015572051393633046,
+    "donorDissipationJ": 0.0020549799089316133,
+    "forwardRemainderJ": 0.000026891638654444532,
+    "gravityGapJ": 0.0004977208509657598,
+    "gravityTimeRemainderJ": 1.8862888704761853,
+    "wallKChangeJ": -0.2357712862688981,
+    "projectionKChangeJ": -1.6493266554945811,
+    "timeSplitRemainderJ": 5.391859049042394e-8,
+    "reconstructedMechanicalJ": -0.0015572051393753631,
+    "mechanicalResidualJ": 1.205849656238378e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.5625,
+      "constraintTime": 0.59375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.00222215634341169,
+          "forwardRemainderJ": 0.000029771892266099585,
+          "linearWorkJ": -0.002222156343411699,
+          "kineticChangeJ": -0.0021923844511458346,
+          "donorPairingResidualJ": -9.107298248878237e-18,
+          "finiteIdentityResidualJ": -2.350414784677013e-16,
+          "combinedResidualJ": -2.4414877671657953e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.04779611135944088,
+          "timeRemainderJ": 1.8862976804442495,
+          "wallRemovalNormJ": 0.23577144063830913,
+          "kineticChangeJ": 1.9340937918036951,
+          "finiteIdentityResidualJ": 4.6629367034256575e-15
+        },
+        "wallKChangeJ": -0.23577144063830913,
+        "wallResidualJ": 0
+      },
+      "projection": {
+        "correctionNormJ": 1.6493480220330146,
+        "afterImpulseWorkJ": -9.191866018332107e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -9.33409115329994e-16,
+        "residualWorkBoundJ": 9.82677795068318e-13,
+        "pinResidualM3S": 8.805456364058273e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024652397373821758,
+        "kineticChangeJ": -1.6493480220330192,
+        "gradientPairingResidualJ": 1.4222513496783344e-17,
+        "finiteIdentityResidualJ": -3.774758283725532e-15,
+        "combinedResidualJ": -3.774758283725532e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.047256963500016125,
+        "observedPotentialChangeJ": -0.04725696350004682,
+        "oldVelocityWorkJ": 0.04779611135944086,
+        "donorGapJ": 0.0005391478594247641,
+        "pairedGapJ": 0.0005391478594247365,
+        "donorGapResidualJ": -2.7647155398380363e-17,
+        "potentialResidualJ": -3.069766663088558e-14,
+        "externalBodyWorkJ": 2.0816681711721685e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.59375,
+      "constraintTime": 0.625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0025941081141949707,
+          "forwardRemainderJ": 0.000036520571867965216,
+          "linearWorkJ": -0.0025941081141949724,
+          "kineticChangeJ": -0.002557587542325823,
+          "donorPairingResidualJ": -1.734723475976807e-18,
+          "finiteIdentityResidualJ": 1.183996206199217e-15,
+          "combinedResidualJ": 1.1822614827232403e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.050154638182966275,
+          "timeRemainderJ": 1.8863166686188528,
+          "wallRemovalNormJ": 0.2357718165882092,
+          "kineticChangeJ": 1.9364713068018196,
+          "finiteIdentityResidualJ": 4.440892098500626e-16
+        },
+        "wallKChangeJ": -0.2357718165882079,
+        "wallResidualJ": 1.304512053934559e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6493932925426469,
+        "afterImpulseWorkJ": 5.357313984793999e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 5.559197545248453e-16,
+        "residualWorkBoundJ": 1.0157178436036428e-12,
+        "pinResidualM3S": 6.423681031542117e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024663899213242232,
+        "kineticChangeJ": -1.6493932925426444,
+        "gradientPairingResidualJ": -2.0188356045445447e-17,
+        "finiteIdentityResidualJ": 1.9984014443252818e-15,
+        "combinedResidualJ": 1.7763568394002505e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.04952533772545427,
+        "observedPotentialChangeJ": -0.04952533772541301,
+        "oldVelocityWorkJ": 0.0501546381829663,
+        "donorGapJ": 0.0006293004575119659,
+        "pairedGapJ": 0.0006293004575120345,
+        "donorGapResidualJ": 6.862999751833243e-17,
+        "potentialResidualJ": 4.125866315263238e-14,
+        "externalBodyWorkJ": -2.7755575615628914e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 8.839154175455301e-11,
+      "afterImpulseWorkJ": -1.4045775782514788e-17,
+      "targetWorkJ": 0,
+      "residualWorkJ": 3.3120319714086247e-23,
+      "residualWorkBoundJ": 1.0408355590519137e-17,
+      "pinResidualM3S": 4.387809560135736e-14,
+      "impulseMetricResidualKgMS": 4.899979720747721e-18,
+      "impulseMagnitudeKgMS": 3.9012005833422014e-7,
+      "kineticChangeJ": -8.839162735085893e-11,
+      "gradientPairingResidualJ": -1.40458089028345e-17,
+      "finiteIdentityResidualJ": -7.155053012998224e-17,
+      "combinedResidualJ": -8.559633903849562e-17,
+      "weight": 1,
+      "constraintTime": 0.59375,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0011979762637684727,
+      "kineticChangeJ": -0.0011979762637688296,
+      "residualJ": -3.5691935518222806e-16
+    },
+    "start": 0.5625,
+    "end": 0.59375,
+    "rejected": 0,
+    "kineticChangeJ": 0.04656730105277068,
+    "potentialChangeJ": -0.04839115061275834,
+    "mechanicalChangeJ": -0.0018238495599689486,
+    "donorDissipationJ": 0.0024081322288033303,
+    "forwardRemainderJ": 0.000033146232067032404,
+    "gravityGapJ": 0.0005842241584683855,
+    "gravityTimeRemainderJ": 1.8863071745315512,
+    "wallKChangeJ": -0.2357716286132585,
+    "projectionKChangeJ": -1.6493706573762235,
+    "timeSplitRemainderJ": 5.8510367796898305e-8,
+    "reconstructedMechanicalJ": -0.001823849559967148,
+    "mechanicalResidualJ": -1.8006429680639258e-15
+  },
+  {
+    "first": {
+      "forceTime": 0.59375,
+      "constraintTime": 0.625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.002592392809637306,
+          "forwardRemainderJ": 0.00003648223046585737,
+          "linearWorkJ": -0.002592392809637311,
+          "kineticChangeJ": -0.0025559105791703174,
+          "donorPairingResidualJ": -4.7704895589362195e-18,
+          "finiteIdentityResidualJ": 1.1362167717104965e-15,
+          "combinedResidualJ": 1.1314462821515603e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.05013746873557771,
+          "timeRemainderJ": 1.8863165988205883,
+          "wallRemovalNormJ": 0.23577178966430207,
+          "kineticChangeJ": 1.936454067556154,
+          "finiteIdentityResidualJ": -1.2212453270876722e-14
+        },
+        "wallKChangeJ": -0.2357717896643008,
+        "wallResidualJ": 1.27675647831893e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6493934921317568,
+        "afterImpulseWorkJ": -2.102620378155451e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -2.105333515036685e-15,
+        "residualWorkBoundJ": 1.0143992280778857e-12,
+        "pinResidualM3S": 9.884454366115847e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024663862441302576,
+        "kineticChangeJ": -1.649393492131753,
+        "gradientPairingResidualJ": 2.7131368812342947e-18,
+        "finiteIdentityResidualJ": 5.773159728050814e-15,
+        "combinedResidualJ": 5.773159728050814e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.049507493617462775,
+        "observedPotentialChangeJ": -0.049507493617454656,
+        "oldVelocityWorkJ": 0.05013746873557772,
+        "donorGapJ": 0.0006299751181149269,
+        "pairedGapJ": 0.0006299751181149463,
+        "donorGapResidualJ": 1.940721888749053e-17,
+        "potentialResidualJ": 8.118505867571457e-15,
+        "externalBodyWorkJ": -1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.625,
+      "constraintTime": 0.65625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.002999864939564914,
+          "forwardRemainderJ": 0.00004422714244663439,
+          "linearWorkJ": -0.0029998649395649047,
+          "kineticChangeJ": -0.002955637797116717,
+          "donorPairingResidualJ": 9.107298248878237e-18,
+          "finiteIdentityResidualJ": 1.5533838863650284e-15,
+          "combinedResidualJ": 1.5624911846139067e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.05244513520971093,
+          "timeRemainderJ": 1.8863368591754583,
+          "wallRemovalNormJ": 0.23577218384662388,
+          "kineticChangeJ": 1.9387819943851712,
+          "finiteIdentityResidualJ": 1.9984014443252818e-15
+        },
+        "wallKChangeJ": -0.23577218384662402,
+        "wallResidualJ": -1.3877787807814457e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6494417687323029,
+        "afterImpulseWorkJ": -9.673522833458792e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -9.708052519686402e-16,
+        "residualWorkBoundJ": 1.0337457885996097e-12,
+        "pinResidualM3S": 9.298117831235686e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024675655986491456,
+        "kineticChangeJ": -1.6494417687323146,
+        "gradientPairingResidualJ": 3.4529686227610203e-18,
+        "finiteIdentityResidualJ": -1.0880185641326534e-14,
+        "combinedResidualJ": -1.0880185641326534e-14
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.05171606469623838,
+        "observedPotentialChangeJ": -0.051716064696222475,
+        "oldVelocityWorkJ": 0.05244513520971089,
+        "donorGapJ": 0.0007290705134724716,
+        "pairedGapJ": 0.0007290705134725128,
+        "donorGapResidualJ": 4.119968255444917e-17,
+        "potentialResidualJ": 1.5903944827755367e-14,
+        "externalBodyWorkJ": 4.163336342344337e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 9.47323359602863e-11,
+      "afterImpulseWorkJ": 2.3271303783525842e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -5.037739300922411e-24,
+      "residualWorkBoundJ": 1.025895887569983e-17,
+      "pinResidualM3S": 3.8951480929583226e-14,
+      "impulseMetricResidualKgMS": 3.972796280859482e-18,
+      "impulseMagnitudeKgMS": 4.0086418857249173e-7,
+      "kineticChangeJ": -9.473222206679566e-11,
+      "gradientPairingResidualJ": 2.327135416091885e-18,
+      "finiteIdentityResidualJ": 1.115663602703468e-16,
+      "combinedResidualJ": 1.1389349568933124e-16,
+      "weight": 1,
+      "constraintTime": 0.625,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.00117740329771705,
+      "kineticChangeJ": -0.0011774032977174276,
+      "residualJ": -3.7751919645945264e-16
+    },
+    "start": 0.59375,
+    "end": 0.625,
+    "rejected": 0,
+    "kineticChangeJ": 0.04849523620257323,
+    "potentialChangeJ": -0.050611779156838566,
+    "mechanicalChangeJ": -0.0021165429542406855,
+    "donorDissipationJ": 0.00279612887460111,
+    "forwardRemainderJ": 0.00004035468645624588,
+    "gravityGapJ": 0.0006795228157937296,
+    "gravityTimeRemainderJ": 1.8863267289980232,
+    "wallKChangeJ": -0.2357719867554624,
+    "projectionKChangeJ": -1.649417630526766,
+    "timeSplitRemainderJ": 6.310453397610945e-8,
+    "reconstructedMechanicalJ": -0.002116542954273404,
+    "mechanicalResidualJ": 3.271861948039856e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.625,
+      "constraintTime": 0.65625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0029978639344064683,
+          "forwardRemainderJ": 0.00004418044571752168,
+          "linearWorkJ": -0.0029978639344064584,
+          "kineticChangeJ": -0.0029536834886879637,
+          "donorPairingResidualJ": 9.974659986866641e-18,
+          "finiteIdentityResidualJ": 9.729833583792258e-16,
+          "combinedResidualJ": 9.829580183660924e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.05242693230921802,
+          "timeRemainderJ": 1.8863367760641432,
+          "wallRemovalNormJ": 0.23577215492407655,
+          "kineticChangeJ": 1.938763708373361,
+          "finiteIdentityResidualJ": 0
+        },
+        "wallKChangeJ": -0.23577215492407788,
+        "wallResidualJ": -1.3322676295501878e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6494419529237911,
+        "afterImpulseWorkJ": 1.3401280953007078e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.3466945716486199e-15,
+        "residualWorkBoundJ": 1.0296620549869314e-12,
+        "pinResidualM3S": 4.045375145977914e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024675598811699142,
+        "kineticChangeJ": -1.6494419529237914,
+        "gradientPairingResidualJ": -6.566476347912104e-18,
+        "finiteIdentityResidualJ": -1.5543122344752192e-15,
+        "combinedResidualJ": -1.5543122344752192e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.05169720971864197,
+        "observedPotentialChangeJ": -0.05169720971861125,
+        "oldVelocityWorkJ": 0.05242693230921804,
+        "donorGapJ": 0.000729722590576112,
+        "pairedGapJ": 0.0007297225905760693,
+        "donorGapResidualJ": -4.2717565595928875e-17,
+        "potentialResidualJ": 3.072542220650121e-14,
+        "externalBodyWorkJ": -2.0816681711721685e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.65625,
+      "constraintTime": 0.6875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.0034415550405221054,
+          "forwardRemainderJ": 0.000052988802027656875,
+          "linearWorkJ": -0.00344155504052211,
+          "kineticChangeJ": -0.0033885662384938176,
+          "donorPairingResidualJ": -4.7704895589362195e-18,
+          "finiteIdentityResidualJ": 6.357693776819218e-16,
+          "combinedResidualJ": 6.309988881229855e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.05468086872428994,
+          "timeRemainderJ": 1.8863583246063056,
+          "wallRemovalNormJ": 0.2357725686322652,
+          "kineticChangeJ": 1.941039193330586,
+          "finiteIdentityResidualJ": -9.547918011776346e-15
+        },
+        "wallKChangeJ": -0.2357725686322656,
+        "wallResidualJ": -3.885780586188048e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.649493272683015,
+        "afterImpulseWorkJ": -1.772724762122424e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.7887450641760413e-15,
+        "residualWorkBoundJ": 1.0616773467415674e-12,
+        "pinResidualM3S": 1.2666950821582645e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024695851542732305,
+        "kineticChangeJ": -1.649493272683011,
+        "gradientPairingResidualJ": 1.6020302053617295e-17,
+        "finiteIdentityResidualJ": 5.773159728050814e-15,
+        "combinedResidualJ": 5.773159728050814e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.05384287614093041,
+        "observedPotentialChangeJ": -0.05384287614094774,
+        "oldVelocityWorkJ": 0.054680868724289934,
+        "donorGapJ": 0.0008379925833595605,
+        "pairedGapJ": 0.0008379925833595231,
+        "donorGapResidualJ": -3.74049749507499e-17,
+        "potentialResidualJ": -1.732641807805635e-14,
+        "externalBodyWorkJ": 6.938893903907228e-18
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.008137555023387e-10,
+      "afterImpulseWorkJ": 7.930693384525659e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -1.6384883333998126e-23,
+      "residualWorkBoundJ": 9.608216451017962e-18,
+      "pinResidualM3S": 3.272382365082649e-14,
+      "impulseMetricResidualKgMS": 4.31827984422083e-18,
+      "impulseMagnitudeKgMS": 4.0999648254907983e-7,
+      "kineticChangeJ": -1.0081491197411196e-10,
+      "gradientPairingResidualJ": 7.930709769408993e-18,
+      "finiteIdentityResidualJ": -1.16440246665267e-15,
+      "combinedResidualJ": -1.1564717568796285e-15,
+      "weight": 1,
+      "constraintTime": 0.65625,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0011560925930256484,
+      "kineticChangeJ": -0.0011560925930241828,
+      "residualJ": 1.4656244967659049e-15
+    },
+    "start": 0.625,
+    "end": 0.65625,
+    "rejected": 0,
+    "kineticChangeJ": 0.05033425871297059,
+    "potentialChangeJ": -0.052770042929807914,
+    "mechanicalChangeJ": -0.002435784216856973,
+    "donorDissipationJ": 0.003219709487464287,
+    "forwardRemainderJ": 0.00004858462387258928,
+    "gravityGapJ": 0.0007838575869677962,
+    "gravityTimeRemainderJ": 1.8863475503352243,
+    "wallKChangeJ": -0.23577236177817174,
+    "projectionKChangeJ": -1.649467612904216,
+    "timeSplitRemainderJ": 6.768368352436972e-8,
+    "reconstructedMechanicalJ": -0.0024357842168129668,
+    "mechanicalResidualJ": -4.400646513857964e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.65625,
+      "constraintTime": 0.6875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.003439243392986556,
+          "forwardRemainderJ": 0.00005293254794753925,
+          "linearWorkJ": -0.0034392433929865437,
+          "kineticChangeJ": -0.003386310845038154,
+          "donorPairingResidualJ": 1.214306433183765e-17,
+          "finiteIdentityResidualJ": 8.504278553068956e-16,
+          "combinedResidualJ": 8.625709196387332e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.054661630306086714,
+          "timeRemainderJ": 1.8863582265346313,
+          "wallRemovalNormJ": 0.23577253771237547,
+          "kineticChangeJ": 1.9410198568407113,
+          "finiteIdentityResidualJ": -6.661338147750939e-15
+        },
+        "wallKChangeJ": -0.23577253771237583,
+        "wallResidualJ": -3.608224830031759e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6494934385209197,
+        "afterImpulseWorkJ": 1.4524243353158939e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.4581990770116526e-15,
+        "residualWorkBoundJ": 1.0542605263823615e-12,
+        "pinResidualM3S": 5.887651477465283e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024695963990008795,
+        "kineticChangeJ": -1.6494934385209108,
+        "gradientPairingResidualJ": -5.7747416957587005e-18,
+        "finiteIdentityResidualJ": 7.327471962526033e-15,
+        "combinedResidualJ": 7.327471962526033e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.053823016897230146,
+        "observedPotentialChangeJ": -0.053823016897183606,
+        "oldVelocityWorkJ": 0.054661630306086756,
+        "donorGapJ": 0.0008386134088565708,
+        "pairedGapJ": 0.0008386134088566102,
+        "donorGapResidualJ": 3.946495907847236e-17,
+        "potentialResidualJ": 4.653916141350578e-14,
+        "externalBodyWorkJ": -4.163336342344337e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.6875,
+      "constraintTime": 0.71875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.003919680393024101,
+          "forwardRemainderJ": 0.00006286773147115123,
+          "linearWorkJ": -0.003919680393024107,
+          "kineticChangeJ": -0.003856812661553688,
+          "donorPairingResidualJ": -6.071532165918825e-18,
+          "finiteIdentityResidualJ": -7.319719916992762e-16,
+          "combinedResidualJ": -7.38043523865195e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.05685897955280027,
+          "timeRemainderJ": 1.8863810746438958,
+          "wallRemovalNormJ": 0.2357729726740829,
+          "kineticChangeJ": 1.9432400541967016,
+          "finiteIdentityResidualJ": 5.551115123125783e-15
+        },
+        "wallKChangeJ": -0.23577297267408426,
+        "wallResidualJ": -1.3600232051658168e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.649547828147899,
+        "afterImpulseWorkJ": -1.5617932294653691e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.697444536158295e-16,
+        "residualWorkBoundJ": 1.0664583515965108e-12,
+        "pinResidualM3S": 7.89993070959838e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02472046458111768,
+        "kineticChangeJ": -1.6495478281479035,
+        "gradientPairingResidualJ": 1.3565130669292598e-17,
+        "finiteIdentityResidualJ": -4.218847493575595e-15,
+        "combinedResidualJ": -4.218847493575595e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.05590272563396986,
+        "observedPotentialChangeJ": -0.055902725633984574,
+        "oldVelocityWorkJ": 0.05685897955280025,
+        "donorGapJ": 0.000956253918830415,
+        "pairedGapJ": 0.000956253918830384,
+        "donorGapResidualJ": -3.1008182133085427e-17,
+        "potentialResidualJ": -1.4710455076283324e-14,
+        "externalBodyWorkJ": 2.0816681711721685e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.0658460722981022e-10,
+      "afterImpulseWorkJ": 8.812019585615183e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -3.601369076099566e-23,
+      "residualWorkBoundJ": 8.722343263998526e-18,
+      "pinResidualM3S": 2.4515112162504238e-14,
+      "impulseMetricResidualKgMS": 5.39554693445069e-18,
+      "impulseMagnitudeKgMS": 4.1747975479400345e-7,
+      "kineticChangeJ": -1.0658551818920614e-10,
+      "gradientPairingResidualJ": 8.812055599305943e-18,
+      "finiteIdentityResidualJ": -9.197714155019065e-16,
+      "combinedResidualJ": -9.109593599080853e-16,
+      "weight": 1,
+      "constraintTime": 0.6875,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0011340898668140446,
+      "kineticChangeJ": -0.0011340898668128485,
+      "residualJ": 1.1960918366860085e-15
+    },
+    "start": 0.65625,
+    "end": 0.6875,
+    "rejected": 0,
+    "kineticChangeJ": 0.05208091526437486,
+    "potentialChangeJ": -0.05486287126558409,
+    "mechanicalChangeJ": -0.0027819560012289912,
+    "donorDissipationJ": 0.0036794618930053287,
+    "forwardRemainderJ": 0.000057900139709345246,
+    "gravityGapJ": 0.0008974336638434971,
+    "gravityTimeRemainderJ": 1.8863696505892635,
+    "wallKChangeJ": -0.23577275519323004,
+    "projectionKChangeJ": -1.6495206334409926,
+    "timeSplitRemainderJ": 7.222793621270568e-8,
+    "reconstructedMechanicalJ": -0.002781956001225619,
+    "mechanicalResidualJ": -3.372302437298913e-15
+  },
+  {
+    "first": {
+      "forceTime": 0.6875,
+      "constraintTime": 0.71875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.003917025375679139,
+          "forwardRemainderJ": 0.00006280064345309232,
+          "linearWorkJ": -0.003917025375679139,
+          "kineticChangeJ": -0.0038542247322249645,
+          "donorPairingResidualJ": 0,
+          "finiteIdentityResidualJ": 1.0821828459392502e-15,
+          "combinedResidualJ": 1.0821828459392502e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.056838707066970445,
+          "timeRemainderJ": 1.8863809598868562,
+          "wallRemovalNormJ": 0.23577293977059047,
+          "kineticChangeJ": 1.9432196669538264,
+          "finiteIdentityResidualJ": -2.220446049250313e-16
+        },
+        "wallKChangeJ": -0.23577293977058966,
+        "wallResidualJ": 8.049116928532385e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6495479721471626,
+        "afterImpulseWorkJ": 1.4955349241993487e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.443763128685227e-15,
+        "residualWorkBoundJ": 1.0742972463637704e-12,
+        "pinResidualM3S": 5.443562267615221e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024720556447400757,
+        "kineticChangeJ": -1.6495479721471575,
+        "gradientPairingResidualJ": 5.177179551412168e-17,
+        "finiteIdentityResidualJ": 3.552713678800501e-15,
+        "combinedResidualJ": 3.552713678800501e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.055881872609344393,
+        "observedPotentialChangeJ": -0.05588187260934774,
+        "oldVelocityWorkJ": 0.056838707066970424,
+        "donorGapJ": 0.0009568344576260002,
+        "pairedGapJ": 0.000956834457626031,
+        "donorGapResidualJ": 3.0791341698588326e-17,
+        "potentialResidualJ": -3.344546861683284e-15,
+        "externalBodyWorkJ": 2.0816681711721685e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.71875,
+      "constraintTime": 0.75,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.004434522216344202,
+          "forwardRemainderJ": 0.00007392148905932208,
+          "linearWorkJ": -0.004434522216344196,
+          "kineticChangeJ": -0.004360600727286168,
+          "donorPairingResidualJ": 6.071532165918825e-18,
+          "finiteIdentityResidualJ": -1.294266343404571e-15,
+          "combinedResidualJ": -1.288194811238652e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.058976634199444114,
+          "timeRemainderJ": 1.8864051137407145,
+          "wallRemovalNormJ": 0.2357733981713461,
+          "kineticChangeJ": 1.9453817479401623,
+          "finiteIdentityResidualJ": 3.552713678800501e-15
+        },
+        "wallKChangeJ": -0.23577339817134746,
+        "wallResidualJ": -1.3600232051658168e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6496054454586337,
+        "afterImpulseWorkJ": -1.2025970497209215e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.226394885510805e-15,
+        "residualWorkBoundJ": 1.0985513089035439e-12,
+        "pinResidualM3S": 1.1435297153639112e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02474587583947956,
+        "kineticChangeJ": -1.649605445458633,
+        "gradientPairingResidualJ": 2.3797835789883572e-17,
+        "finiteIdentityResidualJ": 1.7763568394002505e-15,
+        "combinedResidualJ": 1.9984014443252818e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.05789262994427638,
+        "observedPotentialChangeJ": -0.05789262994426281,
+        "oldVelocityWorkJ": 0.058976634199444086,
+        "donorGapJ": 0.0010840042551677957,
+        "pairedGapJ": 0.001084004255167706,
+        "donorGapResidualJ": -8.977193988179977e-17,
+        "potentialResidualJ": 1.3572476476042539e-14,
+        "externalBodyWorkJ": 2.7755575615628914e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.1199831869531393e-10,
+      "afterImpulseWorkJ": 1.7800182319589858e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -3.720737137400822e-23,
+      "residualWorkBoundJ": 8.117559243160013e-18,
+      "pinResidualM3S": 1.4800660697034118e-14,
+      "impulseMetricResidualKgMS": 5.246098558819509e-18,
+      "impulseMagnitudeKgMS": 4.2329209058722395e-7,
+      "kineticChangeJ": -1.11997189300439e-10,
+      "gradientPairingResidualJ": 1.78005543933036e-18,
+      "finiteIdentityResidualJ": 1.1276148566984034e-15,
+      "combinedResidualJ": 1.1293949121405653e-15,
+      "weight": 1,
+      "constraintTime": 0.71875,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0011114432816414698,
+      "kineticChangeJ": -0.0011114432816416997,
+      "residualJ": -2.2985086056692694e-16
+    },
+    "start": 0.6875,
+    "end": 0.71875,
+    "rejected": 0,
+    "kineticChangeJ": 0.053731973549736134,
+    "potentialChangeJ": -0.05688725127680527,
+    "mechanicalChangeJ": -0.0031552777270462684,
+    "donorDissipationJ": 0.0041757737960116705,
+    "forwardRemainderJ": 0.00006836106625620719,
+    "gravityGapJ": 0.0010204193563968685,
+    "gravityTimeRemainderJ": 1.8863930368137853,
+    "wallKChangeJ": -0.23577316897096856,
+    "projectionKChangeJ": -1.6495767089148925,
+    "timeSplitRemainderJ": 7.671253899558389e-8,
+    "reconstructedMechanicalJ": -0.0031552777270758064,
+    "mechanicalResidualJ": 2.953800398719508e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.71875,
+      "constraintTime": 0.75,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.004431493923301732,
+          "forwardRemainderJ": 0.00007384222438278907,
+          "linearWorkJ": -0.004431493923301747,
+          "kineticChangeJ": -0.004357651698917553,
+          "donorPairingResidualJ": -1.474514954580286e-17,
+          "finiteIdentityResidualJ": 1.4046245720364392e-15,
+          "combinedResidualJ": 1.3898794224906363e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.05895533368929305,
+          "timeRemainderJ": 1.886404980503367,
+          "wallRemovalNormJ": 0.23577336330111806,
+          "kineticChangeJ": 1.9453603141926594,
+          "finiteIdentityResidualJ": -4.440892098500626e-16
+        },
+        "wallKChangeJ": -0.23577336330111764,
+        "wallResidualJ": 4.163336342344337e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.649605564102135,
+        "afterImpulseWorkJ": 9.136029606449103e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 9.028207264963871e-16,
+        "residualWorkBoundJ": 1.0983893195341734e-12,
+        "pinResidualM3S": 9.898332153923661e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024745945533620813,
+        "kineticChangeJ": -1.649605564102127,
+        "gradientPairingResidualJ": 1.0782234148523203e-17,
+        "finiteIdentityResidualJ": 7.105427357601002e-15,
+        "combinedResidualJ": 7.105427357601002e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.05787079850445776,
+        "observedPotentialChangeJ": -0.05787079850443888,
+        "oldVelocityWorkJ": 0.05895533368929311,
+        "donorGapJ": 0.0010845351848352718,
+        "pairedGapJ": 0.001084535184835346,
+        "donorGapResidualJ": 7.41594285980085e-17,
+        "potentialResidualJ": 1.8880730312531568e-14,
+        "externalBodyWorkJ": -5.551115123125783e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.75,
+      "constraintTime": 0.78125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.004986218633122106,
+          "forwardRemainderJ": 0.00008620231274820093,
+          "linearWorkJ": -0.0049862186331221005,
+          "kineticChangeJ": -0.004900016320371625,
+          "donorPairingResidualJ": 5.204170427930421e-18,
+          "finiteIdentityResidualJ": 2.274398659858623e-15,
+          "combinedResidualJ": 2.2796028302865534e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06103103724327514,
+          "timeRemainderJ": 1.8864304405350274,
+          "wallRemovalNormJ": 0.2357738477889472,
+          "kineticChangeJ": 1.9474614777783046,
+          "finiteIdentityResidualJ": 1.9984014443252818e-15
+        },
+        "wallKChangeJ": -0.23577384778894794,
+        "wallResidualJ": -7.494005416219807e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6496661239126522,
+        "afterImpulseWorkJ": 2.5560066216345767e-17,
+        "targetWorkJ": 0,
+        "residualWorkJ": -2.744157200531008e-17,
+        "residualWorkBoundJ": 1.1141487651855537e-12,
+        "pinResidualM3S": 9.995476668578362e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024772026988702595,
+        "kineticChangeJ": -1.649666123912651,
+        "gradientPairingResidualJ": 5.300163822165585e-17,
+        "finiteIdentityResidualJ": 1.1102230246251565e-15,
+        "combinedResidualJ": 1.1102230246251565e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.05980968241200616,
+        "observedPotentialChangeJ": -0.059809682412037546,
+        "oldVelocityWorkJ": 0.06103103724327514,
+        "donorGapJ": 0.0012213548312690332,
+        "pairedGapJ": 0.0012213548312689781,
+        "donorGapResidualJ": -5.5077470362263625e-17,
+        "potentialResidualJ": -3.1384617127372394e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.170132027968061e-10,
+      "afterImpulseWorkJ": 2.7081132248822577e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -5.38061583660226e-23,
+      "residualWorkBoundJ": 8.556937051721431e-18,
+      "pinResidualM3S": 5.4262150328554526e-15,
+      "impulseMetricResidualKgMS": 4.974412740987692e-18,
+      "impulseMagnitudeKgMS": 4.274272452260697e-7,
+      "kineticChangeJ": -1.1701117852425114e-10,
+      "gradientPairingResidualJ": 2.7081670310406238e-18,
+      "finiteIdentityResidualJ": 2.021564441732291e-15,
+      "combinedResidualJ": 2.0242726087756117e-15,
+      "weight": 1,
+      "constraintTime": 0.75,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0010882019927561193,
+      "kineticChangeJ": -0.0010882019927578312,
+      "residualJ": -1.7119552303546115e-15
+    },
+    "start": 0.71875,
+    "end": 0.75,
+    "rejected": 0,
+    "kineticChangeJ": 0.055284410313646504,
+    "potentialChangeJ": -0.05884024045820979,
+    "mechanicalChangeJ": -0.003555830144534866,
+    "donorDissipationJ": 0.004708856278211919,
+    "forwardRemainderJ": 0.000080022268565495,
+    "gravityGapJ": 0.001152945008052162,
+    "gravityTimeRemainderJ": 1.886417710519197,
+    "wallKChangeJ": -0.2357736055450328,
+    "projectionKChangeJ": -1.6496358441244001,
+    "timeSplitRemainderJ": 8.112557352778736e-8,
+    "reconstructedMechanicalJ": -0.0035558301445862287,
+    "mechanicalResidualJ": 5.136256003845929e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.75,
+      "constraintTime": 0.78125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.004982786714860798,
+          "forwardRemainderJ": 0.00008610946450005437,
+          "linearWorkJ": -0.004982786714860781,
+          "kineticChangeJ": -0.0048966772503605815,
+          "donorPairingResidualJ": 1.6479873021779667e-17,
+          "finiteIdentityResidualJ": 1.4522888100443332e-16,
+          "combinedResidualJ": 1.6170875402621299e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.061008718002411484,
+          "timeRemainderJ": 1.8864302869758507,
+          "wallRemovalNormJ": 0.23577381099061973,
+          "kineticChangeJ": 1.9474390049782677,
+          "finiteIdentityResidualJ": 5.551115123125783e-15
+        },
+        "wallKChangeJ": -0.23577381099062178,
+        "wallResidualJ": -2.0539125955565396e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6496662135086466,
+        "afterImpulseWorkJ": 3.4287487129039396e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 3.4356797338901756e-15,
+        "residualWorkBoundJ": 1.112552053696738e-12,
+        "pinResidualM3S": 4.361094818605693e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024772072929043654,
+        "kineticChangeJ": -1.6496662135086413,
+        "gradientPairingResidualJ": -6.931020986235984e-18,
+        "finiteIdentityResidualJ": 1.9984014443252818e-15,
+        "combinedResidualJ": 1.9984014443252818e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.059786891516790217,
+        "observedPotentialChangeJ": -0.05978689151680783,
+        "oldVelocityWorkJ": 0.06100871800241151,
+        "donorGapJ": 0.0012218264856212525,
+        "pairedGapJ": 0.0012218264856212954,
+        "donorGapResidualJ": 4.2934406030425976e-17,
+        "potentialResidualJ": -1.7610912728116546e-14,
+        "externalBodyWorkJ": -2.7755575615628914e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.78125,
+      "constraintTime": 0.8125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.005574733343200754,
+          "forwardRemainderJ": 0.00009975647566736082,
+          "linearWorkJ": -0.0055747333432007605,
+          "kineticChangeJ": -0.005474976867534842,
+          "donorPairingResidualJ": -6.071532165918825e-18,
+          "finiteIdentityResidualJ": -1.4423819126932469e-15,
+          "combinedResidualJ": -1.4484534448591657e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06301943888305693,
+          "timeRemainderJ": 1.8864570473965758,
+          "wallRemovalNormJ": 0.2357743247105605,
+          "kineticChangeJ": 1.9494764862796363,
+          "finiteIdentityResidualJ": 3.552713678800501e-15
+        },
+        "wallKChangeJ": -0.2357743247105617,
+        "wallResidualJ": -1.1934897514720433e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6497298493873813,
+        "afterImpulseWorkJ": -9.533525227936601e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -9.516334405078491e-16,
+        "residualWorkBoundJ": 1.1444207230936782e-12,
+        "pinResidualM3S": 1.2261025528204073e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024798855706121725,
+        "kineticChangeJ": -1.649729849387382,
+        "gradientPairingResidualJ": -1.7190822858109757e-18,
+        "finiteIdentityResidualJ": 2.220446049250313e-16,
+        "combinedResidualJ": 2.220446049250313e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.061651061659101516,
+        "observedPotentialChangeJ": -0.06165106165911993,
+        "oldVelocityWorkJ": 0.06301943888305692,
+        "donorGapJ": 0.0013683772239554003,
+        "pairedGapJ": 0.0013683772239553998,
+        "donorGapResidualJ": -4.336808689942018e-19,
+        "potentialResidualJ": -1.8415824420969784e-14,
+        "externalBodyWorkJ": 1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.2159266633158788e-10,
+      "afterImpulseWorkJ": 2.047637629899492e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": 9.788434030872486e-24,
+      "residualWorkBoundJ": 9.972860338486483e-18,
+      "pinResidualM3S": 2.7998436902265667e-15,
+      "impulseMetricResidualKgMS": 5.4861794598069e-18,
+      "impulseMagnitudeKgMS": 4.298947661046659e-7,
+      "kineticChangeJ": -1.21592069746157e-10,
+      "gradientPairingResidualJ": 2.047627841465461e-18,
+      "finiteIdentityResidualJ": 5.945377932527883e-16,
+      "combinedResidualJ": 5.965854210857674e-16,
+      "weight": 1,
+      "constraintTime": 0.78125,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0010644152837736526,
+      "kineticChangeJ": -0.0010644152837754328,
+      "residualJ": -1.7802599672211983e-15
+    },
+    "start": 0.75,
+    "end": 0.78125,
+    "rejected": 0,
+    "kineticChangeJ": 0.056735403866033485,
+    "potentialChangeJ": -0.06071897658796388,
+    "mechanicalChangeJ": -0.003983572721949713,
+    "donorDissipationJ": 0.0052787600290307764,
+    "forwardRemainderJ": 0.00009293297008370759,
+    "gravityGapJ": 0.0012951018547883476,
+    "gravityTimeRemainderJ": 1.8864436671862133,
+    "wallKChangeJ": -0.23577406785059174,
+    "projectionKChangeJ": -1.6496980315696037,
+    "timeSplitRemainderJ": 8.54523277732562e-8,
+    "reconstructedMechanicalJ": -0.003983572721914656,
+    "mechanicalResidualJ": -3.5057026726015295e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.78125,
+      "constraintTime": 0.8125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.005570867265407468,
+          "forwardRemainderJ": 0.00009964858447857096,
+          "linearWorkJ": -0.005570867265407472,
+          "kineticChangeJ": -0.005471218680928591,
+          "donorPairingResidualJ": -4.336808689942018e-18,
+          "finiteIdentityResidualJ": 3.1005471627654213e-16,
+          "combinedResidualJ": 3.057179075866001e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06299611435236174,
+          "timeRemainderJ": 1.8864568716392067,
+          "wallRemovalNormJ": 0.23577428603696415,
+          "kineticChangeJ": 1.9494529859915648,
+          "finiteIdentityResidualJ": -3.774758283725532e-15
+        },
+        "wallKChangeJ": -0.2357742860369636,
+        "wallResidualJ": 5.551115123125783e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.649729906104702,
+        "afterImpulseWorkJ": 7.021022218473005e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 6.216481875647032e-16,
+        "residualWorkBoundJ": 1.1395461824017768e-12,
+        "pinResidualM3S": 1.1133455268819148e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024798876348686293,
+        "kineticChangeJ": -1.649729906104701,
+        "gradientPairingResidualJ": 8.045403428259729e-17,
+        "finiteIdentityResidualJ": 2.220446049250313e-16,
+        "combinedResidualJ": 2.220446049250313e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.061627334688391856,
+        "observedPotentialChangeJ": -0.061627334688409974,
+        "oldVelocityWorkJ": 0.06299611435236177,
+        "donorGapJ": 0.0013687796639699156,
+        "pairedGapJ": 0.0013687796639699143,
+        "donorGapResidualJ": -1.3010426069826053e-18,
+        "potentialResidualJ": -1.8117451983101773e-14,
+        "externalBodyWorkJ": -2.7755575615628914e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.8125,
+      "constraintTime": 0.84375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.006199855089014523,
+          "forwardRemainderJ": 0.00011462370600180475,
+          "linearWorkJ": -0.006199855089014518,
+          "kineticChangeJ": -0.006085231383011203,
+          "donorPairingResidualJ": 5.204170427930421e-18,
+          "finiteIdentityResidualJ": 1.5104155990167123e-15,
+          "combinedResidualJ": 1.5156197694446427e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06493914661317172,
+          "timeRemainderJ": 1.8864849200065303,
+          "wallRemovalNormJ": 0.23577483264317117,
+          "kineticChangeJ": 1.9514240666196958,
+          "finiteIdentityResidualJ": -6.217248937900877e-15
+        },
+        "wallKChangeJ": -0.23577483264316967,
+        "wallResidualJ": 1.4988010832439613e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6497965934628638,
+        "afterImpulseWorkJ": 8.239800985618273e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 8.204183965000718e-16,
+        "residualWorkBoundJ": 1.1704827647301466e-12,
+        "pinResidualM3S": 1.0859368959614812e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024826295797904577,
+        "kineticChangeJ": -1.6497965934628591,
+        "gradientPairingResidualJ": 3.5617020617555144e-18,
+        "finiteIdentityResidualJ": 3.774758283725532e-15,
+        "combinedResidualJ": 3.774758283725532e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06341404410065636,
+        "observedPotentialChangeJ": -0.06341404410062523,
+        "oldVelocityWorkJ": 0.06493914661317172,
+        "donorGapJ": 0.001525102512515325,
+        "pairedGapJ": 0.0015251025125153639,
+        "donorGapResidualJ": 3.881443777498106e-17,
+        "potentialResidualJ": 3.1127878052927827e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.257054446476575e-10,
+      "afterImpulseWorkJ": -7.52871007660449e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -1.817100116109674e-22,
+      "residualWorkBoundJ": 1.1558142901195305e-17,
+      "pinResidualM3S": 1.0335482469869817e-14,
+      "impulseMetricResidualKgMS": 5.487820586142205e-18,
+      "impulseMagnitudeKgMS": 4.3072009798736377e-7,
+      "kineticChangeJ": -1.2570711138693014e-10,
+      "gradientPairingResidualJ": -7.52852836659288e-18,
+      "finiteIdentityResidualJ": -1.6592105625549559e-15,
+      "combinedResidualJ": -1.6667390909103196e-15,
+      "weight": 1,
+      "constraintTime": 0.8125,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0010401330389026187,
+      "kineticChangeJ": -0.0010401330389016028,
+      "residualJ": 1.0158974356189177e-15
+    },
+    "start": 0.78125,
+    "end": 0.8125,
+    "rejected": 0,
+    "kineticChangeJ": 0.05808235898520486,
+    "potentialChangeJ": -0.06252068939454603,
+    "mechanicalChangeJ": -0.00443833040935715,
+    "donorDissipationJ": 0.005885361177210995,
+    "forwardRemainderJ": 0.00010713614524018785,
+    "gravityGapJ": 0.001446941088242639,
+    "gravityTimeRemainderJ": 1.8864708958228684,
+    "wallKChangeJ": -0.23577455934006664,
+    "projectionKChangeJ": -1.6497632499094872,
+    "timeSplitRemainderJ": 8.967965224311418e-8,
+    "reconstructedMechanicalJ": -0.004438330409316113,
+    "mechanicalResidualJ": -4.103661854770735e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.8125,
+      "constraintTime": 0.84375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.006195524353708793,
+          "forwardRemainderJ": 0.0001144992705624613,
+          "linearWorkJ": -0.006195524353708765,
+          "kineticChangeJ": -0.006081025083147007,
+          "donorPairingResidualJ": 2.7755575615628914e-17,
+          "finiteIdentityResidualJ": -7.028611633680404e-16,
+          "combinedResidualJ": -6.751055877524115e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06491483459674728,
+          "timeRemainderJ": 1.88648472015674,
+          "wallRemovalNormJ": 0.2357747921607926,
+          "kineticChangeJ": 1.9513995547534917,
+          "finiteIdentityResidualJ": 4.440892098500626e-15
+        },
+        "wallKChangeJ": -0.235774792160794,
+        "wallResidualJ": -1.3877787807814457e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6497966133632078,
+        "afterImpulseWorkJ": -1.5998080681381421e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -1.5933447750580167e-15,
+        "residualWorkBoundJ": 1.1654553163834279e-12,
+        "pinResidualM3S": 1.383268499743906e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024826289658456496,
+        "kineticChangeJ": -1.6497966133632085,
+        "gradientPairingResidualJ": -6.463293080125459e-18,
+        "finiteIdentityResidualJ": 8.881784197001252e-16,
+        "combinedResidualJ": 8.881784197001252e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06338940902816897,
+        "observedPotentialChangeJ": -0.06338940902816148,
+        "oldVelocityWorkJ": 0.0649148345967473,
+        "donorGapJ": 0.0015254255685782257,
+        "pairedGapJ": 0.0015254255685783202,
+        "donorGapResidualJ": 9.454242944073599e-17,
+        "potentialResidualJ": 7.494005416219807e-15,
+        "externalBodyWorkJ": -1.3877787807814457e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.84375,
+      "constraintTime": 0.875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.006861198021966133,
+          "forwardRemainderJ": 0.0001308366676073615,
+          "linearWorkJ": -0.006861198021966108,
+          "kineticChangeJ": -0.006730361354360781,
+          "donorPairingResidualJ": 2.42861286636753e-17,
+          "finiteIdentityResidualJ": -2.034071695800055e-15,
+          "combinedResidualJ": -2.0097855671363796e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06678753672189958,
+          "timeRemainderJ": 1.8865140370024087,
+          "wallRemovalNormJ": 0.23577537581960062,
+          "kineticChangeJ": 1.9533015737243096,
+          "finiteIdentityResidualJ": 1.3322676295501878e-15
+        },
+        "wallKChangeJ": -0.23577537581959884,
+        "wallResidualJ": 1.7763568394002505e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6498663126687878,
+        "afterImpulseWorkJ": 1.3593726838623255e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.3514459319879629e-15,
+        "residualWorkBoundJ": 1.1926851706865836e-12,
+        "pinResidualM3S": 9.901801600875615e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024854277368938273,
+        "kineticChangeJ": -1.6498663126687931,
+        "gradientPairingResidualJ": 7.926751874362606e-18,
+        "finiteIdentityResidualJ": -6.661338147750939e-15,
+        "combinedResidualJ": -6.661338147750939e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06509601615684117,
+        "observedPotentialChangeJ": -0.06509601615681504,
+        "oldVelocityWorkJ": 0.06678753672189953,
+        "donorGapJ": 0.0016915205650584126,
+        "pairedGapJ": 0.0016915205650583631,
+        "donorGapResidualJ": -4.9439619065339e-17,
+        "potentialResidualJ": 2.6131874442114622e-14,
+        "externalBodyWorkJ": 4.163336342344337e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.2932572410355192e-10,
+      "afterImpulseWorkJ": -4.0923040270386934e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -2.42685183914304e-22,
+      "residualWorkBoundJ": 1.2957093866198233e-17,
+      "pinResidualM3S": 1.4679230053715742e-14,
+      "impulseMetricResidualKgMS": 6.079631918476944e-18,
+      "impulseMagnitudeKgMS": 4.2994415031666344e-7,
+      "kineticChangeJ": -1.2932499515727613e-10,
+      "gradientPairingResidualJ": -4.092061341854779e-18,
+      "finiteIdentityResidualJ": 7.330385798102498e-16,
+      "combinedResidualJ": 7.289465184573233e-16,
+      "weight": 1,
+      "constraintTime": 0.84375,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0010154056172374361,
+      "kineticChangeJ": -0.0010154056172371195,
+      "residualJ": 3.165870343657673e-16
+    },
+    "start": 0.8125,
+    "end": 0.84375,
+    "rejected": 0,
+    "kineticChangeJ": 0.05932291826738745,
+    "potentialChangeJ": -0.06424271259248826,
+    "mechanicalChangeJ": -0.0049197943250760545,
+    "donorDissipationJ": 0.0065283611878374625,
+    "forwardRemainderJ": 0.0001226679690849114,
+    "gravityGapJ": 0.0016084730668183417,
+    "gravityTimeRemainderJ": 1.8864993785795745,
+    "wallKChangeJ": -0.23577508399019642,
+    "projectionKChangeJ": -1.649831463145326,
+    "timeSplitRemainderJ": 9.379589961926865e-8,
+    "reconstructedMechanicalJ": -0.0049197943251195015,
+    "mechanicalResidualJ": 4.344701681757712e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.84375,
+      "constraintTime": 0.875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.006856372397935457,
+          "forwardRemainderJ": 0.00013069415627306135,
+          "linearWorkJ": -0.006856372397935467,
+          "kineticChangeJ": -0.006725678241661814,
+          "donorPairingResidualJ": -1.0408340855860843e-17,
+          "finiteIdentityResidualJ": 5.91296759819282e-16,
+          "combinedResidualJ": 5.808884189634211e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06676225956280199,
+          "timeRemainderJ": 1.8865138111664084,
+          "wallRemovalNormJ": 0.23577533360781056,
+          "kineticChangeJ": 1.9532760707292065,
+          "finiteIdentityResidualJ": -3.774758283725532e-15
+        },
+        "wallKChangeJ": -0.235775333607811,
+        "wallResidualJ": -4.440892098500626e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.649866291741749,
+        "afterImpulseWorkJ": 1.1226642445544277e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 1.1300876637589208e-15,
+        "residualWorkBoundJ": 1.1885303959879234e-12,
+        "pinResidualM3S": 1.128958038165706e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024854243045747026,
+        "kineticChangeJ": -1.6498662917417437,
+        "gradientPairingResidualJ": -7.423419204493145e-18,
+        "finiteIdentityResidualJ": 4.218847493575595e-15,
+        "combinedResidualJ": 4.218847493575595e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06507050567888577,
+        "observedPotentialChangeJ": -0.06507050567887518,
+        "oldVelocityWorkJ": 0.06676225956280193,
+        "donorGapJ": 0.0016917538839162608,
+        "pairedGapJ": 0.0016917538839161667,
+        "donorGapResidualJ": -9.410874857174178e-17,
+        "potentialResidualJ": 1.058875209736243e-14,
+        "externalBodyWorkJ": 5.551115123125783e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.875,
+      "constraintTime": 0.90625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.007558202928748544,
+          "forwardRemainderJ": 0.00014842050509038523,
+          "linearWorkJ": -0.007558202928748577,
+          "kineticChangeJ": -0.007409782423656308,
+          "donorPairingResidualJ": -3.2959746043559335e-17,
+          "finiteIdentityResidualJ": 1.883801274693564e-15,
+          "combinedResidualJ": 1.8508415286500046e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06856206615442716,
+          "timeRemainderJ": 1.8865444164406349,
+          "wallRemovalNormJ": 0.2357759589905838,
+          "kineticChangeJ": 1.9551064825950584,
+          "finiteIdentityResidualJ": -3.552713678800501e-15
+        },
+        "wallKChangeJ": -0.23577595899058368,
+        "wallResidualJ": 1.1102230246251565e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6499389947960224,
+        "afterImpulseWorkJ": 8.76902717106276e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 8.390953913917094e-16,
+        "residualWorkBoundJ": 1.2103925533361251e-12,
+        "pinResidualM3S": 1.1681627887227819e-14,
+        "impulseMetricResidualKgMS": 1.0408340855860843e-17,
+        "impulseMagnitudeKgMS": 0.024882727293350497,
+        "kineticChangeJ": -1.6499389947960197,
+        "gradientPairingResidualJ": 3.780732571456658e-17,
+        "finiteIdentityResidualJ": 1.7763568394002505e-15,
+        "combinedResidualJ": 1.7763568394002505e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06669448666279194,
+        "observedPotentialChangeJ": -0.06669448666281141,
+        "oldVelocityWorkJ": 0.06856206615442716,
+        "donorGapJ": 0.0018675794916352168,
+        "pairedGapJ": 0.0018675794916352129,
+        "donorGapResidualJ": -3.903127820947816e-18,
+        "potentialResidualJ": -1.9470536294363683e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.3243800002921624e-10,
+      "afterImpulseWorkJ": -7.617393764437525e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -4.0356393796027164e-23,
+      "residualWorkBoundJ": 1.476371584387137e-17,
+      "pinResidualM3S": 3.6731034880332913e-14,
+      "impulseMetricResidualKgMS": 6.148188647645339e-18,
+      "impulseMagnitudeKgMS": 4.2762809711674454e-7,
+      "kineticChangeJ": -1.3243695029530045e-10,
+      "gradientPairingResidualJ": -7.617353408043729e-18,
+      "finiteIdentityResidualJ": 1.0573513095606828e-15,
+      "combinedResidualJ": 1.0497339561471496e-15,
+      "weight": 1,
+      "constraintTime": 0.875,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0009902836424309873,
+      "kineticChangeJ": -0.0009902836424321437,
+      "residualJ": -1.156410037173039e-15
+    },
+    "start": 0.84375,
+    "end": 0.875,
+    "rejected": 0,
+    "kineticChangeJ": 0.060454972986525246,
+    "potentialChangeJ": -0.0658824961708433,
+    "mechanicalChangeJ": -0.005427523184323491,
+    "donorDissipationJ": 0.007207287663342001,
+    "forwardRemainderJ": 0.00013955733068172327,
+    "gravityGapJ": 0.0017796666877756898,
+    "gravityTimeRemainderJ": 1.8865291138035216,
+    "wallKChangeJ": -0.23577564629919734,
+    "projectionKChangeJ": -1.6499026434013186,
+    "timeSplitRemainderJ": 9.779125636111448e-8,
+    "reconstructedMechanicalJ": -0.00542752318430995,
+    "mechanicalResidualJ": -1.3540384091736968e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.875,
+      "constraintTime": 0.90625,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.007552852615107854,
+          "forwardRemainderJ": 0.00014825836759361775,
+          "linearWorkJ": -0.0075528526151078315,
+          "kineticChangeJ": -0.007404594247511831,
+          "donorPairingResidualJ": 2.2551405187698492e-17,
+          "finiteIdentityResidualJ": 2.3828324296343295e-15,
+          "combinedResidualJ": 2.405383834822028e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.06853582742878435,
+          "timeRemainderJ": 1.886544166846809,
+          "wallRemovalNormJ": 0.23577591513552165,
+          "kineticChangeJ": 1.9550799942755859,
+          "finiteIdentityResidualJ": -7.549516567451064e-15
+        },
+        "wallKChangeJ": -0.23577591513552365,
+        "wallResidualJ": -1.9984014443252818e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6499389339090604,
+        "afterImpulseWorkJ": 8.90699189751154e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": 9.061979362440467e-16,
+        "residualWorkBoundJ": 1.210858874472323e-12,
+        "pinResidualM3S": 1.1147333056626962e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024882663532585298,
+        "kineticChangeJ": -1.6499389339090615,
+        "gradientPairingResidualJ": -1.5498746492892624e-17,
+        "finiteIdentityResidualJ": -1.9984014443252818e-15,
+        "combinedResidualJ": -1.9984014443252818e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06666811435321135,
+        "observedPotentialChangeJ": -0.06666811435320597,
+        "oldVelocityWorkJ": 0.06853582742878431,
+        "donorGapJ": 0.0018677130755729641,
+        "pairedGapJ": 0.0018677130755729576,
+        "donorGapResidualJ": -6.5052130349130266e-18,
+        "potentialResidualJ": 5.384581669432009e-15,
+        "externalBodyWorkJ": 4.163336342344337e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.90625,
+      "constraintTime": 0.9375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.008290139411264217,
+          "forwardRemainderJ": 0.0001673924175348349,
+          "linearWorkJ": -0.008290139411264255,
+          "kineticChangeJ": -0.008122746993727059,
+          "donorPairingResidualJ": -3.8163916471489756e-17,
+          "finiteIdentityResidualJ": 2.361473646836365e-15,
+          "combinedResidualJ": 2.3233097303648753e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.07026020684103201,
+          "timeRemainderJ": 1.8865760318800415,
+          "wallRemovalNormJ": 0.23577658739384041,
+          "kineticChangeJ": 1.9568362387210747,
+          "finiteIdentityResidualJ": 1.1102230246251565e-15
+        },
+        "wallKChangeJ": -0.2357765873938411,
+        "wallResidualJ": -6.938893903907228e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6500145767608458,
+        "afterImpulseWorkJ": 2.9256653523435094e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 2.9227239734654675e-15,
+        "residualWorkBoundJ": 1.2413099236130611e-12,
+        "pinResidualM3S": 7.879114027886658e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02491156921773362,
+        "kineticChangeJ": -1.6500145767608443,
+        "gradientPairingResidualJ": 2.941378878041939e-18,
+        "finiteIdentityResidualJ": -1.3322676295501878e-15,
+        "combinedResidualJ": -1.3322676295501878e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.0682070197301992,
+        "observedPotentialChangeJ": -0.0682070197302096,
+        "oldVelocityWorkJ": 0.07026020684103201,
+        "donorGapJ": 0.002053187110832788,
+        "pairedGapJ": 0.002053187110832813,
+        "donorGapResidualJ": 2.5153490401663703e-17,
+        "potentialResidualJ": -1.0394463068053028e-14,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.3503363490467778e-10,
+      "afterImpulseWorkJ": 1.104863820698099e-17,
+      "targetWorkJ": 0,
+      "residualWorkJ": -1.323328537087408e-22,
+      "residualWorkBoundJ": 1.622122311818007e-17,
+      "pinResidualM3S": 5.03000419094235e-14,
+      "impulseMetricResidualKgMS": 5.95633568509224e-18,
+      "impulseMagnitudeKgMS": 4.2384819162397114e-7,
+      "kineticChangeJ": -1.3503531626213316e-10,
+      "gradientPairingResidualJ": 1.1048770539834698e-17,
+      "finiteIdentityResidualJ": -1.6924060935886901e-15,
+      "combinedResidualJ": -1.6813573230586605e-15,
+      "weight": 1,
+      "constraintTime": 0.90625,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0009648163620676293,
+      "kineticChangeJ": -0.0009648163620672445,
+      "residualJ": 3.847833510151055e-16
+    },
+    "start": 0.875,
+    "end": 0.90625,
+    "rejected": 0,
+    "kineticChangeJ": 0.06147662278097299,
+    "potentialChangeJ": -0.06743756704167936,
+    "mechanicalChangeJ": -0.005960944260721135,
+    "donorDissipationJ": 0.007921496013186036,
+    "forwardRemainderJ": 0.00015782539256422633,
+    "gravityGapJ": 0.0019604500932028854,
+    "gravityTimeRemainderJ": 1.8865600993634253,
+    "wallKChangeJ": -0.23577625126468238,
+    "projectionKChangeJ": -1.6499767554699882,
+    "timeSplitRemainderJ": 1.0165925129858918e-7,
+    "reconstructedMechanicalJ": -0.005960944260731852,
+    "mechanicalResidualJ": 1.0717121634584714e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.90625,
+      "constraintTime": 0.9375,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.008284235042627817,
+          "forwardRemainderJ": 0.00016720908972108378,
+          "linearWorkJ": -0.008284235042627847,
+          "kineticChangeJ": -0.008117025952907309,
+          "donorPairingResidualJ": -2.949029909160572e-17,
+          "finiteIdentityResidualJ": -5.457331635205787e-16,
+          "combinedResidualJ": -5.752234626121844e-16
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.07023303561362751,
+          "timeRemainderJ": 1.8865757524419957,
+          "wallRemovalNormJ": 0.23577654200195272,
+          "kineticChangeJ": 1.9568087880556289,
+          "finiteIdentityResidualJ": 5.551115123125783e-15
+        },
+        "wallKChangeJ": -0.23577654200195308,
+        "wallResidualJ": -3.608224830031759e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6500144675896775,
+        "afterImpulseWorkJ": -3.353166268954544e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -3.187053702726848e-16,
+        "residualWorkBoundJ": 1.2337270872741585e-12,
+        "pinResidualM3S": 1.638619795407692e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02491147484430701,
+        "kineticChangeJ": -1.650014467589679,
+        "gradientPairingResidualJ": -1.6611256622769573e-17,
+        "finiteIdentityResidualJ": -1.1102230246251565e-15,
+        "combinedResidualJ": -1.3322676295501878e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06817982500755271,
+        "observedPotentialChangeJ": -0.0681798250075758,
+        "oldVelocityWorkJ": 0.07023303561362747,
+        "donorGapJ": 0.002053210606074742,
+        "pairedGapJ": 0.0020532106060747596,
+        "donorGapResidualJ": 1.7780915628762273e-17,
+        "potentialResidualJ": -2.3092638912203256e-14,
+        "externalBodyWorkJ": 4.163336342344337e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.9375,
+      "constraintTime": 0.96875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.009056108260278342,
+          "forwardRemainderJ": 0.0001877613935802006,
+          "linearWorkJ": -0.009056108260278369,
+          "kineticChangeJ": -0.008868346866700128,
+          "donorPairingResidualJ": -2.6020852139652106e-17,
+          "finiteIdentityResidualJ": -1.9595870065503007e-15,
+          "combinedResidualJ": -1.985607858689953e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.0718795520105582,
+          "timeRemainderJ": 1.8866087964538962,
+          "wallRemovalNormJ": 0.23577726674526064,
+          "kineticChangeJ": 1.9584883484644535,
+          "finiteIdentityResidualJ": -8.881784197001252e-16
+        },
+        "wallKChangeJ": -0.23577726674525845,
+        "wallResidualJ": 2.192690473634684e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6500929255405952,
+        "afterImpulseWorkJ": -7.797039923429505e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -8.298702473597916e-16,
+        "residualWorkBoundJ": 1.2606879829308944e-12,
+        "pinResidualM3S": 1.5008827514151335e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024940723590288563,
+        "kineticChangeJ": -1.6500929255405936,
+        "gradientPairingResidualJ": 5.0166255016841065e-17,
+        "finiteIdentityResidualJ": 2.4424906541753444e-15,
+        "combinedResidualJ": 2.4424906541753444e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06963134244700822,
+        "observedPotentialChangeJ": -0.06963134244699631,
+        "oldVelocityWorkJ": 0.07187955201055816,
+        "donorGapJ": 0.0022482095635499182,
+        "pairedGapJ": 0.002248209563549944,
+        "donorGapResidualJ": 2.5587171270657905e-17,
+        "potentialResidualJ": 1.1907141939104804e-14,
+        "externalBodyWorkJ": 4.163336342344337e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.3709878202318888e-10,
+      "afterImpulseWorkJ": 3.7490472338863384e-19,
+      "targetWorkJ": 0,
+      "residualWorkJ": 3.7059477582200206e-23,
+      "residualWorkBoundJ": 1.6705666457606015e-17,
+      "pinResidualM3S": 5.15490428121268e-14,
+      "impulseMetricResidualKgMS": 6.3597351262221005e-18,
+      "impulseMagnitudeKgMS": 4.186799309885414e-7,
+      "kineticChangeJ": -1.3709566815123253e-10,
+      "gradientPairingResidualJ": 3.7486766391105164e-19,
+      "finiteIdentityResidualJ": 3.1134970516221177e-15,
+      "combinedResidualJ": 3.113871919277475e-15,
+      "weight": 1,
+      "constraintTime": 0.9375,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0009390532215716729,
+      "kineticChangeJ": -0.0009390532215729497,
+      "residualJ": -1.27675647831893e-15
+    },
+    "start": 0.90625,
+    "end": 0.9375,
+    "rejected": 0,
+    "kineticChangeJ": 0.062386227552826634,
+    "potentialChangeJ": -0.06890558372731448,
+    "mechanicalChangeJ": -0.006519356174464974,
+    "donorDissipationJ": 0.00867017165145308,
+    "forwardRemainderJ": 0.0001774852416506422,
+    "gravityGapJ": 0.0021507100848123517,
+    "gravityTimeRemainderJ": 1.886592274447946,
+    "wallKChangeJ": -0.23577690437360577,
+    "projectionKChangeJ": -1.6500536967022321,
+    "timeSplitRemainderJ": 1.0539218714411547e-7,
+    "reconstructedMechanicalJ": -0.006519356174453584,
+    "mechanicalResidualJ": -1.1390194343263715e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.9375,
+      "constraintTime": 0.96875,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.009049621458463624,
+          "forwardRemainderJ": 0.000187555319176199,
+          "linearWorkJ": -0.009049621458463608,
+          "kineticChangeJ": -0.00886206613928997,
+          "donorPairingResidualJ": 1.5612511283791264e-17,
+          "finiteIdentityResidualJ": -2.5611294768995707e-15,
+          "combinedResidualJ": -2.5455169656157794e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.0718515041347173,
+          "timeRemainderJ": 1.886608485537927,
+          "wallRemovalNormJ": 0.2357772199282733,
+          "kineticChangeJ": 1.9584599896726442,
+          "finiteIdentityResidualJ": 0
+        },
+        "wallKChangeJ": -0.23577721992827305,
+        "wallResidualJ": 2.498001805406602e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6500927635130498,
+        "afterImpulseWorkJ": -8.950631034954082e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -9.633543981255901e-16,
+        "residualWorkBoundJ": 1.263634224066828e-12,
+        "pinResidualM3S": 1.6868451080398472e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02494059753849123,
+        "kineticChangeJ": -1.6500927635130387,
+        "gradientPairingResidualJ": 6.829129463018194e-17,
+        "finiteIdentityResidualJ": 1.199040866595169e-14,
+        "combinedResidualJ": 1.199040866595169e-14
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.06960339219958267,
+        "observedPotentialChangeJ": -0.06960339219955358,
+        "oldVelocityWorkJ": 0.07185150413471726,
+        "donorGapJ": 0.002248111935134738,
+        "pairedGapJ": 0.002248111935134592,
+        "donorGapResidualJ": -1.46150452851046e-16,
+        "potentialResidualJ": 2.90878432451791e-14,
+        "externalBodyWorkJ": 4.163336342344337e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 0.96875,
+      "constraintTime": 1,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.009855046245644483,
+          "forwardRemainderJ": 0.0002095279771009741,
+          "linearWorkJ": -0.009855046245644518,
+          "kineticChangeJ": -0.009645518268542208,
+          "donorPairingResidualJ": -3.469446951953614e-17,
+          "finiteIdentityResidualJ": 1.3357099714478293e-15,
+          "combinedResidualJ": 1.3010155019282932e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.07341787231571632,
+          "timeRemainderJ": 1.88664265866999,
+          "wallRemovalNormJ": 0.2357780031830085,
+          "kineticChangeJ": 1.960060530985703,
+          "finiteIdentityResidualJ": -3.3306690738754696e-15
+        },
+        "wallKChangeJ": -0.23577800318300923,
+        "wallResidualJ": -7.216449660063518e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6501739324770033,
+        "afterImpulseWorkJ": 3.5289967562773805e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": 3.4599679043524814e-15,
+        "residualWorkBoundJ": 1.2908494700706005e-12,
+        "pinResidualM3S": 9.67628754899863e-15,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.02497010846074416,
+        "kineticChangeJ": -1.650173932476999,
+        "gradientPairingResidualJ": 6.902885192489917e-17,
+        "finiteIdentityResidualJ": 6.661338147750939e-16,
+        "combinedResidualJ": 6.661338147750939e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.07096540280168295,
+        "observedPotentialChangeJ": -0.07096540280167574,
+        "oldVelocityWorkJ": 0.07341787231571632,
+        "donorGapJ": 0.002452469514033311,
+        "pairedGapJ": 0.00245246951403337,
+        "donorGapResidualJ": 5.941427905220564e-17,
+        "potentialResidualJ": 7.216449660063518e-15,
+        "externalBodyWorkJ": 0
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.3862502383536158e-10,
+      "afterImpulseWorkJ": -6.5267693616761585e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": 2.098357282048913e-22,
+      "residualWorkBoundJ": 1.8536348298430626e-17,
+      "pinResidualM3S": 4.639691408847568e-14,
+      "impulseMetricResidualKgMS": 5.717525333525731e-18,
+      "impulseMagnitudeKgMS": 4.16866169070107e-7,
+      "kineticChangeJ": -1.386246673007463e-10,
+      "gradientPairingResidualJ": -6.526979197404364e-18,
+      "finiteIdentityResidualJ": 3.6306138464303233e-16,
+      "combinedResidualJ": 3.565344054359745e-16,
+      "weight": 1,
+      "constraintTime": 0.96875,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0009130450804717792,
+      "kineticChangeJ": -0.0009130450804732959,
+      "residualJ": -1.5166904190899722e-15
+    },
+    "start": 0.9375,
+    "end": 0.96875,
+    "rejected": 0,
+    "kineticChangeJ": 0.0631824633554996,
+    "potentialChangeJ": -0.07028439750064308,
+    "mechanicalChangeJ": -0.007101934145168798,
+    "donorDissipationJ": 0.009452333852054053,
+    "forwardRemainderJ": 0.00019854164813858655,
+    "gravityGapJ": 0.002350290724583981,
+    "gravityTimeRemainderJ": 1.8866255721039584,
+    "wallKChangeJ": -0.23577761155564114,
+    "projectionKChangeJ": -1.6501333481336435,
+    "timeSplitRemainderJ": 1.0898234044777553e-7,
+    "reconstructedMechanicalJ": -0.0071019341451296234,
+    "mechanicalResidualJ": -3.9174392896246246e-14
+  },
+  {
+    "first": {
+      "forceTime": 0.96875,
+      "constraintTime": 1,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.009847950087102911,
+          "forwardRemainderJ": 0.00020929762949117603,
+          "linearWorkJ": -0.00984795008710295,
+          "kineticChangeJ": -0.009638652457613528,
+          "donorPairingResidualJ": -3.8163916471489756e-17,
+          "finiteIdentityResidualJ": -1.7547270060591647e-15,
+          "combinedResidualJ": -1.7928909225306544e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.0733889891535749,
+          "timeRemainderJ": 1.8866423145447473,
+          "wallRemovalNormJ": 0.23577795505913202,
+          "kineticChangeJ": 1.960031303698327,
+          "finiteIdentityResidualJ": 4.884981308350689e-15
+        },
+        "wallKChangeJ": -0.2357779550591328,
+        "wallResidualJ": -7.771561172376096e-16
+      },
+      "projection": {
+        "correctionNormJ": 1.6501737136256558,
+        "afterImpulseWorkJ": -2.0541023309367246e-15,
+        "targetWorkJ": 0,
+        "residualWorkJ": -2.004543222514323e-15,
+        "residualWorkBoundJ": 1.2952731782793341e-12,
+        "pinResidualM3S": 2.041769531224702e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.024969949880834532,
+        "kineticChangeJ": -1.6501737136256613,
+        "gradientPairingResidualJ": -4.9559108422401373e-17,
+        "finiteIdentityResidualJ": -3.552713678800501e-15,
+        "combinedResidualJ": -3.552713678800501e-15
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.07093674887450588,
+        "observedPotentialChangeJ": -0.07093674887448742,
+        "oldVelocityWorkJ": 0.07338898915357493,
+        "donorGapJ": 0.0024522402790690305,
+        "pairedGapJ": 0.002452240279069054,
+        "donorGapResidualJ": 2.3418766925686896e-17,
+        "potentialResidualJ": 1.8457457784393227e-14,
+        "externalBodyWorkJ": -2.7755575615628914e-17
+      },
+      "weight": 0.5
+    },
+    "second": {
+      "forceTime": 1,
+      "constraintTime": 1.03125,
+      "interval": 0.03125,
+      "transport": {
+        "donor": {
+          "donorDissipationJ": 0.01068573157161011,
+          "forwardRemainderJ": 0.00023268412991395672,
+          "linearWorkJ": -0.010685731571610079,
+          "kineticChangeJ": -0.010453047441694174,
+          "donorPairingResidualJ": 3.122502256758253e-17,
+          "finiteIdentityResidualJ": 1.9480673584676422e-15,
+          "combinedResidualJ": 1.9792923810352248e-15
+        },
+        "body": {
+          "oldVelocityWorkJ": 0.07487304840574988,
+          "timeRemainderJ": 1.8866775589484086,
+          "wallRemovalNormJ": 0.23577880320651234,
+          "kineticChangeJ": 1.9615506073541589,
+          "finiteIdentityResidualJ": 4.440892098500626e-16
+        },
+        "wallKChangeJ": -0.23577880320651445,
+        "wallResidualJ": -2.1094237467877974e-15
+      },
+      "projection": {
+        "correctionNormJ": 1.6502574726867365,
+        "afterImpulseWorkJ": -7.675609280111129e-16,
+        "targetWorkJ": 0,
+        "residualWorkJ": -7.772581362855536e-16,
+        "residualWorkBoundJ": 1.325214136210533e-12,
+        "pinResidualM3S": 1.8349904928882665e-14,
+        "impulseMetricResidualKgMS": 6.938893903907228e-18,
+        "impulseMagnitudeKgMS": 0.0249996398815783,
+        "kineticChangeJ": -1.6502574726867367,
+        "gradientPairingResidualJ": 9.697208274440774e-18,
+        "finiteIdentityResidualJ": 4.440892098500626e-16,
+        "combinedResidualJ": 6.661338147750939e-16
+      },
+      "gravity": {
+        "potentialFromFluxJ": -0.07220730001279736,
+        "observedPotentialChangeJ": -0.07220730001279207,
+        "oldVelocityWorkJ": 0.0748730484057498,
+        "donorGapJ": 0.0026657483929524856,
+        "pairedGapJ": 0.002665748392952444,
+        "donorGapResidualJ": -4.163336342344337e-17,
+        "potentialResidualJ": 5.287437154777308e-15,
+        "externalBodyWorkJ": 6.938893903907228e-17
+      },
+      "weight": 0.5
+    },
+    "finalProjection": {
+      "correctionNormJ": 1.3961267168701477e-10,
+      "afterImpulseWorkJ": -2.4926856148713974e-18,
+      "targetWorkJ": 0,
+      "residualWorkJ": -2.760020825618449e-22,
+      "residualWorkBoundJ": 1.0180462044424018e-17,
+      "pinResidualM3S": 3.5742242499026133e-14,
+      "impulseMetricResidualKgMS": 7.434302298932587e-18,
+      "impulseMagnitudeKgMS": 4.2248627076663103e-7,
+      "kineticChangeJ": -1.3961232170345284e-10,
+      "gradientPairingResidualJ": -2.4924096127888357e-18,
+      "finiteIdentityResidualJ": 3.52476247553869e-16,
+      "combinedResidualJ": 3.4998383793297885e-16,
+      "weight": 1,
+      "constraintTime": 1,
+      "kind": "endpoint-constraint-correction"
+    },
+    "average": {
+      "jensenJ": -0.0008868427730046242,
+      "kineticChangeJ": -0.0008868427730051032,
+      "residualJ": -4.790005198040959e-16
+    },
+    "start": 0.96875,
+    "end": 1,
+    "rejected": 0,
+    "kineticChangeJ": 0.0638642903749489,
+    "potentialChangeJ": -0.07157202444363975,
+    "mechanicalChangeJ": -0.007707734068674199,
+    "donorDissipationJ": 0.01026684082935651,
+    "forwardRemainderJ": 0.0002209908797025664,
+    "gravityGapJ": 0.002558994336010749,
+    "gravityTimeRemainderJ": 1.886659936746578,
+    "wallKChangeJ": -0.23577837913282362,
+    "projectionKChangeJ": -1.6502155932958114,
+    "timeSplitRemainderJ": 1.1242464096499795e-7,
+    "reconstructedMechanicalJ": -0.007707734068704796,
+    "mechanicalResidualJ": 3.0597052669278924e-14
+  }
+]

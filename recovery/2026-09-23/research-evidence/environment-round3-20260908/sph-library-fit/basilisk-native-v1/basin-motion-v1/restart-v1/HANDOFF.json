@@ -1,0 +1,71 @@
+{
+  "scope": "Paused source/caller-gap handoff; no codec, compile or numerical invocation.",
+  "liveOwnedProcess": false,
+  "files": [
+    {
+      "path": "BASELINE.json",
+      "bytes": 1872,
+      "sha256": "c1345cb97773f80e1a75e8b94173817975c0347d8abe3ec03df613aec240036c"
+    },
+    {
+      "path": "HANDOFF.md",
+      "bytes": 3556,
+      "sha256": "c2848b9ab538e7b9ff0893fc1457f8d46ca71523c15f146b3d92568d1ee655a4"
+    },
+    {
+      "path": "SOURCE-INVENTORY.json",
+      "bytes": 7575,
+      "sha256": "326826caf136bfdefbc9bf00ce5cd63e633b29dab4314e81af8871634e9a3f75"
+    },
+    {
+      "path": "compile-wave.py",
+      "bytes": 2750,
+      "sha256": "264f6dc1078d85ad47f024f83a45aecda3f00cb06c71b2dcb76854987bc7ee40"
+    },
+    {
+      "path": "native-owner.patch",
+      "bytes": 1895,
+      "sha256": "478c9d0fffc3a17f74f901f60ac1330defedebf6827226cd04ceb6e1be82dfda"
+    },
+    {
+      "path": "run.h",
+      "bytes": 1510,
+      "sha256": "d9a3abe3f9c71a34b97c732c492f3c608ba52ba966b4ff79950a437b6dc73b63"
+    },
+    {
+      "path": "timestep.h",
+      "bytes": 799,
+      "sha256": "5e06681de08525e361f81f55ff55dd80587aa7da17e5046db4e34b559e91265a"
+    },
+    {
+      "path": "upstream-original/run.h",
+      "bytes": 953,
+      "sha256": "3c8d8f5c40fddd013684c67c6824518589039e2035e605e17e249675eedd6ef7"
+    },
+    {
+      "path": "upstream-original/timestep.h",
+      "bytes": 458,
+      "sha256": "7a728bfe633cac8e6682fd8288ec6296a18d1486fb3c5b4b4019d227fb3947b4"
+    },
+    {
+      "path": "wave-observation.h",
+      "bytes": 9461,
+      "sha256": "c874670a3b587048fb587a5e0534ea30a38f02d9763aecac9ab1cbd9257da513"
+    },
+    {
+      "path": "wave-reduced-observation.h",
+      "bytes": 7230,
+      "sha256": "b8006c656359e8d44700cc8a60065dc4c6522c71fc96041022a215505bbcf16c"
+    },
+    {
+      "path": "wave-transport-observation.h",
+      "bytes": 14696,
+      "sha256": "c6f1579028dd5404af024c39c41696130d86042f074abe1fd9c34d1bc5df79d7"
+    },
+    {
+      "path": "wave.c",
+      "bytes": 7127,
+      "sha256": "e2461cb3807766f85ed6ea3b8aeb3ced7628393bbaef2b44fb89f66dc51724ba"
+    }
+  ]
+}

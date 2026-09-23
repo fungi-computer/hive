@@ -1,0 +1,249 @@
+{
+  "inventory": {
+    "acceptedSourceCount": 33,
+    "acceptedInventorySha256": "ced9f8c423a8f062ec3a83562b8e877559a39abab09cbb6b37878a1599f02b2a",
+    "sources": {
+      "measure.mjs": "dda812ea944dccb7da75587281065e3479a13cc61c30d6ebc204a6541fe527eb",
+      "CONTRACT.md": "4b389acac77ae0b8f96c0f7741f252bd25cd09d805d07e9d83ce550106da6556",
+      ".fallowrc.json": "bef2811c3e0f9b2ba508cbdbd453fc73c73e97ca9a67106c7b63b3ac98cfade0"
+    },
+    "acceptedResultSha256": "263524255872941225395e50c7c5d43dbf6e322089af9ac81d56dc25a48d7d2a"
+  },
+  "phases": [
+    {
+      "name": "fixture-build",
+      "completed": true,
+      "wallMs": 292.32345899999996,
+      "cpuMicros": {
+        "user": 157123,
+        "system": 13854
+      },
+      "cpuTotalMs": 170.977
+    },
+    {
+      "name": "adapter-initial",
+      "completed": true,
+      "wallMs": 84.41747499999997,
+      "cpuMicros": {
+        "user": 48858,
+        "system": 3862
+      },
+      "cpuTotalMs": 52.72
+    },
+    {
+      "name": "adapter-excavate",
+      "completed": true,
+      "wallMs": 215.94881799999996,
+      "cpuMicros": {
+        "user": 87872,
+        "system": 5303
+      },
+      "cpuTotalMs": 93.175
+    },
+    {
+      "name": "bare-soil-create",
+      "completed": true,
+      "wallMs": 2.5417959999999766,
+      "cpuMicros": {
+        "user": 1374,
+        "system": 19
+      },
+      "cpuTotalMs": 1.393
+    },
+    {
+      "name": "bare-soil-advance-600s-dt6",
+      "completed": true,
+      "wallMs": 128.6399399999999,
+      "cpuMicros": {
+        "user": 65956,
+        "system": 3275
+      },
+      "cpuTotalMs": 69.231
+    },
+    {
+      "name": "adapter-advance-600s-dt6",
+      "completed": true,
+      "wallMs": 330.8896000000001,
+      "cpuMicros": {
+        "user": 154711,
+        "system": 3705
+      },
+      "cpuTotalMs": 158.416
+    },
+    {
+      "name": "adapter-read",
+      "completed": true,
+      "wallMs": 152.932775,
+      "cpuMicros": {
+        "user": 48921,
+        "system": 0
+      },
+      "cpuTotalMs": 48.921
+    },
+    {
+      "name": "adapter-encode",
+      "completed": true,
+      "wallMs": 181.69851799999992,
+      "cpuMicros": {
+        "user": 47094,
+        "system": 0
+      },
+      "cpuTotalMs": 47.094
+    },
+    {
+      "name": "fresh-adapter-create",
+      "completed": true,
+      "wallMs": 0.22074300000008407,
+      "cpuMicros": {
+        "user": 237,
+        "system": 0
+      },
+      "cpuTotalMs": 0.237
+    },
+    {
+      "name": "fresh-adapter-decode",
+      "completed": true,
+      "wallMs": 151.07282899999996,
+      "cpuMicros": {
+        "user": 44295,
+        "system": 723
+      },
+      "cpuTotalMs": 45.018
+    },
+    {
+      "name": "public-world-restore",
+      "completed": true,
+      "wallMs": 0.38861599999995633,
+      "cpuMicros": {
+        "user": 393,
+        "system": 0
+      },
+      "cpuTotalMs": 0.393
+    },
+    {
+      "name": "public-world-region-vent-contact-read",
+      "completed": true,
+      "wallMs": 109.08625600000005,
+      "cpuMicros": {
+        "user": 32602,
+        "system": 1099
+      },
+      "cpuTotalMs": 33.701
+    }
+  ],
+  "ordering": "one observation per phase; fixed order, no warmup or forced GC",
+  "privateAdapterWorldCounters": "not exposed; public independent binding pass measured separately",
+  "fixtureSource": {
+    "id": {
+      "worldId": "one-generated-soil-excavation",
+      "spaceId": "surface",
+      "base": {
+        "heightIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907",
+        "heightSeed": "hive-world-lab-seed-20260907",
+        "codecSchema": 2,
+        "heightSource": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+        "voxelRecipe": "height-sea-connected-caves-v3",
+        "features": {
+          "id": "pit-gallery-capsules-v1",
+          "regionMetres": 128,
+          "candidateJitterCells": 20,
+          "dryMarginLevels": 3,
+          "radiusMetres": 1.35,
+          "points": [
+            [
+              0,
+              2,
+              0
+            ],
+            [
+              0,
+              -5,
+              0
+            ],
+            [
+              8,
+              -10,
+              6
+            ],
+            [
+              20,
+              -18,
+              10
+            ]
+          ],
+          "chamberRadiiMetres": [
+            3.8,
+            2.4,
+            3.4
+          ],
+          "cacheCapRegions": 16,
+          "sampling": "physical-voxel-centres"
+        },
+        "units": {
+          "horizontalMetres": 1,
+          "verticalMetres": 0.54,
+          "voxelsPerStorey": 4
+        },
+        "bounds": {
+          "minX": -2048,
+          "maxX": 2048,
+          "minZ": -2048,
+          "maxZ": 2048,
+          "minY": -64,
+          "maxY": 64
+        },
+        "brickSide": 16,
+        "residentBrickCap": 8,
+        "cave": {
+          "id": "global-trilinear-two-octave-cave-v1",
+          "sampleNamespace": "height-sea-cave-density-v2",
+          "macro": {
+            "horizontalMetres": 32,
+            "verticalMetres": 18,
+            "weight": 0.78,
+            "salt": "cave-macro"
+          },
+          "detail": {
+            "horizontalMetres": 11,
+            "verticalMetres": 7,
+            "weight": 0.22,
+            "salt": "cave-detail"
+          },
+          "voidThreshold": 0.42,
+          "protectedSolidLayers": 3
+        }
+      }
+    },
+    "columns": 9,
+    "generatedSoilCells": 18,
+    "seed": "hive-world-lab-seed-20260907",
+    "waterTableYM": 7.710000000000001,
+    "soleTargetAnchor": false
+  },
+  "fixtureWorldWork": {
+    "revision": 0,
+    "changedCells": 0,
+    "changedBricks": 0,
+    "sparseOverlayBytes": 2,
+    "checkpointBytes": 1219,
+    "residentBricks": 4,
+    "residentBytes": 16384,
+    "maxResidentBricks": 8,
+    "residentProjectionCapBytes": 32768,
+    "generatedBricks": 4,
+    "heightSamples": 1024,
+    "caveMetricEvaluations": 11958,
+    "caveFeatures": {
+      "descriptors": 4,
+      "heightSamples": 4,
+      "membershipQueries": 0,
+      "segmentTests": 0,
+      "chamberTests": 0,
+      "evictions": 0,
+      "residentDescriptors": 4,
+      "residentDescriptorCap": 16,
+      "geometryTestsPerCellAtMost": 4
+    },
+    "evictions": 0
+  }
+}

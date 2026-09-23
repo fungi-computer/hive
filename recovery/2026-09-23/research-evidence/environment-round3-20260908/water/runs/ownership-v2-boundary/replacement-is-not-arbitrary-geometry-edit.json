@@ -1,0 +1,7 @@
+{
+  "name": "replacement-is-not-arbitrary-geometry-edit",
+  "status": "passed",
+  "elapsedMs": 67.872228,
+  "invalidReplacementAtomic": true,
+  "sameGeometryCheckpointRestoreExact": true
+}

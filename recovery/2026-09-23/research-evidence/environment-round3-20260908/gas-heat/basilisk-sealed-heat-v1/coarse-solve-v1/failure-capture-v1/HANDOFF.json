@@ -1,0 +1,84 @@
+{
+  "scope": "Exact first failure reproduced once; offline linear solve cause identified. No corrective physics run.",
+  "compileScope": "run-u3478.scope",
+  "captureScope": "run-u3479.scope",
+  "captureInvocationId": "aa059b02b0c44e65a895db7b3b6514b1",
+  "offlineScope": "run-u3483.scope",
+  "offlineInvocationId": "8fec84f0cec7486ca312baf1853361e1",
+  "all25PriorRecordsExactlyEqual": true,
+  "priorCandidateUnchanged": true,
+  "cause": "finite precision in explicit inverse/application, with material dot-product error; original assembly and guard reproduce correctly",
+  "recommendation": "bounded standard residual refinement using existing inverse and unchanged original-stencil acceptance",
+  "capturedWorstGuardRatio": 1.3285760250480803,
+  "offlineOneRefinementWorstGuardRatio": 0.0011839221969700705,
+  "files": {
+    "RESULTS.md": {
+      "bytes": 5638,
+      "sha256": "88fc66f3abf871db83afeb58cb38dfa28ef6ccb3a217fddd343275b2abc73789"
+    },
+    "CONTRACT.md": {
+      "bytes": 2260,
+      "sha256": "bdbaad0cccca9fbefb27c4f495127eed475bf09acab345bd619af067b315e7ae"
+    },
+    "capture.h": {
+      "bytes": 3989,
+      "sha256": "6535e7f5747faefa7ce0b217e8199d34cd337a0c829a4dd7559d6325778f38ce"
+    },
+    "capture.patch": {
+      "bytes": 2091,
+      "sha256": "625d2f65d1329972367af1ed650a9c2a289112fe3d7fe750a3c13b4207bc42f9"
+    },
+    "coarse-thermal.h": {
+      "bytes": 9337,
+      "sha256": "2f44c47b933e5137853d5ef6e1d4203a442d21fe99023cde9fa352314a974454"
+    },
+    "SOURCE-PIN.json": {
+      "bytes": 2306,
+      "sha256": "b1940a74f7a5bbbf3ffec48c4465dede3e09cf402efd48e8c8eee4e945db8c2d"
+    },
+    "COMPILE-HANDOFF.json": {
+      "bytes": 2051,
+      "sha256": "4eb049d848dee05f7b43a6de41ffe593cbfe51b780f11711c43758a9144b3c9e"
+    },
+    "GENERATED-REVIEW.md": {
+      "bytes": 1215,
+      "sha256": "9d5c9a61bfd70e6589229b0963017c0309896dd8a042f3cbae96fe853a985aa6"
+    },
+    "compile-v1.py": {
+      "bytes": 2199,
+      "sha256": "8b0aeb5ac538c13685f8b0604a9a79c1a5d1100d30b88e6a7b33204a5b17ab73"
+    },
+    "build-v1/receipt.json": {
+      "bytes": 2736,
+      "sha256": "70fd8350a90185a7156cf661e4b37a7103388896bcf631cce4b6128d85056c6c"
+    },
+    "run-capture-v1.py": {
+      "bytes": 5328,
+      "sha256": "07120f0e4c3be8730a3d4cc8ce41e63a9feb0a10448e73fa47128c6d269eca35"
+    },
+    "run-capture-v1/receipt.json": {
+      "bytes": 51977,
+      "sha256": "2a49b4b95e3e34b736710d2eaa03bffac9a2770ce7631c4af95123252b42de24"
+    },
+    "run-capture-v1/coarse-failure.json": {
+      "bytes": 21760,
+      "sha256": "e6780c930f052ec238c3e39b28947affd56e5548b6a74435b7efbb718ada5e67"
+    },
+    "run-capture-v1/stdout.log": {
+      "bytes": 40581,
+      "sha256": "d31299675f633afd5955b4cf9999a63753a7e388e2620ccfafd9d093bfafe661"
+    },
+    "run-capture-v1/stderr.log": {
+      "bytes": 64,
+      "sha256": "86de5ce8658659ffa5f9b05481567b07584e76d654ab6022f4a7f3a97893de4f"
+    },
+    "analyze-v1.py": {
+      "bytes": 7917,
+      "sha256": "d7096df176091cd2e6c6cc0785aa804b2cd170242e19b77e96f956d2ebc6b294"
+    },
+    "OFFLINE-RESULT.json": {
+      "bytes": 19030,
+      "sha256": "b202013f698963acb759107f03d0bf49de31092375c8b5b893548a8d5efcb019"
+    }
+  }
+}

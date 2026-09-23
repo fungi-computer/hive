@@ -1,0 +1,9 @@
+{
+  "name": "same-stepped-physical-geometry",
+  "status": "passed",
+  "elapsedMs": 22.958309999999997,
+  "cellsCompared": 4096,
+  "voxelHeightMetres": 0.1,
+  "coarseDx": 2,
+  "fineDx": 1
+}

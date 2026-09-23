@@ -1,0 +1,71 @@
+{
+  "scope": "Root-reviewed source-only wave implementation before compiler or numerical execution.",
+  "oracleSha256": "1b9ae075cc53816831945a0f9f8f023f6bf395da53352ac4dfe8ceeb02076c84",
+  "files": [
+    {
+      "path": "wave.c",
+      "bytes": 5958,
+      "sha256": "8358ae268ec83b239d4ddeffbbea14828582dddc9d263be67142858749a85426"
+    },
+    {
+      "path": "wave-observation.h",
+      "bytes": 9221,
+      "sha256": "8e018f7eaa26a536f7d8e5b3ba30ebff0ab903f950ace30a536bbb2cd7d9d3ea"
+    },
+    {
+      "path": "compare-wave.mjs",
+      "bytes": 11964,
+      "sha256": "4cd64a2d4596886d2c682a93907afa94f6b9ed8f967d9560d18dc042cbcdfbed"
+    },
+    {
+      "path": "compile-wave.py",
+      "bytes": 2631,
+      "sha256": "f1be1b1183c39238c5c58d5ca2c2e46f4c1bec08f0a78dba458a85b2c6d5620c"
+    },
+    {
+      "path": "run-wave.py",
+      "bytes": 4737,
+      "sha256": "e8a8d0468e38cb87a7b7dbab3f59a08b1909d119bd9c73037d1517fd5e9d2823"
+    },
+    {
+      "path": "oracle/oracle.mjs",
+      "bytes": 3302,
+      "sha256": "1b9ae075cc53816831945a0f9f8f023f6bf395da53352ac4dfe8ceeb02076c84"
+    },
+    {
+      "path": "oracle/CONTRACT.md",
+      "bytes": 2687,
+      "sha256": "db3d6c758b963126ca53b43544d3d2cf3e4054fcd71371fff33b91331b1c3755"
+    },
+    {
+      "path": "oracle/RESULTS.md",
+      "bytes": 1888,
+      "sha256": "13e1274c9ff980d233d8fbf2c221c8026466c55c3e05afe9b34cf7208af498f8"
+    },
+    {
+      "path": "PROPOSAL.md",
+      "bytes": 9123,
+      "sha256": "0c22ba15cdfc15433d76a5b119ae92d4fdd03f163c6a8201ba8c52cce3b6d422"
+    },
+    {
+      "path": "CALLER-CONTRACT.md",
+      "bytes": 6789,
+      "sha256": "728cf53e1c7d1a604c546f154bab4ffd62f529ddd9987a6b5c85d8d872d5765b"
+    },
+    {
+      "path": "FIXTURE.json",
+      "bytes": 876,
+      "sha256": "6009ed87bc100025d9685fbef6cb25152184727a5215f71b885dfc9b4a071c59"
+    },
+    {
+      "path": "SOURCE-INVENTORY.json",
+      "bytes": 5904,
+      "sha256": "560be022cc736af4c0377cd41e67aa1d395049cf5d89ca03f092db0b31feb7da"
+    },
+    {
+      "path": "FIRST-SHAPE.md",
+      "bytes": 5746,
+      "sha256": "aeb07c5c756109b6793081021945919fc6731196f3296c073df4b80d7a5fc019"
+    }
+  ]
+}

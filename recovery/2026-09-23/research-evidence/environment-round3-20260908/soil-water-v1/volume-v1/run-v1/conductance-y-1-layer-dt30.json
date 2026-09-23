@@ -1,0 +1,1918 @@
+{
+  "state": {
+    "version": "rigid-richards-connected-volume-be-v1",
+    "identity": "{\"version\":\"rigid-richards-connected-volume-be-v1\",\"geometry\":\"{\\\"version\\\":\\\"rigid-soil-voxel-graph-v1\\\",\\\"regionId\\\":\\\"saturated-y-1-path-layer\\\",\\\"revision\\\":0,\\\"spacingM\\\":[1,0.54,1],\\\"exterior\\\":\\\"closed\\\",\\\"definitions\\\":[{\\\"id\\\":\\\"synthetic-low-k-layer-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.000001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000},{\\\"id\\\":\\\"synthetic-rigid-loam-si-v1\\\",\\\"thetaR\\\":0.05,\\\"porosity\\\":0.45,\\\"alphaPerM\\\":2,\\\"n\\\":2,\\\"ksMPerS\\\":0.0001,\\\"ell\\\":0.5,\\\"minHeadM\\\":-4,\\\"maxHeadM\\\":8,\\\"densityKgM3\\\":1000}],\\\"cells\\\":[{\\\"at\\\":[0,0,0],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"},{\\\"at\\\":[0,1,0],\\\"soilId\\\":\\\"synthetic-low-k-layer-si-v1\\\"},{\\\"at\\\":[0,2,0],\\\"soilId\\\":\\\"synthetic-rigid-loam-si-v1\\\"}],\\\"reservoirs\\\":[{\\\"id\\\":\\\"high-face\\\",\\\"areaM2\\\":1},{\\\"id\\\":\\\"low-face\\\",\\\"areaM2\\\":1}],\\\"ports\\\":[{\\\"cell\\\":[0,0,0],\\\"side\\\":\\\"y-\\\",\\\"reservoirId\\\":\\\"low-face\\\"},{\\\"cell\\\":[0,2,0],\\\"side\\\":\\\"y+\\\",\\\"reservoirId\\\":\\\"high-face\\\"}],\\\"closedFaces\\\":[]}\",\"faceRule\":\"series-centre-half-trace-quarter-v1\",\"solver\":\"analytic-dense-newton-tree-closure-v1\",\"pressureGuess\":\"stable-id-multisource-bfs-canonical-stock-v1\",\"dryBoundary\":\"single-port-only-v1\"}",
+    "massKg": [
+      243,
+      243,
+      243,
+      2180.435231861558,
+      4199.564768138443
+    ],
+    "initialTotalKg": 7109,
+    "timeS": 600,
+    "steps": 20
+  },
+  "receipt": {
+    "startS": 0,
+    "endS": 600,
+    "faceIds": [
+      "y:0,0,0",
+      "y:0,1,0",
+      "y:0,2,0",
+      "y:0,3,0"
+    ],
+    "faceTransferKg": [
+      0.4352318615574404,
+      0.4352318615583499,
+      0.4352318615583499,
+      0.4352318615583499
+    ],
+    "steps": [
+      {
+        "startS": 0,
+        "endS": 30,
+        "dtS": 30,
+        "headM": [
+          3.9280176451366957,
+          3.19,
+          2.451982354863304,
+          2.1800217841193765,
+          4.199978215880623
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.0217841193767,
+          4199.978215880624
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021784119376206945,
+            0.02178411937711644,
+            0.02178411937711644,
+            0.02178411937711644
+          ],
+          "darcyTransferKg": [
+            0.021784119376973738,
+            0.021784119376974272,
+            0.021784119376974224,
+            0.021784119376973738
+          ],
+          "treeCorrectionKg": [
+            -7.667928791921241e-13,
+            1.4216752775020325e-13,
+            1.422161000075306e-13,
+            1.427018225808041e-13
+          ],
+          "initialContinuityKg": 7.667928791921241e-13,
+          "rootCompatibilityKg": -9.094947017729282e-13
+        },
+        "metrics": {
+          "mixedKg": 7.667928791921241e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 7.667928791921241e-13,
+          "darcyM3S": 2.555976263973747e-17,
+          "pairKg": 9.094947017729282e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 7.667928791921241e-13,
+          "rootCompatibilityKg": -9.094947017729282e-13,
+          "initialContinuityKg": 7.667928791921241e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.0217841193767,
+              "depthM": 2.1800217841193765,
+              "headM": 2.1800217841193765,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.978215880624,
+              "depthM": 4.199978215880623,
+              "headM": 4.199978215880623,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.0217841193767,
+              "previousHeadM": 2.1800217841193765,
+              "headM": 2.1800217841193765,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.978215880624,
+              "previousHeadM": 4.199978215880623,
+              "headM": 4.199978215880623,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 30,
+        "endS": 60,
+        "dtS": 30,
+        "headM": [
+          3.927996076936594,
+          3.19,
+          2.452003923063406,
+          2.180043565866014,
+          4.199956434133986
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.043565866014,
+          4199.956434133986
+        ],
+        "ledger": {
+          "transferKg": [
+            0.02178174663822574,
+            0.021781746637316246,
+            0.021781746637316246,
+            0.021781746637316246
+          ],
+          "darcyTransferKg": [
+            0.021781746637689677,
+            0.021781746637689087,
+            0.021781746637689087,
+            0.021781746637689677
+          ],
+          "treeCorrectionKg": [
+            5.360642485463529e-13,
+            -3.728406472447432e-13,
+            -3.728406472447432e-13,
+            -3.734304532265753e-13
+          ],
+          "initialContinuityKg": 5.360642485463529e-13,
+          "rootCompatibilityKg": 9.094947017729282e-13
+        },
+        "metrics": {
+          "mixedKg": 5.360642485463529e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 5.360642485463529e-13,
+          "darcyM3S": 1.786880828487843e-17,
+          "pairKg": 9.094947017729282e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 5.360642485463529e-13,
+          "rootCompatibilityKg": 9.094947017729282e-13,
+          "initialContinuityKg": 5.360642485463529e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.043565866014,
+              "depthM": 2.180043565866014,
+              "headM": 2.180043565866014,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.956434133986,
+              "depthM": 4.199956434133986,
+              "headM": 4.199956434133986,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.043565866014,
+              "previousHeadM": 2.180043565866014,
+              "headM": 2.180043565866014,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.956434133986,
+              "previousHeadM": 4.199956434133986,
+              "headM": 4.199956434133986,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 60,
+        "endS": 90,
+        "dtS": 30,
+        "headM": [
+          3.927974511085713,
+          3.19,
+          2.4520254889142867,
+          2.180065345240171,
+          4.199934654759828
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.065345240171,
+          4199.934654759829
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021779374156722042,
+            0.02177937415717679,
+            0.02177937415717679,
+            0.02177937415717679
+          ],
+          "darcyTransferKg": [
+            0.021779374156835923,
+            0.02177937415684408,
+            0.02177937415684413,
+            0.02177937415684086
+          ],
+          "treeCorrectionKg": [
+            -1.1388112675092543e-13,
+            3.3270955435149574e-13,
+            3.326609820941684e-13,
+            3.359292011229087e-13
+          ],
+          "initialContinuityKg": 3.359292011229087e-13,
+          "rootCompatibilityKg": -4.547473508864641e-13
+        },
+        "metrics": {
+          "mixedKg": 3.359292011229087e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 3.359292011229087e-13,
+          "darcyM3S": 1.119764003743029e-17,
+          "pairKg": 4.547473508864641e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 3.359292011229087e-13,
+          "rootCompatibilityKg": -4.547473508864641e-13,
+          "initialContinuityKg": 3.359292011229087e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.065345240171,
+              "depthM": 2.180065345240171,
+              "headM": 2.180065345240171,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.934654759829,
+              "depthM": 4.199934654759828,
+              "headM": 4.199934654759828,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.065345240171,
+              "previousHeadM": 2.180065345240171,
+              "headM": 2.180065345240171,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.934654759829,
+              "previousHeadM": 4.199934654759829,
+              "headM": 4.199934654759828,
+              "deltaHeadM": -8.881784197001252e-16
+            }
+          ]
+        }
+      },
+      {
+        "startS": 90,
+        "endS": 120,
+        "dtS": 30,
+        "headM": [
+          3.927952947583797,
+          3.19,
+          2.4520470524162024,
+          2.1800871222421057,
+          4.199912877757894
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.0871222421056,
+          4199.912877757894
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021777001934424334,
+            0.021777001934424334,
+            0.021777001934424334,
+            0.021777001934424334
+          ],
+          "darcyTransferKg": [
+            0.021777001934412493,
+            0.02177700193441112,
+            0.02177700193441117,
+            0.021777001934407555
+          ],
+          "treeCorrectionKg": [
+            1.1841222447017685e-14,
+            1.3215123439991316e-14,
+            1.3163081735712012e-14,
+            1.6778245459647678e-14
+          ],
+          "initialContinuityKg": 1.6778245459647678e-14,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 1.6778245459647678e-14,
+          "constitutiveKg": 0,
+          "darcyKg": 1.6778245459647678e-14,
+          "darcyM3S": 5.592748486549226e-19,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 1.6778245459647678e-14,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 1.6778245459647678e-14,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.0871222421056,
+              "depthM": 2.1800871222421057,
+              "headM": 2.1800871222421057,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.912877757894,
+              "depthM": 4.199912877757894,
+              "headM": 4.199912877757894,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.0871222421056,
+              "previousHeadM": 2.1800871222421057,
+              "headM": 2.1800871222421057,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.912877757894,
+              "previousHeadM": 4.199912877757894,
+              "headM": 4.199912877757894,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 120,
+        "endS": 150,
+        "dtS": 30,
+        "headM": [
+          3.927931386430591,
+          3.19,
+          2.4520686135694088,
+          2.180108896872076,
+          4.199891103127924
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.108896872076,
+          4199.891103127924
+        ],
+        "ledger": {
+          "transferKg": [
+            0.02177462997042312,
+            0.02177462997042312,
+            0.02177462997042312,
+            0.02177462997042312
+          ],
+          "darcyTransferKg": [
+            0.02177462997036509,
+            0.021774629970362062,
+            0.021774629970362062,
+            0.02177462997036509
+          ],
+          "treeCorrectionKg": [
+            5.802996971837615e-14,
+            6.105879690743166e-14,
+            6.105879690743166e-14,
+            5.802996971837615e-14
+          ],
+          "initialContinuityKg": 5.802996971837615e-14,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 5.802996971837615e-14,
+          "constitutiveKg": 0,
+          "darcyKg": 6.105879690743166e-14,
+          "darcyM3S": 2.035293230247722e-18,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 6.105879690743166e-14,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 5.802996971837615e-14,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.108896872076,
+              "depthM": 2.180108896872076,
+              "headM": 2.180108896872076,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.891103127924,
+              "depthM": 4.199891103127924,
+              "headM": 4.199891103127924,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.108896872076,
+              "previousHeadM": 2.180108896872076,
+              "headM": 2.180108896872076,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.891103127924,
+              "previousHeadM": 4.199891103127924,
+              "headM": 4.199891103127924,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 150,
+        "endS": 180,
+        "dtS": 30,
+        "headM": [
+          3.927909827625839,
+          3.19,
+          2.452090172374161,
+          2.1801306691303406,
+          4.199869330869659
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.1306691303407,
+          4199.869330869659
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021772258264718403,
+            0.021772258264718403,
+            0.021772258264718403,
+            0.021772258264718403
+          ],
+          "darcyTransferKg": [
+            0.02177225826466906,
+            0.021772258264668762,
+            0.021772258264668762,
+            0.02177225826466906
+          ],
+          "treeCorrectionKg": [
+            4.93424745506843e-14,
+            4.964084698855231e-14,
+            4.964084698855231e-14,
+            4.93424745506843e-14
+          ],
+          "initialContinuityKg": 4.93424745506843e-14,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 4.93424745506843e-14,
+          "constitutiveKg": 0,
+          "darcyKg": 4.964084698855231e-14,
+          "darcyM3S": 1.6546948996184103e-18,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 4.964084698855231e-14,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 4.93424745506843e-14,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.1306691303407,
+              "depthM": 2.1801306691303406,
+              "headM": 2.1801306691303406,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.869330869659,
+              "depthM": 4.199869330869659,
+              "headM": 4.199869330869659,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.1306691303407,
+              "previousHeadM": 2.1801306691303406,
+              "headM": 2.1801306691303406,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.869330869659,
+              "previousHeadM": 4.199869330869659,
+              "headM": 4.199869330869659,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 180,
+        "endS": 210,
+        "dtS": 30,
+        "headM": [
+          3.9278882711692846,
+          3.19,
+          2.4521117288307153,
+          2.180152439017158,
+          4.199847560982842
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.152439017158,
+          4199.847560982842
+        ],
+        "ledger": {
+          "transferKg": [
+            0.02176988681731018,
+            0.02176988681731018,
+            0.02176988681731018,
+            0.02176988681731018
+          ],
+          "darcyTransferKg": [
+            0.02176988681729972,
+            0.021769886817303085,
+            0.02176988681730304,
+            0.021769886817304653
+          ],
+          "treeCorrectionKg": [
+            1.0460382560140147e-14,
+            7.095019016745141e-15,
+            7.140121827120538e-15,
+            5.5268289944621074e-15
+          ],
+          "initialContinuityKg": 1.0460382560140147e-14,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 1.0460382560140147e-14,
+          "constitutiveKg": 0,
+          "darcyKg": 1.0460382560140147e-14,
+          "darcyM3S": 3.4867941867133825e-19,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 1.0460382560140147e-14,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 1.0460382560140147e-14,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.152439017158,
+              "depthM": 2.180152439017158,
+              "headM": 2.180152439017158,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.847560982842,
+              "depthM": 4.199847560982842,
+              "headM": 4.199847560982842,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.152439017158,
+              "previousHeadM": 2.180152439017158,
+              "headM": 2.180152439017158,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.847560982842,
+              "previousHeadM": 4.199847560982842,
+              "headM": 4.199847560982842,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 210,
+        "endS": 240,
+        "dtS": 30,
+        "headM": [
+          3.927866717060672,
+          3.1899999999999995,
+          2.4521332829393274,
+          2.180174206532786,
+          4.199825793467213
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.1742065327862,
+          4199.825793467214
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021767515628198453,
+            0.021767515628198453,
+            0.021767515628198453,
+            0.021767515628198453
+          ],
+          "darcyTransferKg": [
+            0.02176751562823733,
+            0.021767515628236745,
+            0.021767515628236745,
+            0.02176751562823733
+          ],
+          "treeCorrectionKg": [
+            -3.88786225435922e-14,
+            -3.829228600871204e-14,
+            -3.829228600871204e-14,
+            -3.88786225435922e-14
+          ],
+          "initialContinuityKg": 3.88786225435922e-14,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 3.88786225435922e-14,
+          "constitutiveKg": 0,
+          "darcyKg": 3.88786225435922e-14,
+          "darcyM3S": 1.2959540847864067e-18,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 3.88786225435922e-14,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 3.88786225435922e-14,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.1742065327862,
+              "depthM": 2.180174206532786,
+              "headM": 2.180174206532786,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.825793467214,
+              "depthM": 4.199825793467213,
+              "headM": 4.199825793467213,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.1742065327862,
+              "previousHeadM": 2.180174206532786,
+              "headM": 2.180174206532786,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.825793467214,
+              "previousHeadM": 4.199825793467213,
+              "headM": 4.199825793467213,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 240,
+        "endS": 270,
+        "dtS": 30,
+        "headM": [
+          3.9278451652997464,
+          3.19,
+          2.452154834700253,
+          2.1801959716774837,
+          4.199804028322516
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.1959716774836,
+          4199.804028322516
+        ],
+        "ledger": {
+          "transferKg": [
+            0.02176514469738322,
+            0.02176514469738322,
+            0.02176514469738322,
+            0.02176514469738322
+          ],
+          "darcyTransferKg": [
+            0.02176514469744243,
+            0.021765144697441844,
+            0.02176514469744189,
+            0.021765144697437497
+          ],
+          "treeCorrectionKg": [
+            -5.920958168204038e-14,
+            -5.862324514716022e-14,
+            -5.866834795753562e-14,
+            -5.427602811636234e-14
+          ],
+          "initialContinuityKg": 5.920958168204038e-14,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 5.920958168204038e-14,
+          "constitutiveKg": 0,
+          "darcyKg": 5.920958168204038e-14,
+          "darcyM3S": 1.9736527227346792e-18,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 5.920958168204038e-14,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 5.920958168204038e-14,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.1959716774836,
+              "depthM": 2.1801959716774837,
+              "headM": 2.1801959716774837,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.804028322516,
+              "depthM": 4.199804028322516,
+              "headM": 4.199804028322516,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.1959716774836,
+              "previousHeadM": 2.1801959716774837,
+              "headM": 2.1801959716774837,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.804028322516,
+              "previousHeadM": 4.199804028322516,
+              "headM": 4.199804028322516,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 270,
+        "endS": 300,
+        "dtS": 30,
+        "headM": [
+          3.9278236158862514,
+          3.19,
+          2.4521763841137485,
+          2.180217734451509,
+          4.1997822655484915
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.217734451509,
+          4199.7822655484915
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021762774024864484,
+            0.02176277402531923,
+            0.02176277402531923,
+            0.02176277402531923
+          ],
+          "darcyTransferKg": [
+            0.02176277402489034,
+            0.02176277402489019,
+            0.02176277402489014,
+            0.021762774024885405
+          ],
+          "treeCorrectionKg": [
+            -2.5854318685958333e-14,
+            4.290422184194398e-13,
+            4.2909079067676714e-13,
+            4.3382658576618383e-13
+          ],
+          "initialContinuityKg": 4.3382658576618383e-13,
+          "rootCompatibilityKg": -4.547473508864641e-13
+        },
+        "metrics": {
+          "mixedKg": 4.3382658576618383e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 4.3382658576618383e-13,
+          "darcyM3S": 1.4460886192206126e-17,
+          "pairKg": 4.547473508864641e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 4.3382658576618383e-13,
+          "rootCompatibilityKg": -4.547473508864641e-13,
+          "initialContinuityKg": 4.3382658576618383e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.217734451509,
+              "depthM": 2.180217734451509,
+              "headM": 2.180217734451509,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.7822655484915,
+              "depthM": 4.1997822655484915,
+              "headM": 4.1997822655484915,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.217734451509,
+              "previousHeadM": 2.180217734451509,
+              "headM": 2.180217734451509,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.7822655484915,
+              "previousHeadM": 4.1997822655484915,
+              "headM": 4.1997822655484915,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 300,
+        "endS": 330,
+        "dtS": 30,
+        "headM": [
+          3.9278020688199313,
+          3.1900000000000004,
+          2.452197931180069,
+          2.1802394948551194,
+          4.199760505144881
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.2394948551196,
+          4199.760505144881
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021760403610642243,
+            0.021760403610642243,
+            0.021760403610642243,
+            0.021760403610642243
+          ],
+          "darcyTransferKg": [
+            0.021760403610551447,
+            0.02176040361055345,
+            0.02176040361055345,
+            0.021760403610551447
+          ],
+          "treeCorrectionKg": [
+            9.079542673262608e-14,
+            8.879355584134885e-14,
+            8.879355584134885e-14,
+            9.079542673262608e-14
+          ],
+          "initialContinuityKg": 9.079542673262608e-14,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 9.079542673262608e-14,
+          "constitutiveKg": 0,
+          "darcyKg": 9.079542673262608e-14,
+          "darcyM3S": 3.0265142244208693e-18,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 9.079542673262608e-14,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 9.079542673262608e-14,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.2394948551196,
+              "depthM": 2.1802394948551194,
+              "headM": 2.1802394948551194,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.760505144881,
+              "depthM": 4.199760505144881,
+              "headM": 4.199760505144881,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.2394948551196,
+              "previousHeadM": 2.1802394948551194,
+              "headM": 2.1802394948551194,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.760505144881,
+              "previousHeadM": 4.199760505144881,
+              "headM": 4.199760505144881,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 330,
+        "endS": 360,
+        "dtS": 30,
+        "headM": [
+          3.9277805241005304,
+          3.1900000000000004,
+          2.45221947589947,
+          2.180261252888573,
+          4.199738747111427
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.261252888573,
+          4199.738747111427
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021758033453807002,
+            0.021758033453352255,
+            0.021758033453352255,
+            0.021758033453352255
+          ],
+          "darcyTransferKg": [
+            0.021758033454406026,
+            0.02175803345440368,
+            0.02175803345440373,
+            0.02175803345441096
+          ],
+          "treeCorrectionKg": [
+            -5.990243023834552e-13,
+            -1.0514263071303986e-12,
+            -1.051474879387726e-12,
+            -1.0587052068355973e-12
+          ],
+          "initialContinuityKg": 1.0587052068355973e-12,
+          "rootCompatibilityKg": 4.547473508864641e-13
+        },
+        "metrics": {
+          "mixedKg": 1.0587052068355973e-12,
+          "constitutiveKg": 0,
+          "darcyKg": 1.0587052068355973e-12,
+          "darcyM3S": 3.5290173561186576e-17,
+          "pairKg": 4.547473508864641e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 1.0587052068355973e-12,
+          "rootCompatibilityKg": 4.547473508864641e-13,
+          "initialContinuityKg": 1.0587052068355973e-12,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.261252888573,
+              "depthM": 2.180261252888573,
+              "headM": 2.180261252888573,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.738747111427,
+              "depthM": 4.199738747111427,
+              "headM": 4.199738747111427,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": "reservoir:high-face",
+          "correctionKg": -9.094947017729282e-13,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.261252888573,
+              "previousHeadM": 2.180261252888573,
+              "headM": 2.180261252888573,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.738747111427,
+              "previousHeadM": 4.199738747111427,
+              "headM": 4.199738747111427,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 360,
+        "endS": 390,
+        "dtS": 30,
+        "headM": [
+          3.927758981727793,
+          3.19,
+          2.4522410182722068,
+          2.1802830085521294,
+          4.199716991447871
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.2830085521296,
+          4199.716991447871
+        ],
+        "ledger": {
+          "transferKg": [
+            0.02175566355617775,
+            0.0217556635566325,
+            0.0217556635566325,
+            0.0217556635566325
+          ],
+          "darcyTransferKg": [
+            0.02175566355641953,
+            0.021755663556412834,
+            0.021755663556412883,
+            0.0217556635564146
+          ],
+          "treeCorrectionKg": [
+            -2.4177881918774347e-13,
+            2.1966456431599113e-13,
+            2.1961599205866378e-13,
+            2.1789861581744674e-13
+          ],
+          "initialContinuityKg": 2.4177881918774347e-13,
+          "rootCompatibilityKg": -4.547473508864641e-13
+        },
+        "metrics": {
+          "mixedKg": 2.4177881918774347e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 2.4177881918774347e-13,
+          "darcyM3S": 8.059293972924782e-18,
+          "pairKg": 4.547473508864641e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 2.4177881918774347e-13,
+          "rootCompatibilityKg": -4.547473508864641e-13,
+          "initialContinuityKg": 2.4177881918774347e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.2830085521296,
+              "depthM": 2.1802830085521294,
+              "headM": 2.1802830085521294,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.716991447871,
+              "depthM": 4.199716991447871,
+              "headM": 4.199716991447871,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.2830085521296,
+              "previousHeadM": 2.1802830085521294,
+              "headM": 2.1802830085521294,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.716991447871,
+              "previousHeadM": 4.199716991447871,
+              "headM": 4.199716991447871,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 390,
+        "endS": 420,
+        "dtS": 30,
+        "headM": [
+          3.9277374417014648,
+          3.1900000000000004,
+          2.4522625582985356,
+          2.180304761846045,
+          4.199695238153955
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.304761846045,
+          4199.695238153955
+        ],
+        "ledger": {
+          "transferKg": [
+            0.0217532939159355,
+            0.021753293915480754,
+            0.021753293915480754,
+            0.021753293915480754
+          ],
+          "darcyTransferKg": [
+            0.021753293916562357,
+            0.02175329391655273,
+            0.02175329391655273,
+            0.021753293916562357
+          ],
+          "treeCorrectionKg": [
+            -6.268562058320271e-13,
+            -1.0719758414268199e-12,
+            -1.0719758414268199e-12,
+            -1.0816035567184912e-12
+          ],
+          "initialContinuityKg": 1.0816035567184912e-12,
+          "rootCompatibilityKg": 4.547473508864641e-13
+        },
+        "metrics": {
+          "mixedKg": 1.0816035567184912e-12,
+          "constitutiveKg": 0,
+          "darcyKg": 1.0816035567184912e-12,
+          "darcyM3S": 3.6053451890616373e-17,
+          "pairKg": 4.547473508864641e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 1.0816035567184912e-12,
+          "rootCompatibilityKg": 4.547473508864641e-13,
+          "initialContinuityKg": 1.0816035567184912e-12,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.304761846045,
+              "depthM": 2.180304761846045,
+              "headM": 2.180304761846045,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.695238153955,
+              "depthM": 4.199695238153955,
+              "headM": 4.199695238153955,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": "reservoir:high-face",
+          "correctionKg": -9.094947017729282e-13,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.304761846045,
+              "previousHeadM": 2.180304761846045,
+              "headM": 2.180304761846045,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.695238153955,
+              "previousHeadM": 4.1996952381539545,
+              "headM": 4.199695238153955,
+              "deltaHeadM": 8.881784197001252e-16
+            }
+          ]
+        }
+      },
+      {
+        "startS": 420,
+        "endS": 450,
+        "dtS": 30,
+        "headM": [
+          3.927715904021289,
+          3.1900000000000004,
+          2.4522840959787113,
+          2.180326512770579,
+          4.199673487229421
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.326512770579,
+          4199.673487229421
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021750924533989746,
+            0.021750924533989746,
+            0.021750924533989746,
+            0.021750924533989746
+          ],
+          "darcyTransferKg": [
+            0.02175092453479996,
+            0.02175092453479517,
+            0.021750924534795216,
+            0.021750924534804896
+          ],
+          "treeCorrectionKg": [
+            -8.102130077958236e-13,
+            -8.054251710021276e-13,
+            -8.05470273812503e-13,
+            -8.151500308084536e-13
+          ],
+          "initialContinuityKg": 8.151500308084536e-13,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 8.151500308084536e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 8.151500308084536e-13,
+          "darcyM3S": 2.717166769361512e-17,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 8.151500308084536e-13,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 8.151500308084536e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.326512770579,
+              "depthM": 2.180326512770579,
+              "headM": 2.180326512770579,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.673487229421,
+              "depthM": 4.199673487229421,
+              "headM": 4.199673487229421,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": "reservoir:high-face",
+          "correctionKg": -9.094947017729282e-13,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.326512770579,
+              "previousHeadM": 2.180326512770579,
+              "headM": 2.180326512770579,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.673487229421,
+              "previousHeadM": 4.199673487229421,
+              "headM": 4.199673487229421,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 450,
+        "endS": 480,
+        "dtS": 30,
+        "headM": [
+          3.9276943686870096,
+          3.19,
+          2.4523056313129903,
+          2.1803482613259892,
+          4.19965173867401
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.3482613259894,
+          4199.651738674011
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021748555410340487,
+            0.021748555410340487,
+            0.021748555410340487,
+            0.021748555410340487
+          ],
+          "darcyTransferKg": [
+            0.021748555411117542,
+            0.021748555411112216,
+            0.021748555411112164,
+            0.02174855541112248
+          ],
+          "treeCorrectionKg": [
+            -7.770555032760029e-13,
+            -7.717299022047541e-13,
+            -7.716778605004748e-13,
+            -7.819925262886329e-13
+          ],
+          "initialContinuityKg": 7.819925262886329e-13,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 7.819925262886329e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 7.819925262886329e-13,
+          "darcyM3S": 2.606641754295443e-17,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 7.819925262886329e-13,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 7.819925262886329e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.3482613259894,
+              "depthM": 2.1803482613259892,
+              "headM": 2.1803482613259892,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.651738674011,
+              "depthM": 4.19965173867401,
+              "headM": 4.19965173867401,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": "reservoir:high-face",
+          "correctionKg": -9.094947017729282e-13,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.3482613259894,
+              "previousHeadM": 2.1803482613259892,
+              "headM": 2.1803482613259892,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.651738674011,
+              "previousHeadM": 4.19965173867401,
+              "headM": 4.19965173867401,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 480,
+        "endS": 510,
+        "dtS": 30,
+        "headM": [
+          3.927672835698372,
+          3.1899999999999995,
+          2.4523271643016273,
+          2.1803700075125354,
+          4.1996299924874645
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.3700075125353,
+          4199.629992487465
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021746186545897217,
+            0.021746186545897217,
+            0.021746186545897217,
+            0.021746186545897217
+          ],
+          "darcyTransferKg": [
+            0.021746186545470694,
+            0.021746186545475478,
+            0.021746186545475478,
+            0.02174618654546576
+          ],
+          "treeCorrectionKg": [
+            4.2652339993232147e-13,
+            4.2173903258557743e-13,
+            4.2173903258557743e-13,
+            4.314569534979995e-13
+          ],
+          "initialContinuityKg": 4.314569534979995e-13,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 4.314569534979995e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 4.314569534979995e-13,
+          "darcyM3S": 1.4381898449933316e-17,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 4.314569534979995e-13,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 4.314569534979995e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.3700075125353,
+              "depthM": 2.1803700075125354,
+              "headM": 2.1803700075125354,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.629992487465,
+              "depthM": 4.1996299924874645,
+              "headM": 4.1996299924874645,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": "reservoir:high-face",
+          "correctionKg": 9.094947017729282e-13,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.3700075125353,
+              "previousHeadM": 2.1803700075125354,
+              "headM": 2.1803700075125354,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.629992487465,
+              "previousHeadM": 4.1996299924874645,
+              "headM": 4.1996299924874645,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 510,
+        "endS": 540,
+        "dtS": 30,
+        "headM": [
+          3.9276513050551194,
+          3.19,
+          2.4523486949448805,
+          2.180391751330474,
+          4.199608248669526
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.391751330474,
+          4199.608248669526
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021743817938840948,
+            0.021743817938840948,
+            0.021743817938840948,
+            0.021743817938840948
+          ],
+          "darcyTransferKg": [
+            0.021743817937854477,
+            0.021743817937856916,
+            0.021743817937856916,
+            0.02174381793784954
+          ],
+          "treeCorrectionKg": [
+            9.86471321295923e-13,
+            9.840323000886997e-13,
+            9.840323000886997e-13,
+            9.91408344308553e-13
+          ],
+          "initialContinuityKg": 9.91408344308553e-13,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 9.91408344308553e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 9.91408344308553e-13,
+          "darcyM3S": 3.30469448102851e-17,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 9.91408344308553e-13,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 9.91408344308553e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.391751330474,
+              "depthM": 2.180391751330474,
+              "headM": 2.180391751330474,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.608248669526,
+              "depthM": 4.199608248669526,
+              "headM": 4.199608248669526,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": "reservoir:high-face",
+          "correctionKg": 9.094947017729282e-13,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.391751330474,
+              "previousHeadM": 2.180391751330474,
+              "headM": 2.180391751330474,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.608248669526,
+              "previousHeadM": 4.199608248669526,
+              "headM": 4.199608248669526,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      },
+      {
+        "startS": 540,
+        "endS": 570,
+        "dtS": 30,
+        "headM": [
+          3.9276297767569974,
+          3.19,
+          2.452370223243003,
+          2.1804134927800614,
+          4.199586507219939
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.4134927800615,
+          4199.5865072199385
+        ],
+        "ledger": {
+          "transferKg": [
+            0.02174144958735269,
+            0.02174144958735269,
+            0.02174144958735269,
+            0.02174144958735269
+          ],
+          "darcyTransferKg": [
+            0.02174144958823929,
+            0.02174144958822854,
+            0.02174144958822849,
+            0.02174144958823929
+          ],
+          "treeCorrectionKg": [
+            -8.865998213369863e-13,
+            -8.758480052328821e-13,
+            -8.757994329755547e-13,
+            -8.865998213369863e-13
+          ],
+          "initialContinuityKg": 8.865998213369863e-13,
+          "rootCompatibilityKg": 0
+        },
+        "metrics": {
+          "mixedKg": 8.865998213369863e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 8.865998213369863e-13,
+          "darcyM3S": 2.955332737789955e-17,
+          "pairKg": 0,
+          "totalKg": 0,
+          "treeCorrectionKg": 8.865998213369863e-13,
+          "rootCompatibilityKg": 0,
+          "initialContinuityKg": 8.865998213369863e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.4134927800615,
+              "depthM": 2.1804134927800614,
+              "headM": 2.1804134927800614,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.5865072199385,
+              "depthM": 4.199586507219939,
+              "headM": 4.199586507219939,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": "reservoir:high-face",
+          "correctionKg": -9.094947017729282e-13,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.4134927800615,
+              "previousHeadM": 2.1804134927800614,
+              "headM": 2.1804134927800614,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.5865072199385,
+              "previousHeadM": 4.199586507219938,
+              "headM": 4.199586507219939,
+              "deltaHeadM": 8.881784197001252e-16
+            }
+          ]
+        }
+      },
+      {
+        "startS": 570,
+        "endS": 600,
+        "dtS": 30,
+        "headM": [
+          3.9276082508037518,
+          3.19,
+          2.4523917491962486,
+          2.180435231861558,
+          4.199564768138442
+        ],
+        "massKg": [
+          243,
+          243,
+          243,
+          2180.435231861558,
+          4199.564768138443
+        ],
+        "ledger": {
+          "transferKg": [
+            0.021739081495979917,
+            0.021739081496434665,
+            0.021739081496434665,
+            0.021739081496434665
+          ],
+          "darcyTransferKg": [
+            0.021739081496560984,
+            0.021739081496562347,
+            0.0217390814965623,
+            0.021739081496560984
+          ],
+          "treeCorrectionKg": [
+            -5.810664449601433e-13,
+            -1.276825867257969e-13,
+            -1.2763401446846956e-13,
+            -1.2631909407367914e-13
+          ],
+          "initialContinuityKg": 5.810664449601433e-13,
+          "rootCompatibilityKg": -4.547473508864641e-13
+        },
+        "metrics": {
+          "mixedKg": 5.810664449601433e-13,
+          "constitutiveKg": 0,
+          "darcyKg": 5.810664449601433e-13,
+          "darcyM3S": 1.9368881498671442e-17,
+          "pairKg": 4.547473508864641e-13,
+          "totalKg": 0,
+          "treeCorrectionKg": 5.810664449601433e-13,
+          "rootCompatibilityKg": -4.547473508864641e-13,
+          "initialContinuityKg": 5.810664449601433e-13,
+          "chordDifferenceKg": 0,
+          "complementarityM2": 0,
+          "boundaries": [
+            {
+              "nodeId": "reservoir:high-face",
+              "portCount": 1,
+              "massKg": 2180.435231861558,
+              "depthM": 2.180435231861558,
+              "headM": 2.180435231861558,
+              "gapM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "portCount": 1,
+              "massKg": 4199.564768138443,
+              "depthM": 4.199564768138442,
+              "headM": 4.199564768138442,
+              "gapM": 0
+            }
+          ]
+        },
+        "closure": {
+          "nodeId": null,
+          "correctionKg": 0,
+          "wetBoundaryNormalizations": [
+            {
+              "nodeId": "reservoir:high-face",
+              "massKg": 2180.435231861558,
+              "previousHeadM": 2.180435231861558,
+              "headM": 2.180435231861558,
+              "deltaHeadM": 0
+            },
+            {
+              "nodeId": "reservoir:low-face",
+              "massKg": 4199.564768138443,
+              "previousHeadM": 4.199564768138442,
+              "headM": 4.199564768138442,
+              "deltaHeadM": 0
+            }
+          ]
+        }
+      }
+    ],
+    "rejectedStages": [],
+    "maxAbsMetrics": {
+      "mixedKg": 1.0816035567184912e-12,
+      "constitutiveKg": 0,
+      "darcyKg": 1.0816035567184912e-12,
+      "darcyM3S": 3.6053451890616373e-17,
+      "pairKg": 9.094947017729282e-13,
+      "totalKg": 0,
+      "treeCorrectionKg": 1.0816035567184912e-12,
+      "rootCompatibilityKg": 9.094947017729282e-13,
+      "initialContinuityKg": 1.0816035567184912e-12,
+      "chordDifferenceKg": 0,
+      "complementarityM2": 0,
+      "stockClosureKg": 9.094947017729282e-13
+    },
+    "aggregateResidual": {
+      "pairKg": 9.094947017729282e-13,
+      "totalKg": 0
+    }
+  },
+  "work": {
+    "evaluations": 60,
+    "evaluationLimit": 250000,
+    "faceEvaluations": 240,
+    "iterations": 20,
+    "lineTrials": 20,
+    "rejected": 0,
+    "guessEdgeVisits": 160,
+    "guessNodeReads": 100,
+    "guessProjections": 0,
+    "matrixBuilds": 20,
+    "matrixAssemblyAdds": 320,
+    "peakDenseBytes": 200,
+    "pivotComparisons": 200,
+    "matrixSwapEntries": 0,
+    "factorDivisions": 200,
+    "matrixUpdates": 600,
+    "matrixUpdateLimit": 30000000,
+    "rhsUpdates": 200,
+    "backSubProducts": 200,
+    "backSubDivisions": 100,
+    "maxLinearResidualKg": 1.0408340855860843e-17,
+    "closureFaceVisits": 80,
+    "closureTreeVisits": 80
+  }
+}

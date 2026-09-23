@@ -1,0 +1,237 @@
+{
+  "stamp": "area-and-step-first",
+  "hashes": {
+    "candidate.mjs": "be1c41fbf70ecb0e870cfee81b86a3ab58767c0b1a4d972facb5a4fe945b3088",
+    "admission.mjs": "d20105704b7981792fa6e369605abacc7faeb489c5b3d232af1a614671ae008a",
+    "circle-area.mjs": "dcda19d5113cb621123f5ca8a6b1069c601edca71eaf8b50fd4ca169ef0ce1a6",
+    "method-probe.mjs": "85067d5848e5617d91a5f75e9d83604739a9784e6fbb08337a8052c097bc0549",
+    "METHOD-PROBE-PREDECLARED.md": "68272a7e21e9e1c8aadaf8c3cf0ab1eb7f22b7afbc05d16ba9c4b21728fbe6b0"
+  },
+  "outcomes": [
+    {
+      "name": "analytic-circle-cell-areas",
+      "status": "passed",
+      "coarseTotal": 113.09733552923257,
+      "fineTotal": 113.09733552923252,
+      "analyticTotal": 113.09733552923255,
+      "relativeErrors": [
+        1.256515429713982e-16,
+        2.513030859427964e-16,
+        0
+      ],
+      "maxPartitionError": 7.105427357601002e-15,
+      "maxSymmetryError": 7.105427357601002e-15,
+      "elapsedMs": 6.421605
+    },
+    {
+      "name": "moving-step-h0.27-dx1",
+      "status": "observed-method-failure",
+      "stepHeight": 0.54,
+      "horizontalDx": 1,
+      "pair": {
+        "hL": 0.27,
+        "uL": 6,
+        "hR": 0.3289865060247862,
+        "uR": 4.92421412529895,
+        "q": 1.62,
+        "critical": 0.6443477859430015,
+        "energyResidual": 0,
+        "dischargeResidual": 2.220446049250313e-16
+      },
+      "reconstruction": {
+        "ha": 0,
+        "hb": 0.3289865060247862,
+        "mass": -0.29550962816576687,
+        "leftMomentum": -0.8321389080641719,
+        "rightMomentum": -1.189713408064172,
+        "upstreamReconstructionFraction": 0
+      },
+      "actual": {
+        "massFlux": -0.29550962816576687,
+        "leftMomentum": -0.8321389080640138,
+        "rightMomentum": -1.1897134080640566
+      },
+      "relativeSteadyMassError": 1.1824133507196093,
+      "directionPreserved": false,
+      "denseMatchesActual": true,
+      "methodFailure": true,
+      "assumption": "Frictionless constant-discharge, supercritical Bernoulli bottom-transition path; not a physically validated exposed waterfall.",
+      "elapsedMs": 15.931339999999999
+    },
+    {
+      "name": "moving-step-h0.27-dx0.5",
+      "status": "observed-method-failure",
+      "stepHeight": 0.54,
+      "horizontalDx": 0.5,
+      "pair": {
+        "hL": 0.27,
+        "uL": 6,
+        "hR": 0.3289865060247862,
+        "uR": 4.92421412529895,
+        "q": 1.62,
+        "critical": 0.6443477859430015,
+        "energyResidual": 0,
+        "dischargeResidual": 2.220446049250313e-16
+      },
+      "reconstruction": {
+        "ha": 0,
+        "hb": 0.3289865060247862,
+        "mass": -0.29550962816576687,
+        "leftMomentum": -0.8321389080641719,
+        "rightMomentum": -1.189713408064172,
+        "upstreamReconstructionFraction": 0
+      },
+      "actual": {
+        "massFlux": -0.29550962816576687,
+        "leftMomentum": -0.8321389080642358,
+        "rightMomentum": -1.1897134080641685
+      },
+      "relativeSteadyMassError": 1.1824133507196093,
+      "directionPreserved": false,
+      "denseMatchesActual": true,
+      "methodFailure": true,
+      "assumption": "Frictionless constant-discharge, supercritical Bernoulli bottom-transition path; not a physically validated exposed waterfall.",
+      "elapsedMs": 38.627421999999996
+    },
+    {
+      "name": "moving-step-h0.54-dx1",
+      "status": "observed-method-failure",
+      "stepHeight": 0.54,
+      "horizontalDx": 1,
+      "pair": {
+        "hL": 0.54,
+        "uL": 6,
+        "hR": 0.6809363591767688,
+        "uR": 4.758153910179009,
+        "q": 3.24,
+        "critical": 1.0228383532393008,
+        "energyResidual": 0,
+        "dischargeResidual": 0
+      },
+      "reconstruction": {
+        "ha": 0,
+        "hb": 0.6809363591767688,
+        "mass": -0.8799627626326636,
+        "leftMomentum": -1.6195389771595716,
+        "rightMomentum": -3.049836977159572,
+        "upstreamReconstructionFraction": 0
+      },
+      "actual": {
+        "massFlux": -0.8799627626326636,
+        "leftMomentum": -1.619538977159781,
+        "rightMomentum": -3.04983697715943
+      },
+      "relativeSteadyMassError": 1.271593445256995,
+      "directionPreserved": false,
+      "denseMatchesActual": true,
+      "methodFailure": true,
+      "assumption": "Frictionless constant-discharge, supercritical Bernoulli bottom-transition path; not a physically validated exposed waterfall.",
+      "elapsedMs": 7.421424000000002
+    },
+    {
+      "name": "moving-step-h0.54-dx0.5",
+      "status": "observed-method-failure",
+      "stepHeight": 0.54,
+      "horizontalDx": 0.5,
+      "pair": {
+        "hL": 0.54,
+        "uL": 6,
+        "hR": 0.6809363591767688,
+        "uR": 4.758153910179009,
+        "q": 3.24,
+        "critical": 1.0228383532393008,
+        "energyResidual": 0,
+        "dischargeResidual": 0
+      },
+      "reconstruction": {
+        "ha": 0,
+        "hb": 0.6809363591767688,
+        "mass": -0.8799627626326636,
+        "leftMomentum": -1.6195389771595716,
+        "rightMomentum": -3.049836977159572,
+        "upstreamReconstructionFraction": 0
+      },
+      "actual": {
+        "massFlux": -0.8799627626326636,
+        "leftMomentum": -1.6195389771595607,
+        "rightMomentum": -3.0498369771596536
+      },
+      "relativeSteadyMassError": 1.271593445256995,
+      "directionPreserved": false,
+      "denseMatchesActual": true,
+      "methodFailure": true,
+      "assumption": "Frictionless constant-discharge, supercritical Bernoulli bottom-transition path; not a physically validated exposed waterfall.",
+      "elapsedMs": 21.632678
+    },
+    {
+      "name": "moving-step-h0.81-dx1",
+      "status": "diagnostic-only",
+      "stepHeight": 0.54,
+      "horizontalDx": 1,
+      "pair": {
+        "hL": 0.81,
+        "uL": 6,
+        "hR": 1.0881443101329924,
+        "uR": 4.466319361083654,
+        "q": 4.86,
+        "critical": 1.3402974059593484,
+        "energyResidual": 4.440892098500626e-16,
+        "dischargeResidual": 0
+      },
+      "reconstruction": {
+        "ha": 0.27,
+        "hb": 1.0881443101329924,
+        "mass": 0.07642631830716429,
+        "leftMomentum": 9.128115522038222,
+        "rightMomentum": 6.267519522038221,
+        "upstreamReconstructionFraction": 0.3333333333333333
+      },
+      "actual": {
+        "massFlux": 0.07642631830716429,
+        "leftMomentum": 9.128115522038271,
+        "rightMomentum": 6.2675195220381
+      },
+      "relativeSteadyMassError": 0.9842744201014065,
+      "directionPreserved": true,
+      "denseMatchesActual": true,
+      "methodFailure": false,
+      "assumption": "Frictionless constant-discharge, supercritical Bernoulli bottom-transition path; not a physically validated exposed waterfall.",
+      "elapsedMs": 9.615362999999974
+    },
+    {
+      "name": "moving-step-h0.81-dx0.5",
+      "status": "diagnostic-only",
+      "stepHeight": 0.54,
+      "horizontalDx": 0.5,
+      "pair": {
+        "hL": 0.81,
+        "uL": 6,
+        "hR": 1.0881443101329924,
+        "uR": 4.466319361083654,
+        "q": 4.86,
+        "critical": 1.3402974059593484,
+        "energyResidual": 4.440892098500626e-16,
+        "dischargeResidual": 0
+      },
+      "reconstruction": {
+        "ha": 0.27,
+        "hb": 1.0881443101329924,
+        "mass": 0.07642631830716429,
+        "leftMomentum": 9.128115522038222,
+        "rightMomentum": 6.267519522038221,
+        "upstreamReconstructionFraction": 0.3333333333333333
+      },
+      "actual": {
+        "massFlux": 0.07642631830716429,
+        "leftMomentum": 9.128115522038271,
+        "rightMomentum": 6.2675195220381
+      },
+      "relativeSteadyMassError": 0.9842744201014065,
+      "directionPreserved": true,
+      "denseMatchesActual": true,
+      "methodFailure": false,
+      "assumption": "Frictionless constant-discharge, supercritical Bernoulli bottom-transition path; not a physically validated exposed waterfall.",
+      "elapsedMs": 22.608310000000017
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "solverSha256": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+  "cell": 490,
+  "oldWaterM3": 0.7155158603717944,
+  "newWaterM3": 0.724732235500043,
+  "deltaWaterM3": 0.009216375128248577,
+  "dtSeconds": 0.05,
+  "geometryRevision": 0,
+  "physicalCellAreaM2": 4,
+  "faces": [
+    {
+      "id": 505,
+      "a": 489,
+      "b": 490,
+      "integratedM3": 0.025943189463550467
+    },
+    {
+      "id": 506,
+      "a": 490,
+      "b": 491,
+      "integratedM3": 0.016726814335301845
+    },
+    {
+      "id": 1546,
+      "a": 458,
+      "b": 490,
+      "integratedM3": 0
+    },
+    {
+      "id": 1578,
+      "a": 490,
+      "b": 522,
+      "integratedM3": 0
+    }
+  ],
+  "withdrawalM3": 0,
+  "assumption": "Separate fixed-reference-density open exhaust extension; outside pressure fixed; no sealed pressure feedback or coupled momentum solve."
+}

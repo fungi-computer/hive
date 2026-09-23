@@ -1,0 +1,215 @@
+{
+  "sourceSha256": "fee97e6f6b0b5e2e4bea8910347479f526a046e4b42f785c3b63efe190c50c06",
+  "qualificationSha256": "bacf9cf97483d8242d26745d50a0da381c562435974f7991babc07de487b2895",
+  "wallMs": 519.206215,
+  "rssBytes": 88096768,
+  "rows": [
+    {
+      "name": "ambient rest, immutable input",
+      "status": "pass",
+      "wallMs": 34.491596,
+      "smoke": 0,
+      "heat": 0,
+      "maxVelocity": 0,
+      "divergence": 0,
+      "minSmoke": 0,
+      "minTheta": 0,
+      "maxTheta": 0,
+      "pressureSolves": 20,
+      "iterations": 0
+    },
+    {
+      "name": "closed uniform warm hydrostatic rest",
+      "status": "pass",
+      "wallMs": 29.672498000000004,
+      "smoke": 0,
+      "heat": 144719.99999999994,
+      "maxVelocity": 9.518372869867848e-12,
+      "divergence": 8.375196219903906e-12,
+      "minSmoke": 0,
+      "minTheta": 4.999999999832536,
+      "maxTheta": 5.000000000149487,
+      "iterations": 790
+    },
+    {
+      "name": "projection removes known discrete gradient",
+      "status": "pass",
+      "wallMs": 5.783393000000004,
+      "divergence": 5.60307356067824e-12,
+      "remainingVelocity": 6.306510869080739e-12,
+      "iterations": 88
+    },
+    {
+      "name": "random field projection, energy and idempotence",
+      "status": "pass",
+      "wallMs": 4.62701899999999,
+      "before": 9.607514960033296,
+      "after": 1.7285763330199693,
+      "divergence": 6.19258810896639e-12,
+      "idempotenceError": 0,
+      "iterations": 101
+    },
+    {
+      "name": "viscous periodic shear, exact decay/refinement",
+      "status": "pass",
+      "wallMs": 133.69092899999998,
+      "results": [
+        {
+          "n": 8,
+          "rmsError": 0.007543218582719836,
+          "maxError": 0.013938050515667322,
+          "steps": 250,
+          "iterations": 0
+        },
+        {
+          "n": 16,
+          "rmsError": 0.0017860089152390605,
+          "maxError": 0.003503382509470798,
+          "steps": 250,
+          "iterations": 0
+        }
+      ]
+    },
+    {
+      "name": "Taylor-Green 2D nonlinear momentum and pressure",
+      "status": "pass",
+      "wallMs": 201.601413,
+      "results": [
+        {
+          "n": 8,
+          "velocityRmsError": 0.0371553951219732,
+          "pressureRmsError": 0.024769637124970184,
+          "iterations": 714,
+          "divergence": 8.881784197001252e-16
+        },
+        {
+          "n": 16,
+          "velocityRmsError": 0.020606379632522487,
+          "pressureRmsError": 0.007062464774301704,
+          "iterations": 2103,
+          "divergence": 9.99555993530521e-12
+        },
+        {
+          "n": 32,
+          "velocityRmsError": 0.010720783217700704,
+          "pressureRmsError": 0.0021350337415840977,
+          "iterations": 4233,
+          "divergence": 8.867503953347011e-12
+        }
+      ]
+    },
+    {
+      "name": "no-slip wall shear decay and refinement",
+      "status": "pass",
+      "wallMs": 20.320312,
+      "results": [
+        {
+          "n": 8,
+          "rmsError": 0.0009680759697953236
+        },
+        {
+          "n": 16,
+          "rmsError": 0.00022855195879897626
+        }
+      ]
+    },
+    {
+      "name": "thin floor seals scalar transport and separates momentum",
+      "status": "pass",
+      "wallMs": 22.964219000000014,
+      "upperSmoke": 0,
+      "maxHeatChange": 0,
+      "momentumRmsError": 0.0004167879142762046
+    },
+    {
+      "name": "conservative scalar translation, exact solution/refinement",
+      "status": "pass",
+      "wallMs": 18.446173999999985,
+      "results": [
+        {
+          "n": 8,
+          "rmsConcentrationError": 0.13533489446451547,
+          "massError": 1.1102230246251565e-16,
+          "heatError": 3.979039320256561e-13
+        },
+        {
+          "n": 16,
+          "rmsConcentrationError": 0.07498119845360375,
+          "massError": 1.1102230246251565e-16,
+          "heatError": 6.750155989720952e-14
+        },
+        {
+          "n": 32,
+          "rmsConcentrationError": 0.03854514953548587,
+          "massError": 5.551115123125783e-17,
+          "heatError": 7.993605777301127e-15
+        }
+      ]
+    },
+    {
+      "name": "restart reconstructs cache and preserves velocity history",
+      "status": "pass",
+      "wallMs": 22.400177999999983,
+      "exactStateAndReceipts": true,
+      "historyDifference": 0.00010560579161890312,
+      "operatorBuilds": 1,
+      "stateHash": "699743593579efcfd06e312914072b3309ed487aa47c9cbddf1cbbbbc14b7752"
+    },
+    {
+      "name": "state admission rejects geometry/shape/nonfinite corruption",
+      "status": "pass",
+      "wallMs": 1.0875310000000127,
+      "rejected": [
+        {
+          "name": "same revision different wall",
+          "reason": "state/geometry identity"
+        },
+        {
+          "name": "same revision different units",
+          "reason": "state/geometry identity"
+        },
+        {
+          "name": "same revision different viscosity",
+          "reason": "state/geometry identity"
+        },
+        {
+          "name": "short velocity",
+          "reason": "finite velocity shape"
+        },
+        {
+          "name": "NaN velocity",
+          "reason": "finite velocity shape"
+        },
+        {
+          "name": "Infinity interval",
+          "reason": "finite positive interval"
+        },
+        {
+          "name": "NaN timestep",
+          "reason": "finite positive interval"
+        },
+        {
+          "name": "Infinity source",
+          "reason": "finite source rate"
+        },
+        {
+          "name": "NaN forcing",
+          "reason": "finite acceleration"
+        },
+        {
+          "name": "forged tracer ledger",
+          "reason": "saved tracer ledger"
+        }
+      ]
+    },
+    {
+      "name": "warm open boundary resolves balanced counterflow",
+      "status": "pass",
+      "wallMs": 23.46480500000007,
+      "inward": 0.22274820774175833,
+      "outward": 0.22274820775032428,
+      "carrierMismatch": 8.565953502071011e-12,
+      "divergence": 9.80131253935923e-12
+    }
+  ]
+}

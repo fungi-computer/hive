@@ -1,0 +1,35 @@
+{
+  "status": "physical hydrostatic qualification FAILED; frozen result, no followup run",
+  "sourceAndEvidenceSha256": {
+    "PROPOSAL.md": "426219c789354de50ff5382cebc9435da717b0f57f5e64609c120d6803bc0740",
+    "RESULTS.md": "8650a5975969fa6f770cfecf591e1075a7fd4e48f94d71cc3ef78da324831cf6",
+    "geometry.h": "7e5e8181d94e54e7fed574c53fa582a89feae7a9ab485eb01b33ce48ada18396",
+    "reference.cpp": "8d82d875e241443a42be938f7b43dcac9af38318282cf056553d49676df039be",
+    "reference": "42b913c712e1ee853e2fd09c2bca8e57325012e74dac8e74174f1f338c8074e6",
+    "compile-reference.py": "d468096f115bf3a14cf6ecd41a6b537885c9df7192a6a1a272fb30ddcd358f6f",
+    "compile-command.json": "eeafdbf0bf37bec83aa878d4239ab68e878e9db804f85c55ee00e0ba4379e84f",
+    "run-proof.py": "c491131a357bd43a23865a27b7e3609648d898c541739ae85bc10885eac94caa",
+    "result-v1/result.json": "00f47dfe93ad78ebe80378d99ca0766565e476741b9177cb419aa55f318cfd96",
+    "result-v1/stdout": "d2020325584605b7e9aa3e0484a4adc4ca83a6b1946c8fdfcee9114f4e820983",
+    "result-v1/stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "result-v1/final-particles.csv": "4a4bc763d871ac324e018565fb66719d635d9993b9c3392ce27f755250398a8d"
+  },
+  "compileFailure": {
+    "scope": "run-u2954.scope",
+    "invocation": "35e4416aae5a4497badd810059abb33d",
+    "exit": 1,
+    "preserved": "compile-v1-failed"
+  },
+  "compile": {
+    "scope": "run-u2955.scope",
+    "invocation": "a49dcdf597664df9a2372022dfbd209d",
+    "exit": 0
+  },
+  "physical": {
+    "scope": "run-u2956.scope",
+    "invocation": "5228c2f4baea444e8273991634f85d65",
+    "exit": 1,
+    "nativeAndCaptureParseSeconds": 9.641795272997115
+  },
+  "nextDecision": "cold planar-wall boundary density/gradient and physical standoff; no refinement/ledge or parameter tuning authorized by failure"
+}

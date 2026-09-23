@@ -1,0 +1,9 @@
+{
+  "name": "owned-supported-edits",
+  "status": "passed",
+  "elapsedMs": 149.759411,
+  "exactReferenceEdits": true,
+  "everyVolumePreserved": true,
+  "repeatedEditsIdempotent": true,
+  "arbitraryEditsRejected": true
+}

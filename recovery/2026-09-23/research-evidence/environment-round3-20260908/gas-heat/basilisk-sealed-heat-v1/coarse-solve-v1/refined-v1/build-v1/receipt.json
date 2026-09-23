@@ -1,0 +1,125 @@
+{
+  "scope": "Compile only; algebra/physics not run",
+  "invocationId": "1f2e7876b4be4322a0c2a29e9cb0e2ee",
+  "commands": [
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-disable-dimensions",
+        "captured-regression.c",
+        "-o",
+        "captured-regression",
+        "-lm"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 29.005470470990986
+    },
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-disable-dimensions",
+        "-events",
+        "-source",
+        "sealed-heat.c"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 2.9805851400014944
+    },
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-disable-dimensions",
+        "sealed-heat.c",
+        "-o",
+        "sealed-heat",
+        "-lm"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 28.59574868401978
+    }
+  ],
+  "exitCode": 0,
+  "wallSeconds": 60.58203075802885,
+  "sourceUnchanged": true,
+  "upstreamUnchanged": true,
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 3013,
+      "sha256": "e66c65663c5fcff5a17e99a6c9dbd6732534936002ed18b56d2c97cc9ce91c51"
+    },
+    "EXECUTABLE-CHECKPOINT.json": {
+      "bytes": 2762,
+      "sha256": "5f830177d4a0bb35fa05e4e1e831351ad3026891bc560d2b0314818674e049e7"
+    },
+    "SOURCE-CHECKPOINT.json": {
+      "bytes": 1481,
+      "sha256": "4fa864082d07259547d6c090cb1daaef36c6bf7accbadaa87c9586af0d2ccdb6"
+    },
+    "_sealed-heat.c": {
+      "bytes": 1898501,
+      "sha256": "200e7f52212c3e93df0b01299562b746bee46229df3b760278246361050476d0"
+    },
+    "captured-regression": {
+      "bytes": 724648,
+      "sha256": "c8ea0a88b7702cde9bdfb0fc0ab003fff30ba293dc5d482e6d6daf93b8784451"
+    },
+    "captured-regression.c": {
+      "bytes": 2591,
+      "sha256": "58ac0a31ecd25299485eb18a8213a11a605abe6196baeaade6054b8f23550f82"
+    },
+    "captured-system.h": {
+      "bytes": 8071,
+      "sha256": "5c8ab9b1b597d8b7eb4b8ed9623bd4e064406e0f363f005f37f81a0cd8804ec0"
+    },
+    "coarse-capture.h": {
+      "bytes": 2854,
+      "sha256": "0f3548c9250a370c7657b2776794f5beb0dc56b6ae291f75f52112b2e9066177"
+    },
+    "coarse-thermal.h": {
+      "bytes": 12654,
+      "sha256": "1b6db8e10c30907cfba09f12cc5d292604ecc55602222c1e40d26f0966809baf"
+    },
+    "command-1.log": {
+      "bytes": 1262,
+      "sha256": "99fd654006e9a736abca1d7ac3b9bbecf66d2ab08df734581d900974f4881844"
+    },
+    "command-2.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "command-3.log": {
+      "bytes": 691,
+      "sha256": "0167f6d2c9d4f9eedf09378434db9ec89ee4c704b0512b59add8d42cb15bb966"
+    },
+    "compile-v1.py": {
+      "bytes": 2347,
+      "sha256": "7aaf58a14e832e75123e6a988a71baf0a396c49d1f6f273ba8f209419c084551"
+    },
+    "refinement.patch": {
+      "bytes": 8094,
+      "sha256": "d71d9b07c5724ad4d10bad5138012951d004f65d49211f83b48f1b0a48592124"
+    },
+    "sealed-heat": {
+      "bytes": 774512,
+      "sha256": "7ae3da73fd6f507c2dc85a16581a9bfa6d843720336ed1cbeb4531604db60503"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "sealed-heat.c": {
+      "bytes": 6607,
+      "sha256": "9ce5135616089f81d138f97c634a47d6c30fe75e9a811815fb718cb77b1b2dee"
+    },
+    "thermal-overlay.h": {
+      "bytes": 9050,
+      "sha256": "4a8ed85806adef7e32b46bd0b2d8ff5fbedc93c69c24511b08392cbbc1642596"
+    }
+  }
+}

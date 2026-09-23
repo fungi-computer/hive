@@ -1,0 +1,23 @@
+{
+  ".fallowrc.json": "0c378eaa055443b0cf7a582f6a423ff181b049b53f227f2591dfc290a9b508a2",
+  "CONTRACT.md": "90c9905117af3736ec0ef12955b742fe3e46aecb83e72c43131c80f24de370ab",
+  "HANDOFF.md": "d376fa91aa4219667423b7984494dbdc83723b2eeff9c529000ceb94e18a834e",
+  "RESULTS.md": "21154d97225873241274e307c625037ae9ee7bc8b6ce2df3f6f76f9cd6d0302a",
+  "RUN.json": "52ac2f7af86a55fc1c37bc0eed6e012f2e4ae835957681a584957f312c074b8a",
+  "SOURCE-REVIEW.md": "3615947d2e04c8534e79375fdaccd19fd53d34bc5ee882d357970fe023d55248",
+  "baseline-inventory.json": "c0854b756e5f0a7fa2ddeb18c230d4fa4bc5e9368ed9bb32949c0f67223d9971",
+  "check-source.sh": "13144da01661e31d1cd52253ac15180f1e843f8bbf54d07b2cdccb155a2cadf4",
+  "energy-diagnostics.mjs": "c49deded2255d951f6e0f755c5b53fb71b4184ab3dacdffd4e1f82d7205254dd",
+  "fallow-v1.json": "1091bfddef864d4c3d151d7e6f14a277441098ee7a092d9f613236c8593e2e74",
+  "finite-gas.mjs": "a4547f5099a01e7b269946d6b2f9aa177a5a31fa4076be9d89d50e35d8091832",
+  "geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+  "instrumentation.patch": "9f9ac37419a380aa3400b9a0a044e7004b5d1afbdaea572b5517e66fd5ba293d",
+  "momentum.mjs": "137166a58f7f32d27f4417ef2860c95015189c77c456f0aaaa5f597f25dc2b5d",
+  "output-v1.json": "4691e87c7e98aea7247089836cbadd9875ec3db4a6216166b90da760afac048b",
+  "projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+  "qualification-v1.json": "9bddf3b921eda852af037a373655fe054295eb36b532bdf0061572cd78781f6e",
+  "qualify.mjs": "1c0d670437c221de57d8c14ca3bfb948b7d4f88c96193ac69d85f854b00e8cf7",
+  "run-source-inventory.json": "b8ebddc59ae2a8155a4fa8e7e4a117759fc32fa7fbe3dd397e51d05dd9e5e253",
+  "source-checkpoint-inventory.json": "b8064cc93c4f642183a0c6732d3d090b3f8f37e35716098fabb8686744bd9ce3",
+  "steps-v1.json": "ec04d831e562b9d6f3ebdd8d19a0e96200168e23a3270d53e4ba2ee524168f2e"
+}

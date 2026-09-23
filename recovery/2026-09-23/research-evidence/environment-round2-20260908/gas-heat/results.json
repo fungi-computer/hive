@@ -1,0 +1,2150 @@
+{
+  "predeclared": "PREDECLARED.md",
+  "cases": {
+    "sealed": {
+      "mode": "sealed",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 35,
+      "exported_fraction": 0.0,
+      "clear80_time": null,
+      "upper_exposure": 0.0037172217778020356,
+      "lower_exposure": 0.03319203076696636,
+      "max_theta_K": 12.993605574884839,
+      "mass_error_kg": 2.6020852139652106e-18,
+      "heat_error_J": 0.0,
+      "carrier_net_error_m3": 0.0,
+      "max_divergence_m3_s": 1.0103029524088925e-14,
+      "max_courant": 0.09618747606795632,
+      "substeps": 900,
+      "pressure_iterations": 1800,
+      "linear_iterations": 20700,
+      "runtime_seconds": 1.4832096439786255,
+      "snapshot_bytes": 1593,
+      "state_hash": "2e5f298c4c37894cba0b81af66fbb02b7b64189007602742ccf0e26c2fea18c8",
+      "upper_exposure_improvement_fraction": 0.0,
+      "useful_ventilation": false
+    },
+    "single": {
+      "mode": "single",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 36,
+      "exported_fraction": 2.1777757514458294e-15,
+      "clear80_time": null,
+      "upper_exposure": 0.0037172217778019987,
+      "lower_exposure": 0.03319203076696636,
+      "max_theta_K": 12.993605574884839,
+      "mass_error_kg": 1.951563910473908e-18,
+      "heat_error_J": 5.820766091346741e-11,
+      "carrier_net_error_m3": 7.53114710093408e-15,
+      "max_divergence_m3_s": 7.605027718682322e-15,
+      "max_courant": 0.09618747606795632,
+      "substeps": 900,
+      "pressure_iterations": 1800,
+      "linear_iterations": 21480,
+      "runtime_seconds": 1.8525721849873662,
+      "snapshot_bytes": 1661,
+      "state_hash": "05646b8d7fe6980c8cf31d3ec6cc811e06f8b1b87cfc5f1b42663457191e4292",
+      "upper_exposure_improvement_fraction": 9.880984919163893e-15,
+      "useful_ventilation": false
+    },
+    "high": {
+      "mode": "high",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 37,
+      "exported_fraction": 0.9100030283947861,
+      "clear80_time": 474.0,
+      "upper_exposure": 0.005407767505936859,
+      "lower_exposure": 0.0057886978825189605,
+      "max_theta_K": 12.993605574884839,
+      "mass_error_kg": 2.6020852139652106e-18,
+      "heat_error_J": 0.0,
+      "carrier_net_error_m3": 9.231513331542374e-10,
+      "max_divergence_m3_s": 9.971273806641534e-12,
+      "max_courant": 0.17677354617677926,
+      "substeps": 900,
+      "pressure_iterations": 5700,
+      "linear_iterations": 108692,
+      "runtime_seconds": 4.123659288015915,
+      "snapshot_bytes": 1648,
+      "state_hash": "a366c2ac203efec8016e6078cc635955842d98f3bd6c3e965edd7c7a952e9ca1",
+      "upper_exposure_improvement_fraction": -0.454787427059149,
+      "useful_ventilation": false
+    },
+    "low": {
+      "mode": "low",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 37,
+      "exported_fraction": 0.0792580914123131,
+      "clear80_time": null,
+      "upper_exposure": 0.003438529207693401,
+      "lower_exposure": 0.03163144490473415,
+      "max_theta_K": 12.993605574884839,
+      "mass_error_kg": 2.168404344971009e-18,
+      "heat_error_J": 1.1641532182693481e-10,
+      "carrier_net_error_m3": 1.865529508648933e-09,
+      "max_divergence_m3_s": 1.9889282842217026e-10,
+      "max_courant": 0.1089840311778493,
+      "substeps": 900,
+      "pressure_iterations": 4613,
+      "linear_iterations": 72566,
+      "runtime_seconds": 3.265066971012857,
+      "snapshot_bytes": 1647,
+      "state_hash": "f57a195655a64557bd582fd9b7c6f7f8e5b9da0309e4b24904eb7f45115f56b3",
+      "upper_exposure_improvement_fraction": 0.07497335019742168,
+      "useful_ventilation": false
+    },
+    "local": {
+      "mode": "local",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 37,
+      "exported_fraction": 0.9042034500825727,
+      "clear80_time": 352.0,
+      "upper_exposure": 0.0015580996345834362,
+      "lower_exposure": 0.007665884980604085,
+      "max_theta_K": 12.993605574884839,
+      "mass_error_kg": 1.3010426069826053e-18,
+      "heat_error_J": 0.0,
+      "carrier_net_error_m3": 3.11928260998684e-12,
+      "max_divergence_m3_s": 1.2160347728773502e-10,
+      "max_courant": 0.17466623632851094,
+      "substeps": 900,
+      "pressure_iterations": 4932,
+      "linear_iterations": 94294,
+      "runtime_seconds": 2.770804487983696,
+      "snapshot_bytes": 1657,
+      "state_hash": "0facf48edd702fc908340c8f38dd012278072212a20603666c544fd88f0c4019",
+      "upper_exposure_improvement_fraction": 0.5808429715203249,
+      "useful_ventilation": true
+    },
+    "lower_high": {
+      "mode": "lower_high",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 37,
+      "exported_fraction": 0.8797990679138894,
+      "clear80_time": 467.0,
+      "upper_exposure": 0.0019530718975347013,
+      "lower_exposure": 0.009102988461053643,
+      "max_theta_K": 12.993605574884839,
+      "mass_error_kg": 1.3010426069826053e-18,
+      "heat_error_J": 6.984919309616089e-10,
+      "carrier_net_error_m3": 1.8218386799162545e-09,
+      "max_divergence_m3_s": 1.9915225024647043e-10,
+      "max_courant": 0.1478205722796286,
+      "substeps": 900,
+      "pressure_iterations": 5471,
+      "linear_iterations": 98583,
+      "runtime_seconds": 3.193796175008174,
+      "snapshot_bytes": 1646,
+      "state_hash": "5b71d29022590cfa63378d92ab89bcced2bbe8ddf4681132f50fa06730ccd54b",
+      "upper_exposure_improvement_fraction": 0.47458827740712917,
+      "useful_ventilation": true
+    },
+    "tall": {
+      "mode": "tall",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 38,
+      "exported_fraction": 0.7973567744047129,
+      "clear80_time": null,
+      "upper_exposure": 0.002157454398276766,
+      "lower_exposure": 0.013263356110001418,
+      "max_theta_K": 12.993605574884839,
+      "mass_error_kg": 2.3852447794681098e-18,
+      "heat_error_J": 2.3283064365386963e-10,
+      "carrier_net_error_m3": 1.5268852848748793e-09,
+      "max_divergence_m3_s": 1.9340943256673793e-10,
+      "max_courant": 0.12157679910964055,
+      "substeps": 900,
+      "pressure_iterations": 5692,
+      "linear_iterations": 106810,
+      "runtime_seconds": 5.019074541021837,
+      "snapshot_bytes": 1647,
+      "state_hash": "06bd8321e3ccd9018fac01522476ad13a2f75ecf6866b8f95fb9d658f9e431fb",
+      "upper_exposure_improvement_fraction": 0.41960568208215654,
+      "useful_ventilation": false
+    },
+    "floor_closed": {
+      "mode": "floor_closed",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 37,
+      "exported_fraction": 7.174206529188367e-15,
+      "clear80_time": null,
+      "upper_exposure": 0.0,
+      "lower_exposure": 0.03965166509182959,
+      "max_theta_K": 13.034652644245854,
+      "mass_error_kg": 2.168404344971009e-18,
+      "heat_error_J": 5.820766091346741e-11,
+      "carrier_net_error_m3": 9.965193850522447e-15,
+      "max_divergence_m3_s": 2.220446049250313e-15,
+      "max_courant": 0.09618132084952805,
+      "substeps": 900,
+      "pressure_iterations": 1800,
+      "linear_iterations": 10678,
+      "runtime_seconds": 0.8831753650156315,
+      "snapshot_bytes": 1429,
+      "state_hash": "5b07447b98a68a33fccdb2a09fffc422d635927336f8825c3f89d0f00342f6e3",
+      "upper_exposure_improvement_fraction": 1.0,
+      "useful_ventilation": false
+    },
+    "cycle": {
+      "mode": "cycle",
+      "dx": 1.0,
+      "mixing": 0.01,
+      "drag": 1.0,
+      "cells": 24,
+      "faces": 37,
+      "exported_fraction": 0.8907889945485576,
+      "clear80_time": 601.0,
+      "upper_exposure": 0.0061634204218274004,
+      "lower_exposure": 0.006525199209323164,
+      "max_theta_K": 12.995056531755663,
+      "mass_error_kg": 3.0357660829594124e-18,
+      "heat_error_J": 4.0745362639427185e-10,
+      "carrier_net_error_m3": 1.1167742286488647e-09,
+      "max_divergence_m3_s": 9.955536395267472e-12,
+      "max_courant": 0.17677283853499764,
+      "substeps": 900,
+      "pressure_iterations": 5100,
+      "linear_iterations": 94603,
+      "runtime_seconds": 4.45082663098583,
+      "snapshot_bytes": 1652,
+      "state_hash": "82afbe0cb20025dd689bbac8848ca840261f461bc06bd34f366ee9ffb7a794f8",
+      "upper_exposure_improvement_fraction": -0.6580717509601439,
+      "useful_ventilation": false
+    }
+  },
+  "traces": {
+    "sealed": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.00030000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.041940922565275e-16,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 1.659258839295403e-11,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009,
+        "exported_kg": 0.0,
+        "upper_exposure": 3.065968769890164e-09,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.263153024587101e-08,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 5.949852991110374e-07,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 2.653217380518266e-06,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 8.093945223782568e-06,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 1.9208065585576784e-05,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 3.838906704665637e-05,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 6.793369632481534e-05,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.00010988264355379893,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.00016587458641368797,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.00023706770096961833,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.000324152162747235,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0004274259302590148,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.0012000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0005468922552102871,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0006823523024887567,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0008334802401934632,
+        "heat_J": 409440.0
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.0012000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0009998781481426965,
+        "heat_J": 409440.0
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.0012000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0011811132945696746,
+        "heat_J": 409439.99999999994
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.0012000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.001376741953141985,
+        "heat_J": 409440.0
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.0012000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.001586323746316583,
+        "heat_J": 409440.0
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.0012000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0018094296851186424,
+        "heat_J": 409439.99999999994
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.0012000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0020456462000457655,
+        "heat_J": 409439.99999999994
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0022945767307494145,
+        "heat_J": 409439.99999999994
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.002555841902318038,
+        "heat_J": 409439.99999999994
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0028290789393748054,
+        "heat_J": 409440.0
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.00311394071680638,
+        "heat_J": 409440.0
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0034100946817884835,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0037172217778020356,
+        "heat_J": 409440.0
+      }
+    ],
+    "single": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.00030000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.041940922565275e-16,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 1.659258839295403e-11,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009,
+        "exported_kg": 0.0,
+        "upper_exposure": 3.065968769890164e-09,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.263153024587101e-08,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 3.961582009264623e-21,
+        "upper_exposure": 5.949852991110345e-07,
+        "heat_J": 409439.99999999994
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 1.3235204754458183e-20,
+        "upper_exposure": 2.6532173805182713e-06,
+        "heat_J": 409439.99999999994
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 3.489929978782788e-20,
+        "upper_exposure": 8.093945223782593e-06,
+        "heat_J": 409439.9999999999
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0012000000000000003,
+        "exported_kg": 5.163955378669266e-20,
+        "upper_exposure": 1.9208065585576832e-05,
+        "heat_J": 409439.9999999998
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 1.0662405053183111e-19,
+        "upper_exposure": 3.838906704665647e-05,
+        "heat_J": 409439.99999999977
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 1.4797395134098893e-19,
+        "upper_exposure": 6.793369632481542e-05,
+        "heat_J": 409439.99999999977
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.0012000000000000001,
+        "exported_kg": 2.2077020045470097e-19,
+        "upper_exposure": 0.00010988264355379844,
+        "heat_J": 409439.99999999965
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 2.82678106499682e-19,
+        "upper_exposure": 0.00016587458641368702,
+        "heat_J": 409439.9999999996
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 3.9686785160054245e-19,
+        "upper_exposure": 0.0002370677009696169,
+        "heat_J": 409439.99999999953
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 5.1197720448455375e-19,
+        "upper_exposure": 0.0003241521627472332,
+        "heat_J": 409439.9999999994
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 5.821927326651523e-19,
+        "upper_exposure": 0.00042742593025901164,
+        "heat_J": 409439.99999999936
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.0011999999999999997,
+        "exported_kg": 6.474211623940626e-19,
+        "upper_exposure": 0.0005468922552102815,
+        "heat_J": 409439.9999999993
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.0011999999999999997,
+        "exported_kg": 8.378632381781749e-19,
+        "upper_exposure": 0.0006823523024887495,
+        "heat_J": 409439.9999999992
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.0011999999999999995,
+        "exported_kg": 9.718807356656928e-19,
+        "upper_exposure": 0.0008334802401934537,
+        "heat_J": 409439.99999999907
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.0011999999999999995,
+        "exported_kg": 1.0443801771558004e-18,
+        "upper_exposure": 0.000999878148142685,
+        "heat_J": 409439.999999999
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.0011999999999999995,
+        "exported_kg": 1.190277118611935e-18,
+        "upper_exposure": 0.0011811132945696611,
+        "heat_J": 409439.99999999895
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.0011999999999999992,
+        "exported_kg": 1.3573489202247897e-18,
+        "upper_exposure": 0.0013767419531419706,
+        "heat_J": 409439.99999999884
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.001199999999999999,
+        "exported_kg": 1.4956638477247792e-18,
+        "upper_exposure": 0.0015863237463165662,
+        "heat_J": 409439.9999999987
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.001199999999999999,
+        "exported_kg": 1.6852954371761657e-18,
+        "upper_exposure": 0.0018094296851186237,
+        "heat_J": 409439.9999999986
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.0011999999999999988,
+        "exported_kg": 1.8232659132023285e-18,
+        "upper_exposure": 0.002045646200045745,
+        "heat_J": 409439.99999999854
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.0011999999999999988,
+        "exported_kg": 1.991731431703974e-18,
+        "upper_exposure": 0.0022945767307493915,
+        "heat_J": 409439.9999999985
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.0011999999999999986,
+        "exported_kg": 2.1088097740880212e-18,
+        "upper_exposure": 0.0025558419023180103,
+        "heat_J": 409439.99999999837
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.0011999999999999984,
+        "exported_kg": 2.2638828212465523e-18,
+        "upper_exposure": 0.0028290789393747746,
+        "heat_J": 409439.99999999825
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.0011999999999999984,
+        "exported_kg": 2.3891646417443963e-18,
+        "upper_exposure": 0.0031139407168063473,
+        "heat_J": 409439.99999999814
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.0011999999999999982,
+        "exported_kg": 2.535225489934261e-18,
+        "upper_exposure": 0.0034100946817884493,
+        "heat_J": 409439.9999999981
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.001199999999999998,
+        "exported_kg": 2.6133309017350006e-18,
+        "upper_exposure": 0.0037172217778019987,
+        "heat_J": 409439.9999999981
+      }
+    ],
+    "high": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.00030000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.041940922565275e-16,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 1.659258839295403e-11,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009,
+        "exported_kg": 0.0,
+        "upper_exposure": 3.065968769890164e-09,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.263153024587101e-08,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0011044658610994344,
+        "exported_kg": 9.553413890056527e-05,
+        "upper_exposure": 1.8889789331180334e-06,
+        "heat_J": 347132.8451691012
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.0008680977740132467,
+        "exported_kg": 0.00033190222598675304,
+        "upper_exposure": 2.153212728431293e-05,
+        "heat_J": 277186.9213316489
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0006905324288196486,
+        "exported_kg": 0.000509467571180351,
+        "upper_exposure": 8.087513061367111e-05,
+        "heat_J": 225519.42390070853
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0005681392637132865,
+        "exported_kg": 0.0006318607362867134,
+        "upper_exposure": 0.00019529677372583605,
+        "heat_J": 188825.4475981727
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.00048335466187619667,
+        "exported_kg": 0.000716645338123803,
+        "upper_exposure": 0.0003842788183782474,
+        "heat_J": 161668.26361474578
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.00042199981788446,
+        "exported_kg": 0.0007780001821155396,
+        "upper_exposure": 0.0006525627165822316,
+        "heat_J": 140522.62498527582
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.0003749730526662138,
+        "exported_kg": 0.0008250269473337858,
+        "upper_exposure": 0.0009720291694496024,
+        "heat_J": 123471.02444090274
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.0003371226880173444,
+        "exported_kg": 0.0008628773119826552,
+        "upper_exposure": 0.0013103766635548886,
+        "heat_J": 109464.40790314245
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.0003056286795273438,
+        "exported_kg": 0.0008943713204726557,
+        "upper_exposure": 0.0016474797996400084,
+        "heat_J": 97848.97081676987
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.000278902201972773,
+        "exported_kg": 0.0009210977980272265,
+        "upper_exposure": 0.0019734913227603696,
+        "heat_J": 88148.46542801098
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.000255951046364669,
+        "exported_kg": 0.0009440489536353305,
+        "upper_exposure": 0.002284325559077993,
+        "heat_J": 79988.13917463207
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.00023607950737511947,
+        "exported_kg": 0.0009639204926248803,
+        "upper_exposure": 0.002578769137433322,
+        "heat_J": 73069.10389148319
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.000218759300485417,
+        "exported_kg": 0.000981240699514583,
+        "upper_exposure": 0.00285697282369022,
+        "heat_J": 67154.25978687304
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.00020357197612135103,
+        "exported_kg": 0.000996428023878649,
+        "upper_exposure": 0.003119700794472916,
+        "heat_J": 62056.48715480024
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.00019017932729937197,
+        "exported_kg": 0.0010098206727006283,
+        "upper_exposure": 0.0033679601370746465,
+        "heat_J": 57628.255645954945
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.0001783052433174643,
+        "exported_kg": 0.0010216947566825361,
+        "upper_exposure": 0.0036028192366156656,
+        "heat_J": 53752.938343916
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.0001677229481789884,
+        "exported_kg": 0.0010322770518210117,
+        "upper_exposure": 0.00382532088280263,
+        "heat_J": 50337.86781992632
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.00015824531430576005,
+        "exported_kg": 0.0010417546856942405,
+        "upper_exposure": 0.004036443339154218,
+        "heat_J": 47308.93263270512
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.0001497172538872883,
+        "exported_kg": 0.0010502827461127127,
+        "upper_exposure": 0.004237085736048555,
+        "heat_J": 44606.430362947096
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.00014200966113549988,
+        "exported_kg": 0.0010579903388645007,
+        "upper_exposure": 0.004428065635497157,
+        "heat_J": 42181.90217319204
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.00013501456541150937,
+        "exported_kg": 0.0010649854345884918,
+        "upper_exposure": 0.004610122450309496,
+        "heat_J": 39995.71708050312
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.0001286412451154924,
+        "exported_kg": 0.0010713587548845085,
+        "upper_exposure": 0.004783923423351194,
+        "heat_J": 38015.22291262675
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.00012281310710540266,
+        "exported_kg": 0.0010771868928945983,
+        "upper_exposure": 0.004950070463094233,
+        "heat_J": 36213.324129789224
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.0001174651762337763,
+        "exported_kg": 0.0010825348237662245,
+        "upper_exposure": 0.005109106976795533,
+        "heat_J": 34567.381442373866
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.00011254207092092111,
+        "exported_kg": 0.0010874579290790789,
+        "upper_exposure": 0.005261524293234296,
+        "heat_J": 33058.354827773066
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.00010799636592625426,
+        "exported_kg": 0.0010920036340737456,
+        "upper_exposure": 0.005407767505936859,
+        "heat_J": 31670.131549218768
+      }
+    ],
+    "low": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.00030000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.041940922565275e-16,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 1.659258839295403e-11,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009,
+        "exported_kg": 0.0,
+        "upper_exposure": 3.065968769890164e-09,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.263153024587101e-08,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0011717963822144872,
+        "exported_kg": 2.8203617785512563e-05,
+        "upper_exposure": 5.951318897397016e-07,
+        "heat_J": 397742.4735337582
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.0011608226719001782,
+        "exported_kg": 3.917732809982158e-05,
+        "upper_exposure": 2.659045031169322e-06,
+        "heat_J": 394316.1807875838
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0011567239075487613,
+        "exported_kg": 4.327609245123854e-05,
+        "upper_exposure": 8.120002976099107e-06,
+        "heat_J": 393161.5479650377
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0011538538750693595,
+        "exported_kg": 4.614612493064031e-05,
+        "upper_exposure": 1.922536605179653e-05,
+        "heat_J": 392396.092965054
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.001150992329313433,
+        "exported_kg": 4.9007670686566844e-05,
+        "upper_exposure": 3.8230924101978056e-05,
+        "heat_J": 391657.5713804559
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.0011480449466058503,
+        "exported_kg": 5.1955053394149745e-05,
+        "upper_exposure": 6.720908935366608e-05,
+        "heat_J": 390912.7209555141
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.001145075044602797,
+        "exported_kg": 5.492495539720317e-05,
+        "upper_exposure": 0.00010792097540701167,
+        "heat_J": 390172.14388594846
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.0011421377438527096,
+        "exported_kg": 5.7862256147290786e-05,
+        "upper_exposure": 0.0001617177929496791,
+        "heat_J": 389445.6065960688
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.0011392674457904924,
+        "exported_kg": 6.073255420950779e-05,
+        "upper_exposure": 0.00022950944537768718,
+        "heat_J": 388738.77975349856
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.0011364842647074893,
+        "exported_kg": 6.3515735292511e-05,
+        "upper_exposure": 0.000311805603826919,
+        "heat_J": 388054.66682064044
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.0011337993839821102,
+        "exported_kg": 6.620061601789006e-05,
+        "upper_exposure": 0.0004087956648537163,
+        "heat_J": 387394.71737269906
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.0011312183011363247,
+        "exported_kg": 6.878169886367555e-05,
+        "upper_exposure": 0.000520435877004391,
+        "heat_J": 386759.44462115987
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.0011287428175310134,
+        "exported_kg": 7.125718246898687e-05,
+        "upper_exposure": 0.0006465258806320097,
+        "heat_J": 386148.77613785415
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.0011263723283983103,
+        "exported_kg": 7.362767160169e-05,
+        "upper_exposure": 0.0007867678506991392,
+        "heat_J": 385562.27048936556
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.001124104688421332,
+        "exported_kg": 7.58953115786684e-05,
+        "upper_exposure": 0.0009408084657080576,
+        "heat_J": 384999.2589051724
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.0011219367980703468,
+        "exported_kg": 7.806320192965358e-05,
+        "upper_exposure": 0.0011082669296176321,
+        "heat_J": 384458.93974305975
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.0011198649992881396,
+        "exported_kg": 8.013500071186071e-05,
+        "upper_exposure": 0.0012887527963946445,
+        "heat_J": 383940.4412977698
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.0011178853412307137,
+        "exported_kg": 8.211465876928658e-05,
+        "upper_exposure": 0.00148187680926382,
+        "heat_J": 383442.86330179154
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.0011159937558622877,
+        "exported_kg": 8.400624413771247e-05,
+        "upper_exposure": 0.0016872571656773546,
+        "heat_J": 382965.30364700966
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.0011141861729296358,
+        "exported_kg": 8.58138270703645e-05,
+        "upper_exposure": 0.0019045228898556914,
+        "heat_J": 382506.8753213847
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.0011124585938685524,
+        "exported_kg": 8.754140613144784e-05,
+        "upper_exposure": 0.0021333154329436234,
+        "heat_J": 382066.716801405
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.0011108071380465383,
+        "exported_kg": 8.919286195346201e-05,
+        "upper_exposure": 0.0023732892226191937,
+        "heat_J": 381643.99811622064
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.0011092280703530952,
+        "exported_kg": 9.077192964690521e-05,
+        "upper_exposure": 0.0026241116153383373,
+        "heat_J": 381237.92405268835
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.0011077178163489123,
+        "exported_kg": 9.22821836510881e-05,
+        "upper_exposure": 0.0028854625288094616,
+        "heat_J": 380847.73551180115
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.0011062729690677125,
+        "exported_kg": 9.372703093228776e-05,
+        "upper_exposure": 0.003157033920457495,
+        "heat_J": 380472.7096616664
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.0011048902903052244,
+        "exported_kg": 9.510970969477593e-05,
+        "upper_exposure": 0.003438529207693401,
+        "heat_J": 380112.1593309384
+      }
+    ],
+    "local": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.00030000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.041940922565275e-16,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 1.659258839295403e-11,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009,
+        "exported_kg": 0.0,
+        "upper_exposure": 3.065968769890164e-09,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.263153024587101e-08,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0007561617766302137,
+        "exported_kg": 0.0004438382233697865,
+        "upper_exposure": 5.946561617914518e-07,
+        "heat_J": 329390.8986765791
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.000558955317108607,
+        "exported_kg": 0.0006410446828913931,
+        "upper_exposure": 2.6237405124705484e-06,
+        "heat_J": 287765.1024929122
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0004451327737942718,
+        "exported_kg": 0.0007548672262057284,
+        "upper_exposure": 7.759018460407763e-06,
+        "heat_J": 260375.66478258045
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0003716696173834916,
+        "exported_kg": 0.0008283303826165085,
+        "upper_exposure": 1.7581688335258455e-05,
+        "heat_J": 241032.29316424287
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.0003209429212479285,
+        "exported_kg": 0.0008790570787520718,
+        "upper_exposure": 3.329515048721036e-05,
+        "heat_J": 226851.4163328208
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.00028408779299361015,
+        "exported_kg": 0.0009159122070063898,
+        "upper_exposure": 5.564562536342644e-05,
+        "heat_J": 216091.5158332752
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.00025620319857988847,
+        "exported_kg": 0.0009437968014201113,
+        "upper_exposure": 8.499520023427386e-05,
+        "heat_J": 207653.47188579504
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.00023440219915026064,
+        "exported_kg": 0.0009655978008497392,
+        "upper_exposure": 0.00012141960111047358,
+        "heat_J": 200835.6776506492
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.00021689496545102503,
+        "exported_kg": 0.000983105034548975,
+        "upper_exposure": 0.00016478179756020063,
+        "heat_J": 195180.90538720536
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.0002025226889704371,
+        "exported_kg": 0.0009974773110295624,
+        "upper_exposure": 0.0002148987769342924,
+        "heat_J": 190382.9990013611
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.000190505749258668,
+        "exported_kg": 0.0010094942507413312,
+        "upper_exposure": 0.0002715270480750012,
+        "heat_J": 186231.26705600237
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.00018030150508354146,
+        "exported_kg": 0.001019698494916458,
+        "upper_exposure": 0.0003342966194358399,
+        "heat_J": 182576.9124361785
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.00017152127188486274,
+        "exported_kg": 0.0010284787281151367,
+        "upper_exposure": 0.0004027052434639785,
+        "heat_J": 179312.43189171728
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.00016387969770330623,
+        "exported_kg": 0.0010361203022966933,
+        "upper_exposure": 0.0004761603188820229,
+        "heat_J": 176358.53909503864
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.00015716275717759907,
+        "exported_kg": 0.0010428372428224007,
+        "upper_exposure": 0.0005540303793274632,
+        "heat_J": 173655.63984894467
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.00015120709873663924,
+        "exported_kg": 0.0010487929012633612,
+        "upper_exposure": 0.0006356890553708597,
+        "heat_J": 171158.26854250167
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.00014588598441613054,
+        "exported_kg": 0.0010541140155838698,
+        "upper_exposure": 0.0007205453257593853,
+        "heat_J": 168831.2345537482
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.00014109952685819238,
+        "exported_kg": 0.0010589004731418083,
+        "upper_exposure": 0.00080806076536459,
+        "heat_J": 166646.90836998433
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.0001367678879930479,
+        "exported_kg": 0.0010632321120069527,
+        "upper_exposure": 0.0008977568922268228,
+        "heat_J": 164583.32167435862
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.00013282645205885173,
+        "exported_kg": 0.0010671735479411487,
+        "upper_exposure": 0.0009892158577862978,
+        "heat_J": 162622.81470952646
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.00012922233214038477,
+        "exported_kg": 0.0010707776678596157,
+        "upper_exposure": 0.001082077153802329,
+        "heat_J": 160751.05415837816
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.0001259117981038914,
+        "exported_kg": 0.0010740882018961083,
+        "upper_exposure": 0.0011760322668053823,
+        "heat_J": 158956.30726468
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.0001228583545259157,
+        "exported_kg": 0.0010771416454740843,
+        "upper_exposure": 0.0012708185471521248,
+        "heat_J": 157228.89693040017
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.00012003128524804094,
+        "exported_kg": 0.0010799687147519594,
+        "upper_exposure": 0.0013662130568108336,
+        "heat_J": 155560.78700939982
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.00011740453796757233,
+        "exported_kg": 0.0010825954620324284,
+        "upper_exposure": 0.0014620268144159081,
+        "heat_J": 153945.26278610295
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.00011495585990091177,
+        "exported_kg": 0.0010850441400990895,
+        "upper_exposure": 0.0015580996345834362,
+        "heat_J": 152376.68204797746
+      }
+    ],
+    "lower_high": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.00030000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.041940922565275e-16,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 1.659258839295403e-11,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009,
+        "exported_kg": 0.0,
+        "upper_exposure": 3.065968769890164e-09,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.263153024587101e-08,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0009395441738488346,
+        "exported_kg": 0.0002604558261511654,
+        "upper_exposure": 5.959613230748058e-07,
+        "heat_J": 345215.964797226
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.0007393063767555364,
+        "exported_kg": 0.0004606936232444637,
+        "upper_exposure": 2.688010397139832e-06,
+        "heat_J": 295664.6913311673
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0006009911283337671,
+        "exported_kg": 0.0005990088716662326,
+        "upper_exposure": 8.23138392518929e-06,
+        "heat_J": 261713.68802753394
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0005037735849763525,
+        "exported_kg": 0.0006962264150236474,
+        "upper_exposure": 1.9238948040288232e-05,
+        "heat_J": 238439.7971773516
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.00043369637106602276,
+        "exported_kg": 0.0007663036289339769,
+        "upper_exposure": 3.731558212275797e-05,
+        "heat_J": 221770.364764753
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.00038159767408388746,
+        "exported_kg": 0.0008184023259161125,
+        "upper_exposure": 6.353459309620612e-05,
+        "heat_J": 209271.84094747552
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.0003417366129939643,
+        "exported_kg": 0.0008582633870060358,
+        "upper_exposure": 9.8539983672242e-05,
+        "heat_J": 199523.19826894655
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.00031048386587729447,
+        "exported_kg": 0.0008895161341227058,
+        "upper_exposure": 0.0001425957912608864,
+        "heat_J": 191660.11107205725
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.00028544391456827726,
+        "exported_kg": 0.0009145560854317231,
+        "upper_exposure": 0.00019583273251604045,
+        "heat_J": 185136.37390980296
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.00026499347948158474,
+        "exported_kg": 0.0009350065205184156,
+        "upper_exposure": 0.0002582503874215811,
+        "heat_J": 179594.11449833127
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.0002480068219259983,
+        "exported_kg": 0.0009519931780740019,
+        "upper_exposure": 0.000329569052533964,
+        "heat_J": 174790.76805069344
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.00023368540008531703,
+        "exported_kg": 0.000966314599914683,
+        "upper_exposure": 0.0004091975974845299,
+        "heat_J": 170556.84127260157
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.00022145050822244234,
+        "exported_kg": 0.0009785494917775577,
+        "upper_exposure": 0.0004963140931949118,
+        "heat_J": 166770.6698658779
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.00021087439205548725,
+        "exported_kg": 0.0009891256079445129,
+        "upper_exposure": 0.0005899783783811757,
+        "heat_J": 163342.83580569387
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.00020163514667708536,
+        "exported_kg": 0.0009983648533229152,
+        "upper_exposure": 0.0006892304764721398,
+        "heat_J": 160206.25668576892
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.00019348658631448853,
+        "exported_kg": 0.001006513413685512,
+        "upper_exposure": 0.0007931577110415069,
+        "heat_J": 157309.69471659642
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.00018623770715795734,
+        "exported_kg": 0.001013762292842043,
+        "upper_exposure": 0.0009009320399978316,
+        "heat_J": 154613.39046074753
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.00017973840693615877,
+        "exported_kg": 0.0010202615930638421,
+        "upper_exposure": 0.0010118252691970978,
+        "heat_J": 152086.0562811493
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.00017386936567137344,
+        "exported_kg": 0.0010261306343286281,
+        "upper_exposure": 0.001125210142888091,
+        "heat_J": 149702.7622373433
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.0001685347485470091,
+        "exported_kg": 0.0010314652514529928,
+        "upper_exposure": 0.001240553592312266,
+        "heat_J": 147443.42114401906
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.00016365685890547437,
+        "exported_kg": 0.0010363431410945279,
+        "upper_exposure": 0.0013574063808800881,
+        "heat_J": 145291.68427782832
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.00015917216283075502,
+        "exported_kg": 0.0010408278371692465,
+        "upper_exposure": 0.0014753917129456157,
+        "heat_J": 143234.12389616502
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.0001550282944590225,
+        "exported_kg": 0.0010449717055409785,
+        "upper_exposure": 0.001594194212825255,
+        "heat_J": 141259.61955947356
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.00015118177333155132,
+        "exported_kg": 0.0010488182266684494,
+        "upper_exposure": 0.0017135499506173647,
+        "heat_J": 139358.89156417747
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.0001475962459938525,
+        "exported_kg": 0.0010524037540061482,
+        "upper_exposure": 0.0018332377645927688,
+        "heat_J": 137524.14209146742
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.00014424111850333166,
+        "exported_kg": 0.0010557588814966695,
+        "upper_exposure": 0.0019530718975347013,
+        "heat_J": 135748.7762599133
+      }
+    ],
+    "tall": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.00030000000000000003,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.041940922565275e-16,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 1.659258839295403e-11,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009,
+        "exported_kg": 0.0,
+        "upper_exposure": 3.065968769890164e-09,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 7.263153024587101e-08,
+        "heat_J": 409440.00000000006
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0009934831878190913,
+        "exported_kg": 0.00020651681218090856,
+        "upper_exposure": 5.948595847785338e-07,
+        "heat_J": 372953.0043553236
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.0008529301646397333,
+        "exported_kg": 0.0003470698353602666,
+        "upper_exposure": 2.640614906477341e-06,
+        "heat_J": 346062.85499782633
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0007510147831075178,
+        "exported_kg": 0.0004489852168924821,
+        "upper_exposure": 7.935000670976e-06,
+        "heat_J": 324684.88937103486
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0006727821470985005,
+        "exported_kg": 0.0005272178529014992,
+        "upper_exposure": 1.837466981430277e-05,
+        "heat_J": 306989.64809502335
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.000610646736925666,
+        "exported_kg": 0.000589353263074334,
+        "upper_exposure": 3.563030477572237e-05,
+        "heat_J": 292070.2731373281
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.0005600571750345224,
+        "exported_kg": 0.0006399428249654777,
+        "upper_exposure": 6.099273021418701e-05,
+        "heat_J": 279363.78795764846
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.0005180604252969182,
+        "exported_kg": 0.000681939574703082,
+        "upper_exposure": 9.531706361619545e-05,
+        "heat_J": 268455.7290285301
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.00048265058885830776,
+        "exported_kg": 0.0007173494111416926,
+        "upper_exposure": 0.00013902619310860581,
+        "heat_J": 259015.7583419231
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.00045241091659333144,
+        "exported_kg": 0.0007475890834066687,
+        "upper_exposure": 0.00019217309369018475,
+        "heat_J": 250776.88313587356
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.0004263069496783921,
+        "exported_kg": 0.000773693050321608,
+        "upper_exposure": 0.00025455790825711647,
+        "heat_J": 243524.63916886543
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.00040356266337602067,
+        "exported_kg": 0.0007964373366239797,
+        "upper_exposure": 0.00032582674954203085,
+        "heat_J": 237087.73023612314
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.0003835830767114967,
+        "exported_kg": 0.0008164169232885036,
+        "upper_exposure": 0.0004055184923449468,
+        "heat_J": 231329.43353554775
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.0003659057404277544,
+        "exported_kg": 0.0008340942595722458,
+        "upper_exposure": 0.0004931436880821524,
+        "heat_J": 226140.6076562717
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.0003501680372677248,
+        "exported_kg": 0.0008498319627322753,
+        "upper_exposure": 0.0005882715472026161,
+        "heat_J": 221433.97735146928
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.0003360773776535926,
+        "exported_kg": 0.0008639226223464077,
+        "upper_exposure": 0.0006905458843354037,
+        "heat_J": 217137.95953398073
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.0003233945517464376,
+        "exported_kg": 0.0008766054482535626,
+        "upper_exposure": 0.0007996032999645534,
+        "heat_J": 213193.38635680432
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.00031192255152509975,
+        "exported_kg": 0.0008880774484749001,
+        "upper_exposure": 0.0009150237976791467,
+        "heat_J": 209551.20732300042
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.00030149803008592125,
+        "exported_kg": 0.0008985019699140785,
+        "upper_exposure": 0.0010363301025285842,
+        "heat_J": 206170.6088723372
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.00029198467590922655,
+        "exported_kg": 0.0009080153240907733,
+        "upper_exposure": 0.0011630065084484004,
+        "heat_J": 203017.48054124793
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.0002832680250112312,
+        "exported_kg": 0.0009167319749887688,
+        "upper_exposure": 0.0012945211143568685,
+        "heat_J": 200063.1714166367
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.0002752513465669472,
+        "exported_kg": 0.0009247486534330529,
+        "upper_exposure": 0.0014303458897085427,
+        "heat_J": 197283.47747318711
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.0002678524693196033,
+        "exported_kg": 0.0009321475306803968,
+        "upper_exposure": 0.0015699720175967073,
+        "heat_J": 194657.8609888286
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.0002610012543965128,
+        "exported_kg": 0.0009389987456034873,
+        "upper_exposure": 0.0017129202471350595,
+        "heat_J": 192168.8244467924
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.00025463752488184816,
+        "exported_kg": 0.0009453624751181518,
+        "upper_exposure": 0.0018587470007653884,
+        "heat_J": 189801.3879860141
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.0002487093865168401,
+        "exported_kg": 0.00095129061348316,
+        "upper_exposure": 0.002007047155533128,
+        "heat_J": 187542.66396514862
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.00024317187071434278,
+        "exported_kg": 0.0009568281292856574,
+        "upper_exposure": 0.002157454398276766,
+        "heat_J": 185381.51382685744
+      }
+    ],
+    "floor_closed": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.0003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0,
+        "heat_J": 409440.0
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0011999999999999997,
+        "exported_kg": 5.760349599768447e-19,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999999
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.0011999999999999992,
+        "exported_kg": 8.626061150382311e-19,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999977
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0011999999999999988,
+        "exported_kg": 1.2309003847155854e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999965
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0011999999999999986,
+        "exported_kg": 1.4765279412809066e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999996
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.0011999999999999986,
+        "exported_kg": 1.6818408557001446e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999953
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.0011999999999999984,
+        "exported_kg": 1.936903095761164e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999994
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.0011999999999999982,
+        "exported_kg": 2.2748757380107175e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999936
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.0011999999999999977,
+        "exported_kg": 2.598312945756325e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999993
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.0011999999999999975,
+        "exported_kg": 2.9016243124238216e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999924
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.001199999999999997,
+        "exported_kg": 3.206288176934659e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999991
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.0011999999999999969,
+        "exported_kg": 3.464467782450488e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999907
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.0011999999999999964,
+        "exported_kg": 3.8169737157531036e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999895
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.0011999999999999962,
+        "exported_kg": 4.143011294959065e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999884
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.0011999999999999958,
+        "exported_kg": 4.5200716717553364e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999988
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.0011999999999999956,
+        "exported_kg": 4.9977339626391935e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999866
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.0011999999999999951,
+        "exported_kg": 5.2779636727263546e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999986
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.0011999999999999947,
+        "exported_kg": 5.565470977143915e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999854
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.0011999999999999945,
+        "exported_kg": 6.028624757265574e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999984
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.0011999999999999938,
+        "exported_kg": 6.417257224523213e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999984
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.0011999999999999934,
+        "exported_kg": 6.857328552759953e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999983
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.0011999999999999932,
+        "exported_kg": 7.02429846305263e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999982
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.001199999999999993,
+        "exported_kg": 7.279619163701687e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999814
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.0011999999999999927,
+        "exported_kg": 7.6298685531757e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.999999998
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.0011999999999999923,
+        "exported_kg": 7.898989588787545e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999979
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.0011999999999999919,
+        "exported_kg": 8.408408017219729e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.9999999978
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.0011999999999999917,
+        "exported_kg": 8.609047835026059e-18,
+        "upper_exposure": 0.0,
+        "heat_J": 409439.99999999773
+      }
+    ],
+    "cycle": [
+      {
+        "time": 30.0,
+        "smoke_kg": 0.0003,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0,
+        "heat_J": 319440.0
+      },
+      {
+        "time": 60.0,
+        "smoke_kg": 0.0006000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 0.0,
+        "heat_J": 349440.0
+      },
+      {
+        "time": 90.0,
+        "smoke_kg": 0.0009000000000000001,
+        "exported_kg": 0.0,
+        "upper_exposure": 8.022957458346732e-10,
+        "heat_J": 379440.0
+      },
+      {
+        "time": 120.0,
+        "smoke_kg": 0.0012,
+        "exported_kg": 0.0,
+        "upper_exposure": 5.106060716536764e-08,
+        "heat_J": 409440.0
+      },
+      {
+        "time": 150.0,
+        "smoke_kg": 0.0011045863511146997,
+        "exported_kg": 9.541364888530043e-05,
+        "upper_exposure": 1.8072967468275318e-06,
+        "heat_J": 347144.8213623568
+      },
+      {
+        "time": 180.0,
+        "smoke_kg": 0.0008681731017997447,
+        "exported_kg": 0.00033182689820025524,
+        "upper_exposure": 2.134773631186208e-05,
+        "heat_J": 277192.7595708973
+      },
+      {
+        "time": 210.0,
+        "smoke_kg": 0.0006905759412126088,
+        "exported_kg": 0.0005094240587873912,
+        "upper_exposure": 8.056578136071614e-05,
+        "heat_J": 225522.05355875462
+      },
+      {
+        "time": 240.0,
+        "smoke_kg": 0.0005681664133679678,
+        "exported_kg": 0.0006318335866320323,
+        "upper_exposure": 0.00019485257855965152,
+        "heat_J": 188826.82907295713
+      },
+      {
+        "time": 270.0,
+        "smoke_kg": 0.0004833725957744546,
+        "exported_kg": 0.0007166274042255452,
+        "upper_exposure": 0.0003837013082604039,
+        "heat_J": 161669.2144982603
+      },
+      {
+        "time": 300.0,
+        "smoke_kg": 0.00042201344913920147,
+        "exported_kg": 0.0007779865508607983,
+        "upper_exposure": 0.000651877538804805,
+        "heat_J": 140523.52670552288
+      },
+      {
+        "time": 330.0,
+        "smoke_kg": 0.00042201344913920147,
+        "exported_kg": 0.0007779865508607983,
+        "upper_exposure": 0.0009686987939128896,
+        "heat_J": 140523.52670552288
+      },
+      {
+        "time": 360.0,
+        "smoke_kg": 0.00042201344913920147,
+        "exported_kg": 0.0007779865508607983,
+        "upper_exposure": 0.001304106100834648,
+        "heat_J": 140523.52670552288
+      },
+      {
+        "time": 390.0,
+        "smoke_kg": 0.00042201344913920147,
+        "exported_kg": 0.0007779865508607983,
+        "upper_exposure": 0.001647133047007556,
+        "heat_J": 140523.52670552288
+      },
+      {
+        "time": 420.0,
+        "smoke_kg": 0.00042201344913920147,
+        "exported_kg": 0.0007779865508607983,
+        "upper_exposure": 0.001993927955557846,
+        "heat_J": 140523.52670552288
+      },
+      {
+        "time": 450.0,
+        "smoke_kg": 0.0003768869630789984,
+        "exported_kg": 0.0008231130369210012,
+        "upper_exposure": 0.0023431460502864976,
+        "heat_J": 122945.02006063703
+      },
+      {
+        "time": 480.0,
+        "smoke_kg": 0.00034056691096516283,
+        "exported_kg": 0.000859433089034837,
+        "upper_exposure": 0.0026915173323538966,
+        "heat_J": 109295.63526984352
+      },
+      {
+        "time": 510.0,
+        "smoke_kg": 0.00030991923955099923,
+        "exported_kg": 0.0008900807604490008,
+        "upper_exposure": 0.003031149779711007,
+        "heat_J": 98096.84801487529
+      },
+      {
+        "time": 540.0,
+        "smoke_kg": 0.0002835310055205064,
+        "exported_kg": 0.0009164689944794933,
+        "upper_exposure": 0.00335613433929023,
+        "heat_J": 88690.38945625346
+      },
+      {
+        "time": 570.0,
+        "smoke_kg": 0.00026060833567578975,
+        "exported_kg": 0.0009393916643242099,
+        "upper_exposure": 0.003664524063426438,
+        "heat_J": 80699.22119965313
+      },
+      {
+        "time": 600.0,
+        "smoke_kg": 0.00024059818369013254,
+        "exported_kg": 0.0009594018163098668,
+        "upper_exposure": 0.0039564146968372816,
+        "heat_J": 73860.03188528848
+      },
+      {
+        "time": 630.0,
+        "smoke_kg": 0.00022306016505815686,
+        "exported_kg": 0.000976939834941843,
+        "upper_exposure": 0.004232584787188813,
+        "heat_J": 67968.96187727347
+      },
+      {
+        "time": 660.0,
+        "smoke_kg": 0.00020762499330995434,
+        "exported_kg": 0.0009923750066900454,
+        "upper_exposure": 0.004493991281515575,
+        "heat_J": 62862.152166270986
+      },
+      {
+        "time": 690.0,
+        "smoke_kg": 0.00019398012154047542,
+        "exported_kg": 0.0010060198784595244,
+        "upper_exposure": 0.004741616737355969,
+        "heat_J": 58406.7740812979
+      },
+      {
+        "time": 720.0,
+        "smoke_kg": 0.0001818620269270873,
+        "exported_kg": 0.0010181379730729127,
+        "upper_exposure": 0.004976421170632453,
+        "heat_J": 54495.0977070369
+      },
+      {
+        "time": 750.0,
+        "smoke_kg": 0.00017104960257032298,
+        "exported_kg": 0.001028950397429677,
+        "upper_exposure": 0.005199322032997019,
+        "heat_J": 51039.721211670236
+      },
+      {
+        "time": 780.0,
+        "smoke_kg": 0.0001613578341793999,
+        "exported_kg": 0.0010386421658206003,
+        "upper_exposure": 0.005411183403120113,
+        "heat_J": 47969.59362787652
+      },
+      {
+        "time": 810.0,
+        "smoke_kg": 0.00015263196001516987,
+        "exported_kg": 0.0010473680399848302,
+        "upper_exposure": 0.005612810213470359,
+        "heat_J": 45226.746941057456
+      },
+      {
+        "time": 840.0,
+        "smoke_kg": 0.00014474232784778348,
+        "exported_kg": 0.0010552576721522165,
+        "upper_exposure": 0.005804946188922728,
+        "heat_J": 42763.66145302261
+      },
+      {
+        "time": 870.0,
+        "smoke_kg": 0.0001375800192344747,
+        "exported_kg": 0.0010624199807655252,
+        "upper_exposure": 0.0059882745262892275,
+        "heat_J": 40541.16957666041
+      },
+      {
+        "time": 900.0,
+        "smoke_kg": 0.00013105320654172806,
+        "exported_kg": 0.0010689467934582714,
+        "upper_exposure": 0.0061634204218274004,
+        "heat_J": 38526.79984137888
+      }
+    ]
+  },
+  "peak_process_rss_KiB": 18560
+}

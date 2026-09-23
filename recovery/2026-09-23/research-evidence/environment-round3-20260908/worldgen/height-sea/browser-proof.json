@@ -1,0 +1,120 @@
+{
+  "scope": "isolated locally served World Lab height/sea candidate; no live deployment, game source, water stock, physics, or production renderer",
+  "checks": [
+    "served copied page and worker load without runtime errors",
+    "named wet/dry jump renders an exact cardinal boundary with height-derived water",
+    "overview, local render, and section report the shared bed-level contract",
+    "390px frame contains the copied candidate without document-width overflow"
+  ],
+  "errors": [],
+  "screenshots": [
+    "browser-proof/normal-wet-dry.png",
+    "browser-proof/narrow-390-wet-dry.png"
+  ],
+  "server": {
+    "kind": "ephemeral Vite dev server",
+    "root": "/home/levi/src/hive",
+    "path": "/.botanical/research/environment-round3-20260908/worldgen/height-sea/world-lab.html",
+    "url": "http://127.0.0.1:5173/.botanical/research/environment-round3-20260908/worldgen/height-sea/world-lab.html"
+  },
+  "boundary": {
+    "focus": {
+      "label": "Northwater wet/dry boundary",
+      "x": -720,
+      "z": -1120
+    },
+    "exact": {
+      "footprint": 1,
+      "elevation": 0.3594300504069968,
+      "bedLevel": 12,
+      "bedMetres": 6.48,
+      "seaSurfaceLevel": 12,
+      "surfaceWaterPotentialDepthLevels": 0,
+      "moisture": 0.44677194824094324,
+      "terrainLabel": "sea-level-ground",
+      "wetDryBoundary": true,
+      "wetDryNeighbours": [
+        {
+          "direction": "north",
+          "x": -720,
+          "z": -1121,
+          "terrain": "surface-water",
+          "bedLevel": 11,
+          "wet": true
+        },
+        {
+          "direction": "east",
+          "x": -719,
+          "z": -1120,
+          "terrain": "sea-level-ground",
+          "bedLevel": 12,
+          "wet": false
+        },
+        {
+          "direction": "south",
+          "x": -720,
+          "z": -1119,
+          "terrain": "sea-level-ground",
+          "bedLevel": 12,
+          "wet": false
+        },
+        {
+          "direction": "west",
+          "x": -721,
+          "z": -1120,
+          "terrain": "sea-level-ground",
+          "bedLevel": 12,
+          "wet": false
+        }
+      ]
+    },
+    "opposite": [
+      {
+        "direction": "north",
+        "x": -720,
+        "z": -1121,
+        "terrain": "surface-water",
+        "bedLevel": 11,
+        "wet": true
+      }
+    ],
+    "heightSeaDefinition": {
+      "id": "layered-landforms-continuous-coast-height-sea-v1",
+      "verticalVoxelMetres": 0.54,
+      "quantization": {
+        "kind": "round-normalized-height-times-32",
+        "steps": 32,
+        "minimum": 0,
+        "maximum": 32
+      },
+      "seaSurfaceLevel": 12,
+      "coastShaping": {
+        "transitionWorldUnits": 96,
+        "waterwardOffset": -0.1,
+        "landwardOffset": 0.08
+      },
+      "surfaceWaterInitialization": "all-below-datum-surface-basins-at-waterline-v1"
+    }
+  },
+  "consistency": {
+    "localBedLevel": 12,
+    "sectionBedLevel": 12,
+    "exactScope": "exact-cell",
+    "overviewScope": "footprint-approximation",
+    "overviewLabel": "surface-water"
+  },
+  "narrow": {
+    "viewport": 390,
+    "documentWidth": 390,
+    "controls": 362
+  },
+  "hashes": {
+    "candidateTerrain": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+    "callerMain": "41c676b4a0d169ef6f5e03f47592e4efc520d4422c1750078dad26131843066d",
+    "callerWorker": "99f8961b02f758fec220781800d6c62fb7589d76083df7c790394ffb761ba29a",
+    "callerSection": "8b6c98ad43053366f90709be8c4fe5838ce85f3a2815619ef33f7a663f164cf1",
+    "callerHtml": "5ebaa58c67c34728e63c15bc9fe83b6c24cd9c242ef9455a5ac6a91609af43b5",
+    "callerStyles": "fd96c767d1d38b95b54d083f2e547362561302294b26b5dcba67a71da2eaaeb6",
+    "browserProof": "94632cb24eb776e5ddd8c206fcef45f8f3e0f67ff87a59cc664a74d46dfd1abf"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "scope": "same voxel recipe/codec with narrowed exact physical-height query; no new world or physics",
+  "checks": [
+    "same full world identity, material definitions and initial save",
+    "every byte of12 actual cave/negative-boundary/near-surface bricks remains identical",
+    "actual edit/eviction and both codec directions preserve canonical state",
+    "actual file reopen restores the same generated and changed voxel"
+  ],
+  "errors": [],
+  "observation": {
+    "oldMs": 1465.526292,
+    "newMs": 228.39317299999993,
+    "bricks": 12,
+    "decodedCells": 49152,
+    "old": {
+      "revision": 0,
+      "changedCells": 0,
+      "changedBricks": 0,
+      "sparseOverlayBytes": 2,
+      "checkpointBytes": 894,
+      "residentBricks": 8,
+      "residentBytes": 32768,
+      "maxResidentBricks": 8,
+      "residentProjectionCapBytes": 32768,
+      "generatedBricks": 12,
+      "heightSamples": 3072,
+      "caveMetricEvaluations": 34816,
+      "evictions": 4
+    },
+    "current": {
+      "revision": 0,
+      "changedCells": 0,
+      "changedBricks": 0,
+      "sparseOverlayBytes": 2,
+      "checkpointBytes": 894,
+      "residentBricks": 8,
+      "residentBytes": 32768,
+      "maxResidentBricks": 8,
+      "residentProjectionCapBytes": 32768,
+      "generatedBricks": 12,
+      "heightSamples": 3072,
+      "caveMetricEvaluations": 34816,
+      "evictions": 4
+    },
+    "limitation": "single sequential shared-host observation, not controlled speedup benchmark; output comparisons included in candidate time"
+  },
+  "hashes": {
+    "./voxel-world.mjs": "a1f566686c6d9abca60e185718a81a23b41cfdbea590da48fe2865a71eb3ad38",
+    "./qualify.mjs": "8eb1933f2cc420953bab089c28868a5a614cd32e80ee9a4f519ad46497fb8b51",
+    "../volume-v2/voxel-world.mjs": "6aae7b83f71d95f30157f78603de9cc2f90a1d4bf0aab8818e03aebe355e6e3f",
+    "../height-sea/terrain.js": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf"
+  },
+  "run": {
+    "scope": "run-u2912.scope",
+    "invocation": "bc412595ffec44dab7164bfcc4a7efca",
+    "nativeSession": 78653,
+    "exitCode": 0
+  }
+}

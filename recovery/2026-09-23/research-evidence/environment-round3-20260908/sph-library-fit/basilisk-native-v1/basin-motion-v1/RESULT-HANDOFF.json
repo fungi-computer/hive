@@ -1,0 +1,133 @@
+{
+  "scope": "Frozen failed physical packet plus existing-row audit and unapplied reporting-only source correction; no additional native run.",
+  "physicalRun": {
+    "unit": "run-u3296.scope",
+    "invocation": "b57ab3133a7a4b3a83c045c60b0e1971",
+    "exit": 1
+  },
+  "rowAuditRun": {
+    "unit": "run-u3322.scope",
+    "invocation": "146f3dcf6f154f4595f87ce9e88940bb",
+    "exit": 0
+  },
+  "reportingParserOnly": {
+    "unit": "run-u3334.scope",
+    "invocation": "de7723390b2f4a0eadd88731fd70d7e2",
+    "exit": 0
+  },
+  "movingWaterQualified": false,
+  "fullRefinementQualified": false,
+  "allFrozenSourcePinsRechecked": true,
+  "files": [
+    {
+      "path": "RESULTS.md",
+      "bytes": 6126,
+      "sha256": "ad28b8fbbed542cba3cfa89c888252c35bebb487bd1dcb58fab2702e0895ea29"
+    },
+    {
+      "path": "COMPILE-HANDOFF.json",
+      "bytes": 1718,
+      "sha256": "c08a1518bbb8351c468e93a3a2dac5a861f16f043d4b1f3e8a1a5b29947c4471"
+    },
+    {
+      "path": "source-pins.json",
+      "bytes": 2155,
+      "sha256": "7e5ddf9b809ff75dd79bbca859fe40e3446873f203ff61e1ebe54041f42646f3"
+    },
+    {
+      "path": "build-v1/wave",
+      "bytes": 385592,
+      "sha256": "b51fc305dcf1047c2fb49120d9ee8e373b956ae64f129a059027f3f1f9a4885b"
+    },
+    {
+      "path": "result-v1/coarse/capture.json",
+      "bytes": 5500521,
+      "sha256": "cf542711402a861d03142053c6ddda77ebe41d6f7e56ee58a4bbdaa87fe1cdf6"
+    },
+    {
+      "path": "result-v1/coarse/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "result-v1/coarse/stdout.log",
+      "bytes": 4148316,
+      "sha256": "718f82fea3827a96fb0e1afde5961c2db6fef00799e6eeef27a016723e81f942"
+    },
+    {
+      "path": "result-v1/comparison.json",
+      "bytes": 1326472,
+      "sha256": "5c1fee09543338b5caed20a6defe399a8d065e20d17f62dfb641b3ffb9dc8903"
+    },
+    {
+      "path": "result-v1/comparison.log",
+      "bytes": 4748,
+      "sha256": "f3efa3fc62a60efac3878b6eda97229335ef7120278a2215b0546e7474867299"
+    },
+    {
+      "path": "result-v1/fine/capture.json",
+      "bytes": 2570648,
+      "sha256": "de13a00912a029cb727c995647f4d873004d72744d9559a38d7f9d511f0fda58"
+    },
+    {
+      "path": "result-v1/fine/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "result-v1/fine/stdout.log",
+      "bytes": 1909689,
+      "sha256": "b9da3c3301919fcd2734305f2065881df70edc5a7396359714d0c26a6d48fd35"
+    },
+    {
+      "path": "result-v1/native-result.json",
+      "bytes": 9105300,
+      "sha256": "0e1e60df0db21cdfe3a0d1e0f21673163ce7aa4fc1628415f697525e7c60b3a4"
+    },
+    {
+      "path": "result-v1/qualification-summary.json",
+      "bytes": 7700,
+      "sha256": "c6980824d98b64130f1798b6c107eefc0f907710b5ab19d8c3af192f8da4c98f"
+    },
+    {
+      "path": "result-v1/summary.json",
+      "bytes": 356,
+      "sha256": "812b23db5073ce48c3beee87ca732b9ccdf6a3fc8ee8680552dfcd6f6a5076f2"
+    },
+    {
+      "path": "row-audit-v1/AUDIT.md",
+      "bytes": 7144,
+      "sha256": "dfc0cdfe9ced19cdfac2d606788dc66a8ac8012121a19844e641e86424e3605e"
+    },
+    {
+      "path": "row-audit-v1/audit-rows.py",
+      "bytes": 7980,
+      "sha256": "09f56279311419e9deb5eae5c0b12df5f8362edbd56f21448b7d67001d511f1e"
+    },
+    {
+      "path": "row-audit-v1/audit.json",
+      "bytes": 24158,
+      "sha256": "046303b5896e132c75f05843da2415903502a35481bac05a3b0cc85d2a6d9ecc"
+    },
+    {
+      "path": "reporting-v2/REPORTING.md",
+      "bytes": 1459,
+      "sha256": "99458c68055af92daaa5907a121a162468301748c49d044e893216cb3a4d39fb"
+    },
+    {
+      "path": "reporting-v2/reporting-only.patch",
+      "bytes": 4192,
+      "sha256": "d6ee8601db3dd90285c68218f477471c794749db34f88b156c2df46d470323cf"
+    },
+    {
+      "path": "reporting-v2/source/compare-wave.mjs",
+      "bytes": 13375,
+      "sha256": "e6e1fe204b72af072d6f15a62a80980cb1258517c31cdfb3e925cd04d050f2f8"
+    },
+    {
+      "path": "reporting-v2/source-pins.json",
+      "bytes": 393,
+      "sha256": "a2af2c256e63196b4701a6242d6c331b21675f1e857a834ce5701459ca51752f"
+    }
+  ]
+}

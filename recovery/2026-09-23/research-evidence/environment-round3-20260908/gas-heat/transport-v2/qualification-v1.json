@@ -1,0 +1,321 @@
+{
+  "pins": [
+    {
+      "path": "geometry.mjs",
+      "sha256": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14"
+    },
+    {
+      "path": "solver.mjs",
+      "sha256": "14ef3fa8aa65bc0ba58009a9bbdbfb47d345dbe5cdc1e7020bcaacf8f0b2db6b"
+    },
+    {
+      "path": "transport.mjs",
+      "sha256": "51faac0c0a9e1eae18f46e964f6ce4ecc598c4f67d59c7f81924c13e6e32dfae"
+    },
+    {
+      "path": "physics.mjs",
+      "sha256": "50f82527649ee66e9a356e7dbbe23b956b1b5792f8d3a56c141063e51c65486b"
+    },
+    {
+      "path": "qualify.mjs",
+      "sha256": "e52c2308aed8a8bc740d2dae4e48efaca8e0e98a50d6b645f2466dc3dc40a8d8"
+    },
+    {
+      "path": "CONTRACT.md",
+      "sha256": "0f7834fae3df2799ab9a4f4d730206b120f729cb4f5d3f5f60803800e17d36d1"
+    },
+    {
+      "path": "../nd-checkpoint/solver.mjs",
+      "sha256": "49114c0ea61680ee36608c4b16283556f83fa003f163819b99eea6fed0fc120d"
+    }
+  ],
+  "wallMs": 1663.2492730000001,
+  "cpuMs": 871.883,
+  "rssBytes": 103276544,
+  "rows": [
+    {
+      "name": "admission and rejection preserve caller state including second Euler stage",
+      "status": "pass",
+      "secondStageRejected": true,
+      "stateTimeLedgerUnchanged": true,
+      "rateRejected": true,
+      "minAcceptedSmoke": 0,
+      "minAcceptedKelvin": 1,
+      "invalidTemperatureRejected": true,
+      "baselineMethodRejected": true,
+      "wallMs": 22.067774999999997
+    },
+    {
+      "name": "smooth periodic scalar advection spatial accuracy",
+      "status": "pass",
+      "cases": [
+        {
+          "nx": 16,
+          "dtMax": 0.025,
+          "smokeRms": 0.003396901337873401,
+          "temperatureRms": 0.08492253344683234,
+          "steps": 16,
+          "maxStageCoefficient": 0.2
+        },
+        {
+          "nx": 32,
+          "dtMax": 0.0125,
+          "smokeRms": 0.0009185780545474415,
+          "temperatureRms": 0.022964451363689135,
+          "steps": 32,
+          "maxStageCoefficient": 0.2
+        },
+        {
+          "nx": 64,
+          "dtMax": 0.00625,
+          "smokeRms": 0.0002693580208617483,
+          "temperatureRms": 0.006733950521541406,
+          "steps": 65,
+          "maxStageCoefficient": 0.2
+        }
+      ],
+      "wallMs": 416.660217
+    },
+    {
+      "name": "SSPRK2 time accuracy against exact semidiscrete diffusion eigenmode",
+      "status": "pass",
+      "discreteEigenvalue": -0.234314575050762,
+      "cases": [
+        {
+          "dt": 0.1,
+          "error": 0.0000024414114446092797,
+          "steps": 11
+        },
+        {
+          "dt": 0.05,
+          "error": 6.050042569633846e-7,
+          "steps": 20
+        },
+        {
+          "dt": 0.025,
+          "error": 1.505874372844406e-7,
+          "steps": 40
+        }
+      ],
+      "wallMs": 103.03072400000008
+    },
+    {
+      "name": "obstruction, signed heat, sources and exact restart",
+      "status": "pass",
+      "massError": 6.938893903907228e-18,
+      "heatError": 9.313225746154785e-10,
+      "minKelvin": 93.99846767501072,
+      "maxKelvin": 312.26707058204784,
+      "exactRestart": true,
+      "smokeAdded": 0.0000020000000000000008,
+      "heatAdded": -19.999999999999996,
+      "maxDivergence": 4.998640390496689e-12,
+      "pressureSolves": 22,
+      "iterations": 912,
+      "matrixProducts": 912,
+      "operatorBuilds": 1,
+      "workspaceBytes": 7328,
+      "scalarCacheBuilds": 1,
+      "scalarEulerStages": 42,
+      "scalarFaceEvaluations": 7140,
+      "scalarReconstructions": 84,
+      "scalarRejectedStages": 0,
+      "scalarWorkspaceBytes": 21568,
+      "wallMs": 158.96002299999998
+    },
+    {
+      "name": "cold ambient inflow and negative thermal anomaly next to a wall",
+      "status": "pass",
+      "ambientKelvin": 293.15,
+      "minKelvin": 218.8250009442524,
+      "maxKelvin": 313.14999834003606,
+      "airImported": 0.10800000000000001,
+      "heatBoundary": 2509.7868071474404,
+      "massError": 0,
+      "heatError": 5.093170329928398e-11,
+      "wallMs": 63.24800799999991
+    },
+    {
+      "name": "sharp-front accuracy and total CPU/work at the same field-error target",
+      "status": "pass",
+      "target": 0.32,
+      "matched": [
+        {
+          "method": "baseline",
+          "nx": 32,
+          "l1RelativeFieldError": 0.3171177893894127,
+          "smokeExportError": 0.00000849423633979881,
+          "massError": 0,
+          "heatError": 2.7284841053187847e-12,
+          "cpuMs": 83.807,
+          "wallMs": 138.36367700000005,
+          "steps": 121,
+          "rejected": 0,
+          "faces": 260,
+          "scalarFaceEvaluations": 31460,
+          "pressureSolves": 121,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 45184
+        },
+        {
+          "method": "candidate",
+          "nx": 16,
+          "l1RelativeFieldError": 0.22261834334814856,
+          "smokeExportError": 0.000007896438501877028,
+          "massError": 0,
+          "heatError": 2.7284841053187847e-12,
+          "cpuMs": 43.615,
+          "wallMs": 106.73298799999998,
+          "steps": 121,
+          "rejected": 0,
+          "faces": 132,
+          "scalarFaceEvaluations": 31944,
+          "pressureSolves": 121,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 14400,
+          "scalarCacheBuilds": 1,
+          "scalarEulerStages": 242,
+          "scalarReconstructions": 484,
+          "scalarRejectedStages": 0,
+          "scalarWorkspaceBytes": 47232
+        }
+      ],
+      "cases": [
+        {
+          "method": "baseline",
+          "nx": 8,
+          "l1RelativeFieldError": 0.5819368732023764,
+          "smokeExportError": 0.00003650172886178601,
+          "massError": 2.168404344971009e-19,
+          "heatError": 2.7284841053187847e-12,
+          "cpuMs": 52.216,
+          "wallMs": 83.92138999999997,
+          "steps": 121,
+          "rejected": 0,
+          "faces": 68,
+          "scalarFaceEvaluations": 8228,
+          "pressureSolves": 121,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 11392
+        },
+        {
+          "method": "candidate",
+          "nx": 8,
+          "l1RelativeFieldError": 0.45024382392807505,
+          "smokeExportError": 0.000008472206432500254,
+          "massError": 2.168404344971009e-19,
+          "heatError": 6.366462912410498e-12,
+          "cpuMs": 42.548,
+          "wallMs": 94.2149559999998,
+          "steps": 121,
+          "rejected": 0,
+          "faces": 68,
+          "scalarFaceEvaluations": 16456,
+          "pressureSolves": 121,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 7232,
+          "scalarCacheBuilds": 1,
+          "scalarEulerStages": 242,
+          "scalarReconstructions": 484,
+          "scalarRejectedStages": 0,
+          "scalarWorkspaceBytes": 23680
+        },
+        {
+          "method": "baseline",
+          "nx": 16,
+          "l1RelativeFieldError": 0.4424102586775429,
+          "smokeExportError": 0.00001988924425199714,
+          "massError": 4.336808689942018e-19,
+          "heatError": 2.7284841053187847e-12,
+          "cpuMs": 26.772,
+          "wallMs": 70.08439999999996,
+          "steps": 121,
+          "rejected": 0,
+          "faces": 132,
+          "scalarFaceEvaluations": 15972,
+          "pressureSolves": 121,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 22656
+        },
+        {
+          "method": "candidate",
+          "nx": 16,
+          "l1RelativeFieldError": 0.22261834334814856,
+          "smokeExportError": 0.000007896438501877028,
+          "massError": 0,
+          "heatError": 2.7284841053187847e-12,
+          "cpuMs": 43.615,
+          "wallMs": 106.73298799999998,
+          "steps": 121,
+          "rejected": 0,
+          "faces": 132,
+          "scalarFaceEvaluations": 31944,
+          "pressureSolves": 121,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 14400,
+          "scalarCacheBuilds": 1,
+          "scalarEulerStages": 242,
+          "scalarReconstructions": 484,
+          "scalarRejectedStages": 0,
+          "scalarWorkspaceBytes": 47232
+        },
+        {
+          "method": "baseline",
+          "nx": 32,
+          "l1RelativeFieldError": 0.3171177893894127,
+          "smokeExportError": 0.00000849423633979881,
+          "massError": 0,
+          "heatError": 2.7284841053187847e-12,
+          "cpuMs": 83.807,
+          "wallMs": 138.36367700000005,
+          "steps": 121,
+          "rejected": 0,
+          "faces": 260,
+          "scalarFaceEvaluations": 31460,
+          "pressureSolves": 121,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 45184
+        },
+        {
+          "method": "candidate",
+          "nx": 32,
+          "l1RelativeFieldError": 0.13024400607408412,
+          "smokeExportError": 0.000002077467120241102,
+          "massError": 0,
+          "heatError": 2.7284841053187847e-12,
+          "cpuMs": 81.838,
+          "wallMs": 185.45824100000004,
+          "steps": 121,
+          "rejected": 0,
+          "faces": 260,
+          "scalarFaceEvaluations": 62920,
+          "pressureSolves": 121,
+          "iterations": 0,
+          "matrixProducts": 0,
+          "operatorBuilds": 1,
+          "workspaceBytes": 28736,
+          "scalarCacheBuilds": 1,
+          "scalarEulerStages": 242,
+          "scalarReconstructions": 484,
+          "scalarRejectedStages": 0,
+          "scalarWorkspaceBytes": 94336
+        }
+      ],
+      "wallMs": 895.469176
+    }
+  ]
+}

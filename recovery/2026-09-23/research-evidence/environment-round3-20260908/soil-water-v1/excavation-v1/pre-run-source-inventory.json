@@ -1,0 +1,19 @@
+{
+  "excavation.mjs": "34b33c747f764bf1dcc7ba55a51c062938393240dd59fa803caebefdf7e695dd",
+  "fixture.mjs": "dc2062221abdb39c2440077f118d8137facd9f16403b98fc7218be5f4e8bcbcb",
+  "qualify.mjs": "547dfeb496900c3dc474edb65020c61b982876b77c854c1ce8d4b4c675d33682",
+  "world-binding.mjs": "737f8095d085fc9fe0c8935ea02ef1533538326a350fcc7714dc77c283336e6c",
+  "volume-with-pit-v1/closure.mjs": "f9046f422c529bcd96a210e58f8edf5808f911e540fa50b17fd926c02f45af7f",
+  "volume-with-pit-v1/faces.mjs": "ef409d6b041d885963bf30f84ab63ea801cd6b69594d230741078fd4682c9cbf",
+  "volume-with-pit-v1/geometry.mjs": "147b3b62e090844d5d0f4a675d5d01e03c66677498447fe678057609a55ac104",
+  "volume-with-pit-v1/guess.mjs": "666cd8f7f14388ec789d446fd8689a674ee4e8c10fdcb40cd8aed10112d17341",
+  "volume-with-pit-v1/linear.mjs": "4ede98c670b6bee94ceeb0c342888973302bf7f4624999efc3a1e51e5f0e7613",
+  "volume-with-pit-v1/newton.mjs": "df612a3cf2509a6a6b66312e861128f93c04eb159b7b962371443eb2df816059",
+  "volume-with-pit-v1/pit.mjs": "2f6b7065835ad2078ecf048f96104ca42b660b35b9484f6e1e38e86b46399e16",
+  "volume-with-pit-v1/residual.mjs": "b30ab60ecef97a9d91222b98af7ad31f6401304bb76ac6685b6ff71570d593d8",
+  "volume-with-pit-v1/state.mjs": "f2cfa872d955bf326e405415b7d1a7304780bc574dde2e1b681108b9364088df",
+  "volume-with-pit-v1/volume.mjs": "5e75a75ad9ded602721a5be429745c4ec34d710ee329827828e59636ca43fa39",
+  "CONTRACT.md": "2327336d21c8babd9bb15f70558beef69cb41e8dbedf63e767ab079cd9c58125",
+  "BOUNDARY.md": "37c451dbc64c53032357f1b72a2e5c2ad4cc61e6e94356e0fcc8d2350e596d15",
+  ".fallowrc.json": "82d0f27170191b083434f45e5e34a53eab226ea1ee1c9ac71dae28f22e8f719e"
+}

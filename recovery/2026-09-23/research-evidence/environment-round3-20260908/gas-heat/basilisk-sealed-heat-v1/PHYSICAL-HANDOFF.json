@@ -1,0 +1,67 @@
+{
+  "scope": "One unchanged native heat packet stopped at the declared 25 s caller wall cap. Partial closed-room physics retained; no retry. Not adopted for gameplay.",
+  "scopeId": "run-u3403.scope",
+  "invocationId": "bf5efee0577b4cd1a15d6c9804b01bcc",
+  "wrapperExitCode": 1,
+  "nativeExitCode": 2,
+  "completedInterval": false,
+  "completedPhysicalSeconds": 0.31921030539942563,
+  "steps": 30,
+  "heatReleasedJ": 31.92103053994252,
+  "elapsedSeconds": 25.443172854022123,
+  "childCpuSeconds": 6.118402,
+  "maxChildRssKiB": 18816,
+  "multigridCycles": 2206,
+  "compilePinsStillMatch": true,
+  "decision": "Retain finite heater/energy reference; do not port or widen current SI coupled solver. Existing pressure owner needs compatible sealed mean/coarse-mode treatment and explicit residual error scales; no tolerance retry authorized.",
+  "files": {
+    "RESULTS.md": {
+      "bytes": 5264,
+      "sha256": "c67b77e45282822d45383f8a92da41677659ac988e24efa86124340226434d27"
+    },
+    "ADOPTION-DECISION.md": {
+      "bytes": 5388,
+      "sha256": "3b8db933d2d230abfba44b224d44880af250ef52eb69d285f9442c1981c3b530"
+    },
+    "run-v1.py": {
+      "bytes": 5318,
+      "sha256": "aaf050a455e069ffde7a8a7202b8e2a12ab953a9438b29159980ad97e2feb650"
+    },
+    "COMPILE-HANDOFF.json": {
+      "bytes": 1617,
+      "sha256": "bd7f39abe93aefe47d6b8a10223ef871d739f52fcf181b2c6c9bfdfbf504c154"
+    },
+    "run-v1/COMPILE-HANDOFF.json": {
+      "bytes": 1617,
+      "sha256": "bd7f39abe93aefe47d6b8a10223ef871d739f52fcf181b2c6c9bfdfbf504c154"
+    },
+    "run-v1/admission.json": {
+      "bytes": 640,
+      "sha256": "46632c4dc6fb622db3dcaf2cde73ebab2b0ad44101f272164b6542a704d5131d"
+    },
+    "run-v1/failed-interval.csv": {
+      "bytes": 94491,
+      "sha256": "cac339d1e73c8703c3e98c74e495d643ef10ee5c318191c916f924bb8152d5b8"
+    },
+    "run-v1/receipt.json": {
+      "bytes": 61911,
+      "sha256": "9071bba551ea67b1c7ae3280eb11f1591f781af51948657f4ba267a39a039876"
+    },
+    "run-v1/run-v1.py": {
+      "bytes": 5318,
+      "sha256": "aaf050a455e069ffde7a8a7202b8e2a12ab953a9438b29159980ad97e2feb650"
+    },
+    "run-v1/source-checkpoint-v3.json": {
+      "bytes": 3343,
+      "sha256": "06e3e38c280d45c1ae629486ca5f8d8aee99b47e7b9f26c79501b5b9391bd182"
+    },
+    "run-v1/stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run-v1/stdout.log": {
+      "bytes": 48777,
+      "sha256": "6933b4249da0b8f9b923cb9243d95723733951b8e596abba9c41dab2b51bfabc"
+    }
+  }
+}

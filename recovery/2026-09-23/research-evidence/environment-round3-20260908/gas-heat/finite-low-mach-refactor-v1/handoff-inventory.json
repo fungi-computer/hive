@@ -1,0 +1,22 @@
+{
+  ".fallowrc.json": "0c378eaa055443b0cf7a582f6a423ff181b049b53f227f2591dfc290a9b508a2",
+  "CONTRACT.md": "d226e242faaafb0ff61ba3f1db396b0f228e359350b22e121d084c938cf6b86f",
+  "HANDOFF.md": "218cf646594926664c9fbca15211932263ca06bea3e3ea679071c81f4dd2d809",
+  "REFACTOR.md": "0b994b2138fc31a1390f9fddf0db0c17f9ad23e096c988d66e166aa2c5fef63f",
+  "RESULTS.md": "82c3d65989c65123d9c0dbba4341bbe1f2840c78a31b7795b2ee6a47943afef1",
+  "REVIEW.md": "f1edd4bc73bd462a4e982ece5abe58143b68a59fe14bc31c74d6b8a3eeac162c",
+  "boussinesq-reference.mjs": "fe464e909b134ea87d6e76688585a862d35e593bc7c23a6b70ba92b871fb753a",
+  "fallow.json": "7b726b8a6aca7498cc2a764eb201f224f9841f3f93612f4e4941f471cef65f99",
+  "finite-gas.mjs": "ae911a681b783965fc15df8c8c47b7f987972b50a1a128049179885c5a7eecf4",
+  "geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+  "inspect-finite-gas.mjs.json": "7ee3c8173c01277fbdb0e48c23dbf2ecc6afea7d02c94c6a32052ce514b6eaa6",
+  "inspect-projection.mjs.json": "4a7e04be2f9d3b0f00c864ec21122f14b547704cfad53e29385ae43627517d94",
+  "projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+  "qualification-v1.json": "b72936bacc7fa4ffa0f840f917ad66c0b4b6fce5b7458dc8fd0f810c6f370d30",
+  "qualify.mjs": "c9ce63703e29795f28e3916b5d795c5696ab05f78b055c38ae9421828ff74b63",
+  "restart-state.json": "3b8af53cfa94c90168fffc8421547f8cbf8fe7f78c1ef43fb6ec70ae78f2d651",
+  "source-inventory.json": "c84fd4963627116038a418dd51de4b0b4f23195b7c62a878d81818ff56553253",
+  "strip-dt1.json": "e413133abc04d2b206786742ffcd421ae033507de088a23a83d5b33245257790",
+  "strip-dt2.json": "638e748c773210a9a08ee3e0fb90a9c5776d253466efd2c046867a4836b911c0",
+  "strip-dt4.json": "03303bb7c3fdb01cfefa17533e8eb8a5fe304fa3094320ca5beb778ce5a7eff3"
+}

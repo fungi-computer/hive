@@ -1,0 +1,36 @@
+{
+  "allValuesDeepEqual": true,
+  "serializedBytesEqual": false,
+  "actualKeys": [
+    "version",
+    "model",
+    "theta",
+    "roughness",
+    "geom",
+    "V",
+    "q",
+    "mx",
+    "my",
+    "time",
+    "stepCount",
+    "collected",
+    "initialVolume",
+    "events"
+  ],
+  "expectedKeys": [
+    "version",
+    "model",
+    "theta",
+    "roughness",
+    "V",
+    "q",
+    "mx",
+    "my",
+    "time",
+    "stepCount",
+    "collected",
+    "initialVolume",
+    "events",
+    "geom"
+  ]
+}

@@ -1,0 +1,256 @@
+{
+  "status": "pass",
+  "sourcePins": {
+    "thermodynamics.mjs": "b2a58ea2488b91c8ca49db32bff6e5bdf2734977cd89b14da198d0289cd6db4c",
+    "definitions.mjs": "536a5cd870d3bed14ceda3b21a01110a0b32dcd24b19d93f556d7f5cfca13ff3",
+    "CONTRACT.md": "04c94a20efa85d69b2e10706d0f87e8ffbb8eb4c00e7c71303052cb7457cb9ad",
+    "qualify.mjs": "2e417a7ca1d07a61a9b5a1bc6056e395cd5d08467b93e4de2f4f1ae98a5d0e46"
+  },
+  "groups": [
+    {
+      "name": "independent one-mole and two-mole EOS/capacities",
+      "milliseconds": 0.3537639999999982
+    },
+    {
+      "name": "heat and isolated free expansion are distinct from piston work",
+      "milliseconds": 2.0428409999999957
+    },
+    {
+      "name": "ordering, discard-before-commit, and finite receipt rounding",
+      "milliseconds": 2.029491
+    },
+    {
+      "name": "owned immutable inputs/results and rejected physical operations",
+      "milliseconds": 0.8803380000000018
+    },
+    {
+      "name": "canonical codec, actual files, and definition mismatch",
+      "milliseconds": 1.653094000000003
+    },
+    {
+      "name": "invalid quantities/definitions and finite derived envelope",
+      "milliseconds": 1.7537949999999967
+    }
+  ],
+  "assertions": 108,
+  "operations": 17,
+  "rejections": 58,
+  "errors": {
+    "air_temperature_K": {
+      "actual": 320,
+      "expected": 320,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "air_pressure_Pa": {
+      "actual": 100781.36506852413,
+      "expected": 100781.36506852413,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "air_gamma": {
+      "actual": 1.4,
+      "expected": 1.4,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "air_moles": {
+      "actual": 1,
+      "expected": 1,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "helium_same_moles_pressure_Pa": {
+      "actual": 100781.36506852413,
+      "expected": 100781.36506852413,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "helium_gamma": {
+      "actual": 1.6666666666666665,
+      "expected": 1.6666666666666667,
+      "absoluteError": 2.220446049250313e-16,
+      "scaledError": 1.3322676295501878e-16
+    },
+    "mixture_temperature_K": {
+      "actual": 300,
+      "expected": 300,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "mixture_moles": {
+      "actual": 2,
+      "expected": 2,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "mixture_mass_kg": {
+      "actual": 0.032972602,
+      "expected": 0.032972602,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "mixture_pressure_Pa": {
+      "actual": 99773.55141783887,
+      "expected": 99773.55141783887,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "mixture_density_kg_m3": {
+      "actual": 0.6594520399999999,
+      "expected": 0.6594520399999999,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "mixture_cv_J_kg_K": {
+      "actual": 1008.6510755994617,
+      "expected": 1008.6510755994617,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "mixture_cp_J_kg_K": {
+      "actual": 1512.9766133991925,
+      "expected": 1512.9766133991925,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "mixture_cp_minus_cv": {
+      "actual": 504.3255377997308,
+      "expected": 504.32553779973085,
+      "absoluteError": 5.684341886080802e-14,
+      "scaledError": 1.12711759766924e-16
+    },
+    "mixture_gamma": {
+      "actual": 1.5,
+      "expected": 1.5,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "mixture_enthalpy_J": {
+      "actual": 14966.032712675831,
+      "expected": 14966.032712675831,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "heated_temperature_K": {
+      "actual": 330,
+      "expected": 330,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "heat_receipt_J": {
+      "actual": 997.7355141783887,
+      "expected": 997.7355141783887,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "heat_first_law_residual_J": {
+      "actual": -4.547473508864641e-13,
+      "expected": 0,
+      "absoluteError": 4.547473508864641e-13,
+      "scaledError": 4.547473508864641e-13
+    },
+    "free_temperature_K": {
+      "actual": 300,
+      "expected": 300,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "free_pressure_Pa": {
+      "actual": 49886.775708919435,
+      "expected": 49886.775708919435,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "piston_temperature_K": {
+      "actual": 212.13203435596427,
+      "expected": 212.13203435596424,
+      "absoluteError": 2.842170943040401e-14,
+      "scaledError": 1.339812231410155e-16
+    },
+    "piston_work_J": {
+      "actual": 2922.2996627220336,
+      "expected": 2922.299662722034,
+      "absoluteError": 4.547473508864641e-13,
+      "scaledError": 1.5561284035562617e-16
+    },
+    "piston_pVgamma": {
+      "actual": 1115.5022166342915,
+      "expected": 1115.5022166342912,
+      "absoluteError": 2.2737367544323206e-13,
+      "scaledError": 2.0383076972206033e-16
+    },
+    "piston_first_law_residual_J": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "piston_independent_quadrature": {
+      "coarseJ": 2922.299683430077,
+      "fineJ": 2922.299664017009,
+      "finerJ": 2922.2996628029764,
+      "refinementDifferenceJ": 0.0000012140326361986808,
+      "previousDifferenceJ": 0.000019413068002904765
+    },
+    "piston_work_vs_independent_integral_J": {
+      "actual": 2922.2996627220336,
+      "expected": 2922.2996628029764,
+      "absoluteError": 8.094275472103618e-8,
+      "scaledError": 2.769830751833249e-11
+    },
+    "reversible_return_U_J": {
+      "actual": 9977.355141783888,
+      "expected": 9977.355141783888,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "reversible_net_work_J": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "heat_commutation_U_J": {
+      "actual": 11177.355141783888,
+      "expected": 11177.355141783888,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "heat_piston_noncommutation_J": {
+      "actual": 91.75170953613633,
+      "expected": 91.75170953613693,
+      "absoluteError": 5.968558980384842e-13,
+      "scaledError": 6.5051201885607275e-15
+    },
+    "repeat_is_second_heat_J": {
+      "actual": 1000,
+      "expected": 1000,
+      "absoluteError": 0,
+      "scaledError": 0
+    },
+    "large_energy_heat_rounding": {
+      "beforeJ": 66515700945225.93,
+      "requestedJ": 0.123456789,
+      "actualDeltaJ": 0.125,
+      "residualJ": 0.0015432110000000027
+    },
+    "actual_files": {
+      "chamber-state.json": {
+        "bytes": 715,
+        "sha256": "4082dfb5347db6639d8b3cc4518b96046f070e306b262cf290ccb0073664f852"
+      },
+      "definition.json": {
+        "bytes": 480,
+        "sha256": "9b633214d4a30c6e9d9baf9a83361e188a32bd37dc7caa66dfc5a95fae18bbd9"
+      }
+    }
+  },
+  "wallSeconds": 0.009886960000000002,
+  "cpuSeconds": 0.009901,
+  "rssBytes": 56336384,
+  "notes": [
+    "Algebraic thermodynamics qualification, not throughput benchmark.",
+    "No spatial solver, finite-reservoir exchange, 3D gas, oxygen, fire or digging implementation."
+  ]
+}

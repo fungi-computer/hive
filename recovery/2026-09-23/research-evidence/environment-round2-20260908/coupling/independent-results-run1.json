@@ -1,0 +1,99 @@
+{
+  "scope": "Independent bounded displacement/thermal transaction; NOT a fluid solver.\n\nThe prescribed water intrusion has no momentum or pressure feedback. A vented\nfixed-reference-density extension and analytic ideal-gas counterexamples are\ndeliberately different models. No gas/heat sibling code is copied here.\n",
+  "runtime": "3.12.3",
+  "initial": {
+    "model": "vented-piston-reference-density-v1",
+    "geometry_revision": 1,
+    "time_s": 0.0,
+    "forcing_cursor": 0,
+    "void_m3": 1.0,
+    "water_m3": 0.2,
+    "water_anomaly_J": 0.0,
+    "gas_m3": 0.8,
+    "air_kg": 0.96,
+    "smoke_kg": 0.008,
+    "air_anomaly_J": 9648.0,
+    "ledger": {
+      "water_in_m3": 0.0,
+      "water_anomaly_in_J": 0.0,
+      "air_out_kg": 0.0,
+      "smoke_out_kg": 0.0,
+      "air_anomaly_out_J": 0.0
+    },
+    "history": {
+      "last_displacement_m3": 0.0
+    }
+  },
+  "accepted_vented": {
+    "model": "vented-piston-reference-density-v1",
+    "geometry_revision": 1,
+    "time_s": 10.0,
+    "forcing_cursor": 0,
+    "void_m3": 1.0,
+    "water_m3": 0.45,
+    "water_anomaly_J": -10450000.0,
+    "gas_m3": 0.55,
+    "air_kg": 0.6599999999999999,
+    "smoke_kg": 0.0055,
+    "air_anomaly_J": 6633.0,
+    "ledger": {
+      "water_in_m3": 0.25,
+      "water_anomaly_in_J": -10450000.0,
+      "air_out_kg": 0.3,
+      "smoke_out_kg": 0.0025,
+      "air_anomaly_out_J": 3015.0
+    },
+    "history": {
+      "last_displacement_m3": 0.25
+    }
+  },
+  "receipt": {
+    "geometry_revision": 1,
+    "from_time_s": 0.0,
+    "to_time_s": 10.0,
+    "forcing_cursor": 0,
+    "base_digest": "401dbddfd5918e12644af3cfa873ca8b39c36c434fdc48b01a67613d2b617f66",
+    "route": "open",
+    "water_in_m3": 0.25,
+    "water_anomaly_in_J": -10450000.0,
+    "air_out_m3": 0.25,
+    "air_out_kg": 0.3,
+    "smoke_out_kg": 0.0025,
+    "air_anomaly_out_J": 3015.0,
+    "mechanical_energy_model": "prescribed motion; reference-density thermal anomaly only"
+  },
+  "budget_interruptions": 8,
+  "restarted_validation_exact": true,
+  "rejected": {
+    "shrink_volume_keep_fixed_density_air_mass": "reference density successor: 0.96 != 0.66",
+    "reuse_divergence_zero_fixed_volume_solve": "moving-volume continuity: 0.25 != 0.0",
+    "erase_air_heat": "air_anomaly_J: 9648.0 != 3015.0",
+    "closed_displacement": "needs compatible exhaust; sealed compression is unsupported",
+    "unknown_displacement": "needs compatible exhaust; sealed compression is unsupported"
+  },
+  "geometry_revision_invalidates_pending": true,
+  "thermal": {
+    "water_K": 287.59444444444443,
+    "air_K": 303.15,
+    "water_capacity_J_K": 1881000.0,
+    "air_capacity_J_K": 663.3000000000001,
+    "weighted_equilibrium_K": 287.599927890925,
+    "unweighted_equilibrium_K": 295.3722222222222,
+    "naive_energy_defect_J": 14624841.000000011
+  },
+  "sealed_adiabatic": {
+    "gas_mass_kg": 0.9316807665850039,
+    "before_pressure_Pa": 101325.0,
+    "after_pressure_Pa": 171194.3790125415,
+    "before_K": 303.15,
+    "after_K": 352.13011101293574,
+    "external_work_on_gas_J": 32765.088055932545
+  },
+  "ideal_vented": {
+    "delta_internal_energy_J": -63372.256097560974,
+    "enthalpy_export_J": 88703.50609756097,
+    "boundary_work_on_gas_J": 25331.25,
+    "wrong_internal_export_energy_defect_J": 25331.25
+  },
+  "limits": "Prescribed intrusion, single well-mixed tank, no flow resistance, liquid momentum, gas-network evolution, phase change or production/runtime claim. Validator checks this closed example, not arbitrary physical correctness."
+}

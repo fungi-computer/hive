@@ -1,0 +1,11 @@
+{
+  "../finite-momentum-v1/finite-gas.mjs": "8d24cb07f9e9b19a1f2766d34c84e30e60ad26c3e22eef150b24da9887e2ae5a",
+  "../finite-momentum-v1/momentum.mjs": "4c7af4ed79d2c64079c5d981257efee0ce31f7d7799ac2fd4a42e7820dae1674",
+  "../finite-momentum-v1/projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+  "../finite-momentum-v1/geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+  "../finite-momentum-v1/handoff-inventory.json": "d645331384767f52eb55bfcf8928bba3fa47cf0b7a6fa620bca490764ddcd70c",
+  "../finite-buoyancy-v1/qualify.mjs": "0f043edb0e023b6d2f53e27864231dcbbece05f18d6a3b0b053f9d56a0ffbda4",
+  "../finite-buoyancy-v1/moving-8-32.json": "ab797f31684c081da7bfeccf264fc2a090524b21185ba9305712a7b0ef32a944",
+  "../finite-buoyancy-v1/case-moving-8-32.json": "81b61e4c5c27509444469394d7ddbbdbe2ac669eadddace904c87f98c511a20d",
+  "../finite-buoyancy-v1/handoff-inventory.json": "7bb2e3f85759f18a871fbe7919bff87a9614e6e6c8170cc6ae96810fe8f73856"
+}

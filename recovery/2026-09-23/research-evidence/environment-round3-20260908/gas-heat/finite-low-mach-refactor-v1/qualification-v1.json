@@ -1,0 +1,614 @@
+{
+  "status": "pass",
+  "sourcePins": {
+    "geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+    "projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+    "finite-gas.mjs": "ae911a681b783965fc15df8c8c47b7f987972b50a1a128049179885c5a7eecf4",
+    "boussinesq-reference.mjs": "fe464e909b134ea87d6e76688585a862d35e593bc7c23a6b70ba92b871fb753a",
+    "qualify.mjs": "c9ce63703e29795f28e3916b5d795c5696ab05f78b055c38ae9421828ff74b63",
+    "CONTRACT.md": "d226e242faaafb0ff61ba3f1db396b0f228e359350b22e121d084c938cf6b86f",
+    "REFACTOR.md": "0b994b2138fc31a1390f9fddf0db0c17f9ad23e096c988d66e166aa2c5fef63f",
+    "../finite-low-mach-v1/finite-gas.mjs": "409c333a6b9b482388cbd836f7aad3c4faca47ac937eacfb7ed3b014e25476ed",
+    "../finite-low-mach-v1/projection.mjs": "b9738878223108d1cd096f8587a696f0cb3a918ff8a9b66164c6a61d20b167a5",
+    "../finite-low-mach-v1/geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+    "../finite-low-mach-v1/boussinesq-reference.mjs": "fe464e909b134ea87d6e76688585a862d35e593bc7c23a6b70ba92b871fb753a",
+    "../finite-low-mach-v1/handoff-inventory.json": "22b37df143244b55d5d4a920db6709b34b91de67a7dd1e32d4a76db4a267bd34",
+    "../LOW-MACH-HEATING-ORACLE.md": "8619c7714a3da7d9ec42819c92f190eb4bcf7f455efeb21786345cf786f21e92",
+    "../transport-v2/checkpoint/geometry.mjs": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14",
+    "../transport-v2/checkpoint/solver.mjs": "14ef3fa8aa65bc0ba58009a9bbdbfb47d345dbe5cdc1e7020bcaacf8f0b2db6b",
+    "../transport-v2/checkpoint/transport.mjs": "51faac0c0a9e1eae18f46e964f6ce4ecc598c4f67d59c7f81924c13e6e32dfae",
+    "../transport-v2/checkpoint/physics.mjs": "50f82527649ee66e9a356e7dbbe23b956b1b5792f8d3a56c141063e51c65486b",
+    "../finite-thermo-v1/checkpoint/thermodynamics.mjs": "b2a58ea2488b91c8ca49db32bff6e5bdf2734977cd89b14da198d0289cd6db4c",
+    "../finite-thermo-v1/checkpoint/definitions.mjs": "536a5cd870d3bed14ceda3b21a01110a0b32dcd24b19d93f556d7f5cfca13ff3"
+  },
+  "groups": [
+    {
+      "name": "unequal-density pressure mobility and sealed compatibility",
+      "seconds": 0.010999835000000019
+    },
+    {
+      "name": "actual Boussinesq consumer uses the extracted operator",
+      "seconds": 0.098117781
+    },
+    {
+      "name": "private geometry lifetime and descriptor identity",
+      "seconds": 0.044398933999999994
+    },
+    {
+      "name": "three-cell local mass and enthalpy receipts",
+      "seconds": 0.0008987559999999917
+    },
+    {
+      "name": "rest, uniform heating, intermediate envelope and atomic work admission",
+      "seconds": 0.04628882299999998
+    },
+    {
+      "name": "fixed 64-cell heated strip: temporal and exact spatial comparison",
+      "seconds": 1.300256139
+    },
+    {
+      "name": "actual finite-state file restart and foreign identity",
+      "seconds": 0.6866025140000002
+    },
+    {
+      "name": "frozen evidence integrity and exact old/new physical outputs",
+      "seconds": 0.6093445970000002
+    },
+    {
+      "name": "exact old/new rejection class, message and unchanged input",
+      "seconds": 0.004687988000000132
+    },
+    {
+      "name": "exact old/new shared projection and actual Boussinesq caller",
+      "seconds": 0.06391191500000014
+    }
+  ],
+  "checks": 211,
+  "errors": {
+    "mobility_zero_flow": {
+      "actual": 2.0816681711721685e-17,
+      "expected": 0,
+      "absoluteError": 2.0816681711721685e-17
+    },
+    "mobility_impulse_jump_0": {
+      "actual": -0.01277573046048849,
+      "expected": -0.012775730460488502,
+      "absoluteError": 1.214306433183765e-17
+    },
+    "mobility_impulse_jump_1": {
+      "actual": 0.015243769299446487,
+      "expected": 0.015243769299446508,
+      "absoluteError": 2.0816681711721685e-17
+    },
+    "changed_coeff_zero_flow": {
+      "actual": 8.673617379884035e-18,
+      "expected": 0,
+      "absoluteError": 8.673617379884035e-18
+    },
+    "changed_coeff_jump_0": {
+      "actual": -0.009827484969606531,
+      "expected": -0.00982748496960654,
+      "absoluteError": 8.673617379884035e-18
+    },
+    "changed_coeff_jump_1": {
+      "actual": 0.02177681328492357,
+      "expected": 0.021776813284923584,
+      "absoluteError": 1.3877787807814457e-17
+    },
+    "gauge_cell_residual": {
+      "actual": 4.6837533851373795e-18,
+      "expected": 0,
+      "absoluteError": 4.6837533851373795e-18
+    },
+    "legacy_velocity": {
+      "actual": 1.6905716104330512e-13,
+      "expected": 0,
+      "absoluteError": 1.6905716104330512e-13
+    },
+    "legacy_smoke": {
+      "actual": 1.291725244562808e-20,
+      "expected": 0,
+      "absoluteError": 1.291725244562808e-20
+    },
+    "legacy_heat": {
+      "actual": 3.863576125695545e-13,
+      "expected": 0,
+      "absoluteError": 3.863576125695545e-13
+    },
+    "local_velocity_0": {
+      "actual": 0.001904761904761905,
+      "expected": 0.0019047619047619041,
+      "absoluteError": 8.673617379884035e-19
+    },
+    "local_mass_face_0": {
+      "actual": 0.0011946137573443795,
+      "expected": 0.0011946137573443792,
+      "absoluteError": 2.168404344971009e-19
+    },
+    "local_enthalpy_face_0": {
+      "actual": 360,
+      "expected": 360,
+      "absoluteError": 0
+    },
+    "local_velocity_1": {
+      "actual": 0.0009523809523809527,
+      "expected": 0.0009523809523809521,
+      "absoluteError": 6.505213034913027e-19
+    },
+    "local_mass_face_1": {
+      "actual": 0.0005973068786721898,
+      "expected": 0.0005973068786721896,
+      "absoluteError": 2.168404344971009e-19
+    },
+    "local_enthalpy_face_1": {
+      "actual": 180.00000000000006,
+      "expected": 180,
+      "absoluteError": 5.684341886080802e-14
+    },
+    "local_energy_change_0": {
+      "actual": 180,
+      "expected": 180,
+      "absoluteError": 0
+    },
+    "local_energy_change_1": {
+      "actual": 180,
+      "expected": 180,
+      "absoluteError": 0
+    },
+    "local_energy_change_2": {
+      "actual": 180,
+      "expected": 180,
+      "absoluteError": 0
+    },
+    "local_global_mass": {
+      "actual": 1.8815166678173976,
+      "expected": 1.8815166678173976,
+      "absoluteError": 0
+    },
+    "local_global_heat": {
+      "actual": 540,
+      "expected": 540,
+      "absoluteError": 0
+    },
+    "uniform_temperature": {
+      "actual": 301.2,
+      "expected": 301.2,
+      "absoluteError": 0
+    },
+    "uniform_flow": {
+      "actual": 0,
+      "expected": 0,
+      "absoluteError": 0
+    },
+    "admitted_599K": {
+      "actual": 599,
+      "expected": 599,
+      "absoluteError": 0
+    },
+    "strip_dt4_pressure": {
+      "actual": 119999.99999999997,
+      "expected": 120000,
+      "absoluteError": 2.9103830456733704e-11
+    },
+    "strip_dt4_source": {
+      "actual": 432000,
+      "expected": 432000,
+      "absoluteError": 0
+    },
+    "strip_dt4_velocity": {
+      "actual": 8.619320535085961e-14,
+      "expected": 0,
+      "absoluteError": 8.619320535085961e-14
+    },
+    "strip_dt4_oracle_mass": {
+      "actual": 10.034755561692782,
+      "expected": 10.034755561692787,
+      "absoluteError": 5.329070518200751e-15
+    },
+    "strip_dt4_mass_receipts": {
+      "actual": 1.942890293094024e-16,
+      "expected": 0,
+      "absoluteError": 1.942890293094024e-16
+    },
+    "strip_dt4_energy_receipts": {
+      "actual": 5.820766091346741e-11,
+      "expected": 0,
+      "absoluteError": 5.820766091346741e-11
+    },
+    "strip_dt2_pressure": {
+      "actual": 119999.99999999997,
+      "expected": 120000,
+      "absoluteError": 2.9103830456733704e-11
+    },
+    "strip_dt2_source": {
+      "actual": 432000,
+      "expected": 432000,
+      "absoluteError": 0
+    },
+    "strip_dt2_velocity": {
+      "actual": 8.61194796031306e-14,
+      "expected": 0,
+      "absoluteError": 8.61194796031306e-14
+    },
+    "strip_dt2_oracle_mass": {
+      "actual": 10.034755561692782,
+      "expected": 10.034755561692787,
+      "absoluteError": 5.329070518200751e-15
+    },
+    "strip_dt2_mass_receipts": {
+      "actual": 2.220446049250313e-16,
+      "expected": 0,
+      "absoluteError": 2.220446049250313e-16
+    },
+    "strip_dt2_energy_receipts": {
+      "actual": 8.003553375601768e-11,
+      "expected": 0,
+      "absoluteError": 8.003553375601768e-11
+    },
+    "strip_dt1_pressure": {
+      "actual": 119999.99999999994,
+      "expected": 120000,
+      "absoluteError": 5.820766091346741e-11
+    },
+    "strip_dt1_source": {
+      "actual": 432000,
+      "expected": 432000,
+      "absoluteError": 0
+    },
+    "strip_dt1_velocity": {
+      "actual": 8.59477419790089e-14,
+      "expected": 0,
+      "absoluteError": 8.59477419790089e-14
+    },
+    "strip_dt1_oracle_mass": {
+      "actual": 10.034755561692782,
+      "expected": 10.034755561692787,
+      "absoluteError": 5.329070518200751e-15
+    },
+    "strip_dt1_mass_receipts": {
+      "actual": 4.163336342344337e-16,
+      "expected": 0,
+      "absoluteError": 4.163336342344337e-16
+    },
+    "strip_dt1_energy_receipts": {
+      "actual": 1.1641532182693481e-10,
+      "expected": 0,
+      "absoluteError": 1.1641532182693481e-10
+    }
+  },
+  "cases": {
+    "mobility": {
+      "densitiesKgM3": [
+        1.3937160502351091,
+        1.1614300418625911,
+        0.8710725313969434
+      ],
+      "coefficients": [
+        0.7827341090927832,
+        0.9840085942880702
+      ],
+      "provisionalVelocityMS": [
+        0.01,
+        -0.015
+      ],
+      "potentialPaS": [
+        0,
+        0.01277573046048849,
+        -0.0024680388389579973,
+        0,
+        0,
+        0
+      ],
+      "work": {
+        "topologyBuilds": 1,
+        "coefficientBuilds": 2,
+        "pressureSolves": 2,
+        "iterations": 4,
+        "matrixProducts": 4,
+        "workspaceBytes": 432
+      }
+    },
+    "legacy": {
+      "work": {
+        "topologyBuilds": 1,
+        "coefficientBuilds": 3,
+        "pressureSolves": 3,
+        "iterations": 34,
+        "matrixProducts": 34,
+        "workspaceBytes": 8704,
+        "predictorBytes": 1536,
+        "scalarCacheBuilds": 1,
+        "scalarEulerStages": 6,
+        "scalarFaceEvaluations": 1152,
+        "scalarReconstructions": 12,
+        "scalarRejectedStages": 0,
+        "scalarWorkspaceBytes": 16896
+      },
+      "maxDivergence": 3.0172450138025225e-16
+    },
+    "local": {
+      "state": {
+        "version": "sealed-single-species-expansion-ssprk2-v1",
+        "identity": "{\"version\":\"sealed-single-species-expansion-ssprk2-v1\",\"geometry\":\"{\\\"version\\\":\\\"mac-boussinesq-nd-v1\\\",\\\"domainId\\\":\\\"three-cell-local-law-v1\\\",\\\"revision\\\":0,\\\"size\\\":[3,2],\\\"axes\\\":[\\\"x\\\",\\\"y\\\"],\\\"origin\\\":[0,0,0],\\\"metric\\\":{\\\"spacing\\\":[1,0.54],\\\"extrusion\\\":1,\\\"volume\\\":0.54,\\\"area\\\":[0.54,1]},\\\"periodic\\\":[false,false],\\\"open\\\":[],\\\"solid\\\":[3,4,5],\\\"walls\\\":[],\\\"viscosity\\\":0,\\\"thermalDiffusivity\\\":0,\\\"tracerDiffusivity\\\":0,\\\"buoyancy\\\":false,\\\"faces\\\":[[\\\"x:1,0,0\\\",0,1,0.54,1],[\\\"x:2,0,0\\\",1,2,0.54,1]]}\",\"definition\":\"{\\\"ownerVersion\\\":\\\"finite-ideal-mixture-v1\\\",\\\"universalGasConstant\\\":8.31446261815324,\\\"definition\\\":{\\\"version\\\":\\\"inert-air-helium-constant-capacity-v1\\\",\\\"energyConvention\\\":\\\"constant-cv-u-zero-at-zero-k\\\",\\\"species\\\":[{\\\"id\\\":\\\"inert-air\\\",\\\"molarMassKgPerMol\\\":0.02897,\\\"cvJPerKgK\\\":717.5062666683846,\\\"minTemperatureK\\\":200,\\\"maxTemperatureK\\\":600},{\\\"id\\\":\\\"inert-helium\\\",\\\"molarMassKgPerMol\\\":0.004002602,\\\"cvJPerKgK\\\":3115.8965910749703,\\\"minTemperatureK\\\":200,\\\"maxTemperatureK\\\":600}]}}\",\"speciesId\":\"inert-air\"}",
+        "massKg": [
+          0.6259776088484548,
+          0.6277695294844714,
+          0.6277695294844714,
+          0,
+          0,
+          0
+        ],
+        "internalEnergyJ": [
+          135180,
+          135180,
+          135180,
+          0,
+          0,
+          0
+        ],
+        "time": 1,
+        "steps": 1,
+        "initialMassKg": 1.8815166678173976,
+        "initialEnergyJ": 405000,
+        "heatInputJ": 540
+      },
+      "receipt": {
+        "evaluationTime": 0,
+        "evaluationPressurePa": 99999.99999999997,
+        "pressureRatePaS": 133.3333333333333,
+        "velocity": [
+          0.001904761904761905,
+          0.0009523809523809527
+        ],
+        "targetVolumeFlux": [
+          0.0010285714285714286,
+          -0.0005142857142857144,
+          -0.0005142857142857144,
+          0,
+          0,
+          0
+        ],
+        "faceCoefficient": [
+          0.8610075200020616,
+          0.8610075200020616
+        ],
+        "massTransferKg": [
+          0.0011946137573443795,
+          0.0005973068786721898
+        ],
+        "enthalpyTransferJ": [
+          360,
+          180.00000000000006
+        ],
+        "heatTransferJ": [
+          540,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "courant": 0.002666666666666667,
+        "maxMach": 0.000005486219841270196,
+        "constraintError": 2.168404344971009e-19,
+        "linearResidual": 5.421010862427522e-20,
+        "eosError": 1.453253851035305e-16,
+        "massBalanceErrorKg": 0,
+        "energyBalanceErrorJ": 0
+      }
+    },
+    "envelope": {
+      "steps": 5,
+      "retries": 4,
+      "reasons": {
+        "courant": 0,
+        "intermediateEnvelope": 4
+      },
+      "heatRequestedJ": 6177.966101694916,
+      "heatStoredJ": 6177.9661016949685
+    },
+    "strip": {
+      "results": [
+        {
+          "dtMax": 4,
+          "seconds": 0.29016089800000006,
+          "cpuSeconds": 0.144583,
+          "cells": 64,
+          "faces": 94,
+          "steps": 25,
+          "pressurePa": 119999.99999999997,
+          "l1RelativeMassError": 0.0029120820777186326,
+          "coldRelativeError": 5.678829997984535e-7,
+          "coldDensityKgM3": 1.3229740783633308,
+          "coldExactKgM3": 1.3229733270692692,
+          "frontMetres": 4.4884249195395,
+          "velocityErrorMS": 8.619320535085961e-14,
+          "massErrorKg": 0,
+          "energyErrorJ": 0,
+          "eosError": 3.6434113593372035e-11,
+          "constraintErrorM3S": 9.924361137579607e-14,
+          "maxCourant": 0.12800000000082637,
+          "maxMach": 0.00001645865952385912,
+          "maxAcceptedTemperatureK": 410.0726287308164,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 50,
+            "pressureSolves": 50,
+            "iterations": 2982,
+            "matrixProducts": 2982,
+            "workspaceBytes": 6352,
+            "eulerAttempts": 50,
+            "eulerStages": 50,
+            "faceEvaluations": 4700,
+            "thermodynamicCellReads": 8256
+          }
+        },
+        {
+          "dtMax": 2,
+          "seconds": 0.37662278400000004,
+          "cpuSeconds": 0.19067,
+          "cells": 64,
+          "faces": 94,
+          "steps": 50,
+          "pressurePa": 119999.99999999997,
+          "l1RelativeMassError": 0.0029139198291601286,
+          "coldRelativeError": 1.422492399468456e-7,
+          "coldDensityKgM3": 1.3229735152612194,
+          "coldExactKgM3": 1.3229733270692692,
+          "frontMetres": 4.4884249195395,
+          "velocityErrorMS": 8.61194796031306e-14,
+          "massErrorKg": 0,
+          "energyErrorJ": 0,
+          "eosError": 3.60943654383339e-11,
+          "constraintErrorM3S": 9.940710906340688e-14,
+          "maxCourant": 0.06400000000041318,
+          "maxMach": 0.00001645865952385912,
+          "maxAcceptedTemperatureK": 410.0724525787125,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 100,
+            "pressureSolves": 100,
+            "iterations": 5962,
+            "matrixProducts": 5962,
+            "workspaceBytes": 6352,
+            "eulerAttempts": 100,
+            "eulerStages": 100,
+            "faceEvaluations": 9400,
+            "thermodynamicCellReads": 16256
+          }
+        },
+        {
+          "dtMax": 1,
+          "seconds": 0.6319584929999998,
+          "cpuSeconds": 0.358779,
+          "cells": 64,
+          "faces": 94,
+          "steps": 100,
+          "pressurePa": 119999.99999999994,
+          "l1RelativeMassError": 0.0029143643342487715,
+          "coldRelativeError": 3.559482309970137e-8,
+          "coldDensityKgM3": 1.3229733741602707,
+          "coldExactKgM3": 1.3229733270692692,
+          "frontMetres": 4.4884249195395,
+          "velocityErrorMS": 8.59477419790089e-14,
+          "massErrorKg": 0,
+          "energyErrorJ": -4.656612873077393e-10,
+          "eosError": 3.589064806324095e-11,
+          "constraintErrorM3S": 9.942375156675454e-14,
+          "maxCourant": 0.03200000000020659,
+          "maxMach": 0.00001645865952385912,
+          "maxAcceptedTemperatureK": 410.0724086412731,
+          "work": {
+            "topologyBuilds": 1,
+            "coefficientBuilds": 200,
+            "pressureSolves": 200,
+            "iterations": 11924,
+            "matrixProducts": 11924,
+            "workspaceBytes": 6352,
+            "eulerAttempts": 200,
+            "eulerStages": 200,
+            "faceEvaluations": 18800,
+            "thermodynamicCellReads": 32256
+          }
+        }
+      ],
+      "coldRatios": [
+        3.992168956478466,
+        3.996346309922777
+      ],
+      "note": "Far-cold errors still contain numerical diffusion; full-profile error retains fixed-mesh spatial error."
+    },
+    "equivalence": {
+      "exact": [
+        {
+          "id": "rest",
+          "completeOutputEqual": true,
+          "workEqual": true
+        },
+        {
+          "id": "zero-interval",
+          "completeOutputEqual": true,
+          "workEqual": true
+        },
+        {
+          "id": "local-forward-Euler",
+          "completeOutputEqual": true,
+          "workEqual": true
+        },
+        {
+          "id": "heated-strip-complete-output",
+          "completeOutputEqual": true,
+          "workEqual": true
+        },
+        {
+          "id": "heated-strip-CFL-reductions",
+          "completeOutputEqual": true,
+          "workEqual": true
+        },
+        {
+          "id": "intermediate-envelope-reductions",
+          "completeOutputEqual": true,
+          "workEqual": true
+        },
+        {
+          "id": "helium-definition-existing-path",
+          "completeOutputEqual": true,
+          "workEqual": true
+        }
+      ],
+      "recordedDt421StatesAndReceiptsEqual": true,
+      "crossVersionRestoreEqual": true,
+      "rejections": [
+        {
+          "id": "bulk-envelope",
+          "name": "Error",
+          "message": "requested bulk endpoint outside temperature envelope"
+        },
+        {
+          "id": "accepted-work-exhaustion",
+          "name": "Error",
+          "message": "accepted-step work budget exhausted; input uncommitted"
+        },
+        {
+          "id": "nonrepresentable-clock",
+          "name": "Error",
+          "message": "positive interval must advance representable time"
+        },
+        {
+          "id": "work-admission",
+          "name": "Error",
+          "message": "bounded accepted-step work request"
+        },
+        {
+          "id": "nonfinite-source",
+          "name": "Error",
+          "message": "finite per-cell heat W"
+        },
+        {
+          "id": "negative-interval",
+          "name": "Error",
+          "message": "finite advance interval"
+        },
+        {
+          "id": "invalid-dt",
+          "name": "Error",
+          "message": "finite advance interval"
+        },
+        {
+          "id": "foreign-identity",
+          "name": "Error",
+          "message": "gas geometry/definition identity"
+        },
+        {
+          "id": "derived-pressure-stock",
+          "name": "Error",
+          "message": "canonical finite gas shape"
+        }
+      ],
+      "sharedProjectionAndBoussinesqCompleteEqual": true
+    }
+  },
+  "wallSeconds": 2.87754468,
+  "cpuSeconds": 1.708377,
+  "rssBytes": 94056448
+}

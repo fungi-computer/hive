@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/CMakeFiles/Ext_Discregrid"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/CMakeFiles/Ext_Discregrid.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/CMakeFiles/Ext_Discregrid-complete.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-build.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-configure.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-download.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-install.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-mkdir.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-patch.rule"
+		},
+		{
+			"file" : "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/build/extern/Discregrid/src/Ext_Discregrid-stamp/Ext_Discregrid-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"Ext_Discregrid"
+		],
+		"name" : "Ext_Discregrid"
+	}
+}

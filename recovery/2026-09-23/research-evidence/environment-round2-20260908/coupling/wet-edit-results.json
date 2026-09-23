@@ -1,0 +1,57 @@
+{
+  "solverSha256": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+  "initialSnapshotSha256": "e001cefae359bc56bb5a4b19acdee112a70813c68156f3dfca75e5ddb6383b95",
+  "initialTimeSeconds": 179.99999999999346,
+  "wetPondBeforeM3": 24.832264393764795,
+  "wetPondImmediatelyAfterM3": 24.832264393764795,
+  "nonzeroFaceHistoriesExplicitlyReset": 132,
+  "oldRevision": 1,
+  "newRevision": 2,
+  "waterConservedAtEdit": true,
+  "restartCompleteTraceExact": true,
+  "editedVsUndugAfterOneSecondL1M3": 0.3552373197008205,
+  "balanceErrorM3": -1.1368683772161603e-13,
+  "receiver": {
+    "solverSha256": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "initialSnapshotFile": "/home/levi/src/hive/.botanical/research/environment-round2-20260908/water/runs/first-diversion-base/li-divert-no-dig.json",
+    "initialSnapshotSha256": "e001cefae359bc56bb5a4b19acdee112a70813c68156f3dfca75e5ddb6383b95",
+    "cell": 541,
+    "oldWaterM3": 1.1688920387681159,
+    "newWaterM3": 1.1694956407281605,
+    "deltaWaterM3": 0.0006036019600446085,
+    "fromTimeSeconds": 179.99999999999346,
+    "toTimeSeconds": 180.04999999999347,
+    "dtSeconds": 0.05,
+    "geometryRevision": 1,
+    "physicalCellAreaM2": 4,
+    "faces": [
+      {
+        "id": 557,
+        "a": 540,
+        "b": 541,
+        "integratedM3": 0.000611212259775262
+      },
+      {
+        "id": 558,
+        "a": 541,
+        "b": 542,
+        "integratedM3": 0
+      },
+      {
+        "id": 1597,
+        "a": 509,
+        "b": 541,
+        "integratedM3": -0.0000076102997305791455
+      },
+      {
+        "id": 1629,
+        "a": 541,
+        "b": 573,
+        "integratedM3": 0
+      }
+    ],
+    "withdrawalM3": 0,
+    "assumption": "One receiver replayed into a hypothetical cavity with ideal open exhaust and zero gas backpressure. Snapshot is a prior physical experiment state, not a claim of historical solver replay."
+  },
+  "limits": "The original no-dig snapshot has nonnegative stock and is used as a new common physical initial condition with the current qualified-for-accounting solver. No claim of reproducing the historical source version, selecting theta.7, or modeling edit dissipation as tracked thermal energy."
+}

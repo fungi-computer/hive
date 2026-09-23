@@ -1,0 +1,624 @@
+{
+  "description": "derived only from frozen result-v2 observations; no numerical rerun",
+  "negativeInterpolations": [
+    {
+      "grid": 0,
+      "name": "free-surface",
+      "positionM": [
+        0.45,
+        0.49500000000000005,
+        0.45
+      ],
+      "volumeM3": -4.157879213028127e-09,
+      "mappedDistanceM": 0.42849999660508975,
+      "analyticDistanceM": 0.45,
+      "branch": "outside-active-support",
+      "accepted": false,
+      "coefficientMinM3": 0,
+      "coefficientMaxM3": 6.789681711601503e-08,
+      "weightMin": -0.36146547035739895,
+      "weightMax": 0.2851797177922927
+    }
+  ],
+  "finePhysicalExamples": [
+    {
+      "name": "floor",
+      "boundaryDensity": 1.340889603335184,
+      "literalSolidDensity": 0.22218108014828764,
+      "ratio": 6.035120553200346,
+      "nativeGradientPerM": [
+        -1.238637079347702e-13,
+        -38.67794869793996,
+        -4.74810880416619e-13
+      ],
+      "literalSolidGradientPerM": [
+        -3.0101208517200007e-15,
+        -5.139486317658902,
+        -1.2118828718602844e-18
+      ],
+      "mapVolumeErrorM3": -2.0923692171971597e-06,
+      "sdfAuthoringVolumeErrorM3": -1.3877787807814457e-17,
+      "meshGeometryVolumeErrorM3": 1.3877787807814457e-17,
+      "nativeQuad30To50M3": 0.0005925161163599126
+    },
+    {
+      "name": "side",
+      "boundaryDensity": 1.3468267100351266,
+      "literalSolidDensity": 0.19727740885518433,
+      "ratio": 6.827070153905931,
+      "nativeGradientPerM": [
+        -38.84920448796429,
+        -4.1470714624977563e-13,
+        3.1725096688107834e-12
+      ],
+      "literalSolidGradientPerM": [
+        -4.8194059637288635,
+        3.638104363923685e-17,
+        -8.48391612089934e-18
+      ],
+      "mapVolumeErrorM3": 6.593874540945788e-06,
+      "sdfAuthoringVolumeErrorM3": 2.8110847005009126e-05,
+      "meshGeometryVolumeErrorM3": -6.938893903907228e-18,
+      "nativeQuad30To50M3": 0.0006376855572919927
+    },
+    {
+      "name": "vertical-edge",
+      "boundaryDensity": 1.8169276884099963,
+      "literalSolidDensity": 0.35717256377712936,
+      "ratio": 5.08697440026142,
+      "nativeGradientPerM": [
+        -37.05894528803463,
+        1.426617746752885e-12,
+        -37.05894528803532
+      ],
+      "literalSolidGradientPerM": [
+        -3.859194909489405,
+        -4.677213209245925e-17,
+        -3.8591941045117295
+      ],
+      "mapVolumeErrorM3": -3.1124458968051494e-06,
+      "sdfAuthoringVolumeErrorM3": 0.00012999748080161355,
+      "meshGeometryVolumeErrorM3": 1.0408340855860843e-17,
+      "nativeQuad30To50M3": 0.0008735864382026365
+    },
+    {
+      "name": "floor-edge",
+      "boundaryDensity": 1.8189869308760604,
+      "literalSolidDensity": 0.3771031892311959,
+      "ratio": 4.823578751970906,
+      "nativeGradientPerM": [
+        -13.457057816921731,
+        -50.71358863987369,
+        -5.040828090160295e-13
+      ],
+      "literalSolidGradientPerM": [
+        -3.7394594674855672,
+        -4.110987493879156,
+        -9.605809085765172e-18
+      ],
+      "mapVolumeErrorM3": -1.3579682084305378e-06,
+      "sdfAuthoringVolumeErrorM3": 6.253013607880956e-05,
+      "meshGeometryVolumeErrorM3": -6.938893903907228e-18,
+      "nativeQuad30To50M3": 0.0008515234617793369
+    },
+    {
+      "name": "floor-corner",
+      "boundaryDensity": 2.016955418630439,
+      "literalSolidDensity": 0.502360243748365,
+      "ratio": 4.014958276914809,
+      "nativeGradientPerM": [
+        -3.48357879615342,
+        -57.97010015603241,
+        -3.483578796153335
+      ],
+      "literalSolidGradientPerM": [
+        -2.987229032228725,
+        -3.280329278812718,
+        -2.9872263765099243
+      ],
+      "mapVolumeErrorM3": -1.0282235016364355e-05,
+      "sdfAuthoringVolumeErrorM3": 0.00010534571839688339,
+      "meshGeometryVolumeErrorM3": 6.938893903907228e-18,
+      "nativeQuad30To50M3": 0.0009731127966875162
+    },
+    {
+      "name": "surface-wall",
+      "boundaryDensity": 1.3045268105356433,
+      "literalSolidDensity": 0.19727740885518433,
+      "ratio": 6.61265178869649,
+      "nativeGradientPerM": [
+        -37.62906426262461,
+        -3.4946369157381827e-12,
+        -3.735646358202884e-12
+      ],
+      "literalSolidGradientPerM": [
+        -4.8194059637288635,
+        3.638104363923685e-17,
+        -8.48391612089934e-18
+      ],
+      "mapVolumeErrorM3": 1.2473439930091312e-05,
+      "sdfAuthoringVolumeErrorM3": 0,
+      "meshGeometryVolumeErrorM3": -1.0408340855860843e-17,
+      "nativeQuad30To50M3": 0.0005799737061963836
+    }
+  ],
+  "contactExamples": [
+    {
+      "grid": 0,
+      "name": "planar-q-0.000000",
+      "mappedDistanceM": 1.3392065234540734e-15,
+      "branch": "volume-accepted",
+      "mappedNormalRaw": [
+        -1.7074593400869314e-13,
+        1.00000000000005,
+        -1.5407698576947375e-13
+      ],
+      "beforePositionM": [
+        0.5,
+        0,
+        0.5
+      ],
+      "afterPositionM": [
+        0.5,
+        0,
+        0.5
+      ],
+      "beforeVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "afterVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "boundaryPointM": [
+        0.5000000000000178,
+        -0.10400419115259521,
+        0.500000000000016
+      ],
+      "effectiveVolumeM3": 0.02342048368027513,
+      "deltaMomentumKgMPerS": [
+        0,
+        0,
+        0
+      ],
+      "deltaKineticJ": 0,
+      "deltaPotentialJ": 0,
+      "formulaMatches": true,
+      "positiveMappedDistanceUnmoved": true,
+      "temporaryStateRestored": true
+    },
+    {
+      "grid": 0,
+      "name": "zero-edge",
+      "mappedDistanceM": -0.008985716621501787,
+      "branch": "contact-fallback",
+      "mappedNormalRaw": [
+        0.20872535300641654,
+        -3.236445504279534e-15,
+        0.2087253530064263
+      ],
+      "beforePositionM": [
+        0,
+        0.3,
+        0
+      ],
+      "afterPositionM": [
+        0.003677103441791014,
+        0.29999999999999993,
+        0.0036771034417911862
+      ],
+      "beforeVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "afterVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "boundaryPointM": [
+        0,
+        0,
+        0
+      ],
+      "effectiveVolumeM3": 0,
+      "deltaMomentumKgMPerS": [
+        0,
+        0,
+        0
+      ],
+      "deltaKineticJ": 0,
+      "deltaPotentialJ": -4.901079542207755e-16,
+      "formulaMatches": true,
+      "positiveMappedDistanceUnmoved": true,
+      "temporaryStateRestored": true
+    },
+    {
+      "grid": 0,
+      "name": "zero-corner",
+      "mappedDistanceM": -0.012780977164457153,
+      "branch": "contact-fallback",
+      "mappedNormalRaw": [
+        0.11151983773069726,
+        0.21456093102325594,
+        0.11151983773069694
+      ],
+      "beforePositionM": [
+        0,
+        0,
+        0
+      ],
+      "afterPositionM": [
+        0.0021778101761461984,
+        0.004190043569774909,
+        0.0021778101761461923
+      ],
+      "beforeVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "afterVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "boundaryPointM": [
+        0,
+        0,
+        0
+      ],
+      "effectiveVolumeM3": 0,
+      "deltaMomentumKgMPerS": [
+        0,
+        0,
+        0
+      ],
+      "deltaKineticJ": 0,
+      "deltaPotentialJ": 0.03699389467754268,
+      "formulaMatches": true,
+      "positiveMappedDistanceUnmoved": true,
+      "temporaryStateRestored": true
+    },
+    {
+      "grid": 0,
+      "name": "synthetic-penetration",
+      "mappedDistanceM": -0.002600104778813688,
+      "branch": "contact-fallback",
+      "mappedNormalRaw": [
+        -1.7981329644556924e-13,
+        1.0000000000000622,
+        -1.5918984106198324e-13
+      ],
+      "beforePositionM": [
+        0.5,
+        -0.0026001047788148804,
+        0.5
+      ],
+      "afterPositionM": [
+        0.49999999999999906,
+        0.0026001047788148804,
+        0.49999999999999917
+      ],
+      "beforeVelocityMPerS": [
+        1,
+        -2,
+        0.5
+      ],
+      "afterVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "boundaryPointM": [
+        0,
+        0,
+        0
+      ],
+      "effectiveVolumeM3": 0,
+      "deltaMomentumKgMPerS": [
+        -0.9000000000000002,
+        1.8000000000000005,
+        -0.4500000000000001
+      ],
+      "deltaKineticJ": -2.3625000000000007,
+      "deltaPotentialJ": 0.04591265018431317,
+      "formulaMatches": true,
+      "positiveMappedDistanceUnmoved": true,
+      "temporaryStateRestored": true
+    },
+    {
+      "grid": 1,
+      "name": "planar-q-0.000000",
+      "mappedDistanceM": -2.4867261028128e-15,
+      "branch": "contact-fallback",
+      "mappedNormalRaw": [
+        -4.5223470153919356e-13,
+        1.0000000000000697,
+        -4.520046086954015e-13
+      ],
+      "beforePositionM": [
+        0.5,
+        0,
+        0.5
+      ],
+      "afterPositionM": [
+        0.49999999999999767,
+        0.005200209557629761,
+        0.49999999999999767
+      ],
+      "beforeVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "afterVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "boundaryPointM": [
+        0,
+        0,
+        0
+      ],
+      "effectiveVolumeM3": 0,
+      "deltaMomentumKgMPerS": [
+        0,
+        0,
+        0
+      ],
+      "deltaKineticJ": 0,
+      "deltaPotentialJ": 0.04591265018431317,
+      "formulaMatches": true,
+      "positiveMappedDistanceUnmoved": true,
+      "temporaryStateRestored": true
+    },
+    {
+      "grid": 1,
+      "name": "zero-edge",
+      "mappedDistanceM": -0.006593213627640613,
+      "branch": "contact-fallback",
+      "mappedNormalRaw": [
+        0.3013179017567259,
+        -1.74449153146785e-14,
+        0.3013179017567284
+      ],
+      "beforePositionM": [
+        0,
+        0.3,
+        0
+      ],
+      "afterPositionM": [
+        0.003677103441791085,
+        0.29999999999999977,
+        0.0036771034417911156
+      ],
+      "beforeVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "afterVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "boundaryPointM": [
+        0,
+        0,
+        0
+      ],
+      "effectiveVolumeM3": 0,
+      "deltaMomentumKgMPerS": [
+        0,
+        0,
+        0
+      ],
+      "deltaKineticJ": 0,
+      "deltaPotentialJ": -1.960431816883102e-15,
+      "formulaMatches": true,
+      "positiveMappedDistanceUnmoved": true,
+      "temporaryStateRestored": true
+    },
+    {
+      "grid": 1,
+      "name": "zero-corner",
+      "mappedDistanceM": -0.0088823182567245,
+      "branch": "contact-fallback",
+      "mappedNormalRaw": [
+        0.17977020899653137,
+        0.24824737413401168,
+        0.17977020899653187
+      ],
+      "beforePositionM": [
+        0,
+        0,
+        0
+      ],
+      "afterPositionM": [
+        0.0026308933468033803,
+        0.003633040027133653,
+        0.0026308933468033873
+      ],
+      "beforeVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "afterVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "boundaryPointM": [
+        0,
+        0,
+        0
+      ],
+      "effectiveVolumeM3": 0,
+      "deltaMomentumKgMPerS": [
+        0,
+        0,
+        0
+      ],
+      "deltaKineticJ": 0,
+      "deltaPotentialJ": 0.03207611039956303,
+      "formulaMatches": true,
+      "positiveMappedDistanceUnmoved": true,
+      "temporaryStateRestored": true
+    },
+    {
+      "grid": 1,
+      "name": "synthetic-penetration",
+      "mappedDistanceM": -0.002600104778817441,
+      "branch": "contact-fallback",
+      "mappedNormalRaw": [
+        -4.982447483405976e-13,
+        0.999999999999985,
+        -4.98090715083404e-13
+      ],
+      "beforePositionM": [
+        0.5,
+        -0.0026001047788148804,
+        0.5
+      ],
+      "afterPositionM": [
+        0.4999999999999974,
+        0.0026001047788148804,
+        0.4999999999999974
+      ],
+      "beforeVelocityMPerS": [
+        1,
+        -2,
+        0.5
+      ],
+      "afterVelocityMPerS": [
+        0,
+        0,
+        0
+      ],
+      "boundaryPointM": [
+        0,
+        0,
+        0
+      ],
+      "effectiveVolumeM3": 0,
+      "deltaMomentumKgMPerS": [
+        -0.9000000000000002,
+        1.8000000000000005,
+        -0.4500000000000001
+      ],
+      "deltaKineticJ": -2.3625000000000007,
+      "deltaPotentialJ": 0.04591265018431317,
+      "formulaMatches": true,
+      "positiveMappedDistanceUnmoved": true,
+      "temporaryStateRestored": true
+    }
+  ],
+  "negativeActiveVolumeAccepted": 0,
+  "result": {
+    "kind": "result",
+    "pass": false,
+    "numericalControls": false,
+    "contactSourceLaw": true,
+    "positivePhysicalDistanceUnmoved": true,
+    "physicalStateRestored": true,
+    "negativeQueryVolumes": 1,
+    "nonnegativeVolumeControl": false,
+    "maxMeshAnalyticSdfErrorM": 5.722158857857096e-14,
+    "fineOffSurfaceSdfErrorM": 0.006748126583647762,
+    "fineVolumeInterpolationErrorM3": 1.3408468332514606e-05,
+    "maxRule30Rule50VolumeDifferenceM3": 0.001024911548863,
+    "sdfToleranceM": 0.0020800838230519043,
+    "volumeToleranceM3": 9.000000000000002e-05,
+    "radiusM": 0.052002095576297605,
+    "supportM": 0.20800838230519042,
+    "massKg": 539.999999999994,
+    "fluidCount": 600,
+    "probesPerGrid": 18,
+    "initializationMs": 53.866845,
+    "elapsedMs": 1138.498526
+  },
+  "maps": [
+    {
+      "kind": "grid",
+      "grid": 0,
+      "resolution": [
+        18,
+        19,
+        18
+      ],
+      "cellSizeM": [
+        0.10177964051226453,
+        0.10063334364319798,
+        0.10177964051226453
+      ],
+      "domainMinM": [
+        -0.41601676461038084,
+        -0.41601676461038084,
+        -0.41601676461038084
+      ],
+      "domainMaxM": [
+        1.4160167646103807,
+        1.4960167646103808,
+        1.4160167646103807
+      ],
+      "fullNodesPerField": 48298,
+      "cellsPerField": 6156,
+      "fieldArrayPayloadBytes": 2397952,
+      "sdfEvaluations": 48298,
+      "volumeNodeEvaluations": 372,
+      "requiredVolumeNodes": 372,
+      "volumeQuadratureUpperBound": 1523712,
+      "sdfMs": 11.69728,
+      "volumeAuthoringMs": 62.245721,
+      "directWitnessMs": 46.251538000000004,
+      "contactMs": 0.065237,
+      "probePlusOutputMs": 81.728702,
+      "maxMeshAnalyticSdfErrorM": 3.517498792238172e-14
+    },
+    {
+      "kind": "grid",
+      "grid": 1,
+      "resolution": [
+        36,
+        38,
+        36
+      ],
+      "cellSizeM": [
+        0.050889820256132264,
+        0.05031667182159899,
+        0.050889820256132264
+      ],
+      "domainMinM": [
+        -0.41601676461038084,
+        -0.41601676461038084,
+        -0.41601676461038084
+      ],
+      "domainMaxM": [
+        1.4160167646103807,
+        1.4960167646103808,
+        1.4160167646103807
+      ],
+      "fullNodesPerField": 365227,
+      "cellsPerField": 49248,
+      "fieldArrayPayloadBytes": 18845104,
+      "sdfEvaluations": 365227,
+      "volumeNodeEvaluations": 455,
+      "requiredVolumeNodes": 455,
+      "volumeQuadratureUpperBound": 1863680,
+      "sdfMs": 365.645606,
+      "volumeAuthoringMs": 372.487894,
+      "directWitnessMs": 114.42967499999997,
+      "contactMs": 0.08648000000000002,
+      "probePlusOutputMs": 188.609765,
+      "maxMeshAnalyticSdfErrorM": 5.722158857857096e-14
+    }
+  ],
+  "maxChildRssKiB": 26240
+}

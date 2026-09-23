@@ -1,0 +1,257 @@
+{
+  "suite": "qualification",
+  "stamp": "first-shape",
+  "hashes": {
+    "candidate.mjs": "ee49c25ead481a569b8acfef312411502077d3a293e4d10f7774e5402272d8f6",
+    "fixtures.mjs": "d7f53ed6e01fd3c27fabe0f4d5695fc0658a6efb691649f740c9636a7b72c416",
+    "compare.mjs": "bb1fade2cae5d07aed6c613bdc666facbc7f65cb36cb824bee44d9f7870f727c",
+    "PREDECLARED.md": "cd934d3a1e2f7af730a0ea71b5150240e09e9617e617e06339c845bba7dc6753",
+    "reference": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e"
+  },
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "x64",
+  "timestamp": "2026-09-08T17:58:26.247Z",
+  "outcomes": [
+    {
+      "name": "same-stepped-physical-geometry",
+      "status": "passed",
+      "elapsedMs": 22.958309999999997,
+      "cellsCompared": 4096,
+      "voxelHeightMetres": 0.1,
+      "coarseDx": 2,
+      "fineDx": 1
+    },
+    {
+      "name": "stepped-lake-rest",
+      "status": "passed",
+      "elapsedMs": 420.16383099999996,
+      "steps": 160,
+      "maxBalance": 0,
+      "minDepth": 0,
+      "gateBeforeOpen": 0,
+      "metrics": {
+        "time": 7.99999999999998,
+        "reservoir": 0,
+        "reach": 0,
+        "diversion": 0,
+        "pond": 0,
+        "user": 0,
+        "collected": 0,
+        "total": 1749.6000000000072,
+        "balanceError": 0
+      },
+      "dense": {
+        "steps": 160,
+        "faceEvaluations": 337920,
+        "faceScans": 337920,
+        "activeCells": 155520,
+        "peakActiveFaces": 2112,
+        "allocatedArrays": 21,
+        "allocatedBytes": 237824,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "active": {
+        "steps": 160,
+        "faceEvaluations": 323840,
+        "faceScans": 337920,
+        "activeCells": 155520,
+        "peakActiveFaces": 2024,
+        "allocatedArrays": 21,
+        "allocatedBytes": 237824,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "restartExact": true,
+      "retainedSnapshotTime": 3.999999999999994,
+      "depthDrift": 0,
+      "momentumDrift": 1.734723475976807e-17
+    },
+    {
+      "name": "stepped-diversion-32",
+      "status": "passed",
+      "elapsedMs": 367.768839,
+      "steps": 160,
+      "maxBalance": 1.7053025658242404e-13,
+      "minDepth": 0,
+      "gateBeforeOpen": 0,
+      "metrics": {
+        "time": 7.999999999999979,
+        "reservoir": 100.01125743848513,
+        "reach": 14.317212456657968,
+        "diversion": 0.8715301048568624,
+        "pond": 2.9210908162975173e-20,
+        "user": 0,
+        "collected": 0,
+        "total": 115.19999999999993,
+        "balanceError": -1.7053025658242404e-13
+      },
+      "dense": {
+        "steps": 160,
+        "faceEvaluations": 337920,
+        "faceScans": 337920,
+        "activeCells": 12640,
+        "peakActiveFaces": 2112,
+        "allocatedArrays": 21,
+        "allocatedBytes": 237824,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "active": {
+        "steps": 160,
+        "faceEvaluations": 30001,
+        "faceScans": 337920,
+        "activeCells": 12640,
+        "peakActiveFaces": 296,
+        "allocatedArrays": 21,
+        "allocatedBytes": 237824,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "restartExact": true,
+      "retainedSnapshotTime": 3.999999999999993
+    },
+    {
+      "name": "stepped-diversion-64",
+      "status": "passed",
+      "elapsedMs": 778.305989,
+      "steps": 160,
+      "maxBalance": 4.689582056016661e-13,
+      "minDepth": 0,
+      "gateBeforeOpen": 0,
+      "metrics": {
+        "time": 7.999999999999979,
+        "reservoir": 99.87702021784857,
+        "reach": 14.580301107281045,
+        "diversion": 0.7426786748703881,
+        "pond": 0,
+        "user": 0,
+        "collected": 0,
+        "total": 115.19999999999995,
+        "balanceError": 3.268496584496461e-13
+      },
+      "dense": {
+        "steps": 160,
+        "faceEvaluations": 1331200,
+        "faceScans": 1331200,
+        "activeCells": 41356,
+        "peakActiveFaces": 8320,
+        "allocatedArrays": 21,
+        "allocatedBytes": 942592,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "active": {
+        "steps": 160,
+        "faceEvaluations": 89990,
+        "faceScans": 1331200,
+        "activeCells": 41356,
+        "peakActiveFaces": 658,
+        "allocatedArrays": 21,
+        "allocatedBytes": 942592,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "restartExact": true,
+      "retainedSnapshotTime": 3.999999999999993
+    },
+    {
+      "name": "dry-dam-64",
+      "status": "passed",
+      "elapsedMs": 1215.183751,
+      "steps": 100,
+      "maxBalance": 1.0970779840135947e-11,
+      "minDepth": 0,
+      "gateBeforeOpen": 0,
+      "metrics": {
+        "time": 2,
+        "reservoir": 0,
+        "reach": 0,
+        "diversion": 0,
+        "pond": 0,
+        "user": 0,
+        "collected": 0,
+        "total": 512.0000000000024,
+        "balanceError": 2.3874235921539366e-12
+      },
+      "dense": {
+        "steps": 100,
+        "faceEvaluations": 832000,
+        "faceScans": 832000,
+        "activeCells": 362048,
+        "peakActiveFaces": 8320,
+        "allocatedArrays": 21,
+        "allocatedBytes": 942592,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "active": {
+        "steps": 100,
+        "faceEvaluations": 736153,
+        "faceScans": 832000,
+        "activeCells": 362048,
+        "peakActiveFaces": 8320,
+        "allocatedArrays": 21,
+        "allocatedBytes": 942592,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "restartExact": true,
+      "retainedSnapshotTime": 1,
+      "normalizedDepthL1": 0.04323604224789882
+    },
+    {
+      "name": "dry-dam-128",
+      "status": "passed",
+      "elapsedMs": 7067.6901210000005,
+      "steps": 176,
+      "maxBalance": 2.3135271476348862e-11,
+      "minDepth": 0,
+      "gateBeforeOpen": 0,
+      "metrics": {
+        "time": 2,
+        "reservoir": 0,
+        "reach": 0,
+        "diversion": 0,
+        "pond": 0,
+        "user": 0,
+        "collected": 0,
+        "total": 512.0000000000034,
+        "balanceError": 3.410605131648481e-12
+      },
+      "dense": {
+        "steps": 176,
+        "faceEvaluations": 5812224,
+        "faceScans": 5812224,
+        "activeCells": 2313088,
+        "peakActiveFaces": 33024,
+        "allocatedArrays": 21,
+        "allocatedBytes": 3752960,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "active": {
+        "steps": 176,
+        "faceEvaluations": 4666775,
+        "faceScans": 5812224,
+        "activeCells": 2313088,
+        "peakActiveFaces": 32510,
+        "allocatedArrays": 21,
+        "allocatedBytes": 3752960,
+        "substepTypedArrays": 0,
+        "substepTypedBytes": 0
+      },
+      "restartExact": true,
+      "retainedSnapshotTime": 1,
+      "normalizedDepthL1": 0.030329147391308747
+    },
+    {
+      "name": "rejected-step-retains-canonical-state",
+      "status": "passed",
+      "elapsedMs": 4.765247000001182,
+      "unchangedAfterRejection": true,
+      "retryMatchesDense": true
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "state": "First physical basin failed; no rerun",
+  "inputHandoffSha256": "5cebc520a277b7f99c8a1dbe288c98f81ec534ecb8b27361bdb38bb9361d01ba",
+  "scope": "u3233/c52403f8727049ebb13bb472bb75b19d; one initial and one completed timestep observation",
+  "files": [
+    {
+      "path": "result-v1/derived-observations.json",
+      "bytes": 306,
+      "sha256": "18879fa6c812f21a336ea225b913a13b5caec52c898bfb9924cd7da9a2f07abe"
+    },
+    {
+      "path": "result-v1/result.json",
+      "bytes": 3791,
+      "sha256": "3c3c90d9617a21f259a9d45db6b1d7172e6acf99ca07cdd48ea515a383fb54e9"
+    },
+    {
+      "path": "result-v1/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "result-v1/stdout.log",
+      "bytes": 2152,
+      "sha256": "0b88da3d5544097f2a979f430353b6e750ca0d2f619d8d5d6fb4a657e6775945"
+    }
+  ]
+}

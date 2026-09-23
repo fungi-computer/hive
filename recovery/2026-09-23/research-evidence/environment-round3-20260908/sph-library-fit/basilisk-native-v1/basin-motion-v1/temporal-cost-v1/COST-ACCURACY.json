@@ -1,0 +1,121 @@
+{
+  "scope": "Single fixed-order observations, same declared physical accuracy. No exact CPU baseline or game performance claim.",
+  "cases": [
+    {
+      "case": "coarse",
+      "passed": true,
+      "steps": 139,
+      "baselineSteps": 1611,
+      "wallSeconds": 1.8569326300057583,
+      "userCPUSeconds": 1.774635,
+      "systemCPUSeconds": 0.014877,
+      "baselineObservedWallSeconds": 11.91953775001457,
+      "modeRmsFraction": 0.002129946371597639,
+      "energyErrorFraction": 0.00858720564134416,
+      "fullProfileErrorFraction": 0.011313350306997125,
+      "periodErrorFraction": 0.0006408572940019841,
+      "legacyStockPass": true,
+      "transportControls": {
+        "oneContiguousTransportPerCompletedStep": true,
+        "matchingTimeAndStages": true,
+        "finiteCanonicalObservation": true,
+        "closedWaterBoundaryKnownZero": true,
+        "originalFractionEnvelope": true,
+        "signedVofClosure": true,
+        "stageClosure": true,
+        "cumulativeSignedClosure": true,
+        "cumulativeLedgerMatchesRows": true,
+        "onePeriodAbsoluteBudget": true,
+        "clampMatchesSeparateNativeForceRecord": true,
+        "legacyFailureReportedTruthfully": true
+      },
+      "transportFinal": {
+        "step": 139,
+        "seconds": 1.171908997384657,
+        "driftM3PerM": 4.5467256143475994e-12,
+        "ccM3PerM": 6.564509732956916e-13,
+        "vofResidualM3PerM": -1.2968894577291343e-19,
+        "clampM3PerM": 0.0,
+        "stageResidualM3PerM": 0.0,
+        "signedClosureM3PerM": -3.86295384710725e-29,
+        "cumulative": {
+          "cc": 4.5467250435676605e-12,
+          "cc_abs": 2.7003299175362224e-11,
+          "vof": 8.035903756915082e-19,
+          "vof_abs": 1.3904011139949547e-17,
+          "clamp": -1.890086689720106e-19,
+          "clamp_abs": 6.991697507281146e-19,
+          "stage": -4.380176776889089e-20,
+          "stage_abs": 4.38017677711245e-20,
+          "full_bound": 1.189502062891175e-08
+        },
+        "spentAbsoluteBudgetM3PerM": 2.7003313822344882e-11,
+        "transportToPriorProjectionDtRatio": 0.9999999999999878
+      },
+      "maxAbsDrift": 1.1174975901769771e-11,
+      "nativeProjectionCycles": 2423
+    },
+    {
+      "case": "fine",
+      "passed": true,
+      "steps": 139,
+      "baselineSteps": 1611,
+      "wallSeconds": 10.622454196040053,
+      "userCPUSeconds": 7.913447,
+      "systemCPUSeconds": 0.042112,
+      "baselineObservedWallSeconds": 45.31083960796241,
+      "modeRmsFraction": 0.0025122393657868443,
+      "energyErrorFraction": 0.007525005634114855,
+      "fullProfileErrorFraction": 0.006667438214282352,
+      "periodErrorFraction": 6.103364699439062e-05,
+      "legacyStockPass": true,
+      "transportControls": {
+        "oneContiguousTransportPerCompletedStep": true,
+        "matchingTimeAndStages": true,
+        "finiteCanonicalObservation": true,
+        "closedWaterBoundaryKnownZero": true,
+        "originalFractionEnvelope": true,
+        "signedVofClosure": true,
+        "stageClosure": true,
+        "cumulativeSignedClosure": true,
+        "cumulativeLedgerMatchesRows": true,
+        "onePeriodAbsoluteBudget": true,
+        "clampMatchesSeparateNativeForceRecord": true,
+        "legacyFailureReportedTruthfully": true
+      },
+      "transportFinal": {
+        "step": 139,
+        "seconds": 1.171908997384657,
+        "driftM3PerM": 1.0151461554450113e-15,
+        "ccM3PerM": 1.1354569644005961e-14,
+        "vofResidualM3PerM": 3.269906892840749e-20,
+        "clampM3PerM": 0.0,
+        "stageResidualM3PerM": 0.0,
+        "signedClosureM3PerM": 4.3158886347502713e-32,
+        "cumulative": {
+          "cc": 1.0154291001978571e-15,
+          "cc_abs": 3.6637112110041904e-13,
+          "vof": 1.4176140297262605e-19,
+          "vof_abs": 5.6116042020576365e-18,
+          "clamp": -3.872578127914904e-19,
+          "clamp_abs": 8.117830538036788e-19,
+          "stage": -3.744834302705265e-20,
+          "stage_abs": 3.7448343031828385e-20,
+          "full_bound": 1.1796762720476277e-08
+        },
+        "spentAbsoluteBudgetM3PerM": 3.6637758193601795e-13,
+        "transportToPriorProjectionDtRatio": 0.9999999999999878
+      },
+      "maxAbsDrift": 5.5748673530261693e-14,
+      "nativeProjectionCycles": 2784
+    }
+  ],
+  "refinement": {
+    "passed": true,
+    "eligible": true,
+    "status": "matched completed interval",
+    "coarseRms": 0.002129946371597639,
+    "fineRms": 0.0025122393657868443,
+    "rule": "fine <= .8 coarse, or both <= .01; no convergence-order claim"
+  }
+}

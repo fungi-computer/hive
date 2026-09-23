@@ -1,0 +1,18 @@
+{
+  "finite-gas.mjs": "8d24cb07f9e9b19a1f2766d34c84e30e60ad26c3e22eef150b24da9887e2ae5a",
+  "momentum.mjs": "4c7af4ed79d2c64079c5d981257efee0ce31f7d7799ac2fd4a42e7820dae1674",
+  "projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+  "geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+  "qualify.mjs": "2b49c335064feeb763d8cad67b7445c2ae4311623d1f1f9c065a1d3f9ec766bf",
+  "CONTRACT.md": "8fb4504b799e6d59e33537b6070bf79f1c3907017ca38ac65da6515fb7355bc3",
+  "FALLOW-FIRST-SHAPE.md": "72ad790db7b5cf437a801750e107b41335f827fd27cca989caafabbf07a5e611",
+  "fallow-first-shape.json": "c4374d2747cd31a503335424450b6b4225b4328025b12b82a070c50351d5eccf",
+  "inspect-finite-gas-first.json": "1251e2e882ab2ee55a346fd89e32eb30927ad278564d557fd9664e046bc131b4",
+  "inspect-momentum-first.json": "338c58a59543c870050f0da6c501fec357e92975766409f44e4e21af6d0dcd81",
+  "inspect-qualify-first.json": "1bf4e7cadf48adc43fe56ebe845e8b083f45f6ce247df8b9738bd4889caf80ad",
+  ".fallowrc.json": "0c378eaa055443b0cf7a582f6a423ff181b049b53f227f2591dfc290a9b508a2",
+  "../momentum-oracle-v1/oracle.mjs": "73f4a578c202dc3db63f08657aef5211a07c26f6d1572a8bd6b0537f84859d6b",
+  "../transport-v2/checkpoint/geometry.mjs": "90d2d3e1e0714eab9327108b1cf048a2a0627c28e7e91c79faced9943d971b14",
+  "../finite-thermo-v1/checkpoint/thermodynamics.mjs": "b2a58ea2488b91c8ca49db32bff6e5bdf2734977cd89b14da198d0289cd6db4c",
+  "../finite-thermo-v1/checkpoint/definitions.mjs": "536a5cd870d3bed14ceda3b21a01110a0b32dcd24b19d93f556d7f5cfca13ff3"
+}

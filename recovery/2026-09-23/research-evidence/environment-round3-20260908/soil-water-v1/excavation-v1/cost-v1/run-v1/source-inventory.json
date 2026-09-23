@@ -1,0 +1,10 @@
+{
+  "acceptedSourceCount": 33,
+  "acceptedInventorySha256": "ced9f8c423a8f062ec3a83562b8e877559a39abab09cbb6b37878a1599f02b2a",
+  "sources": {
+    "measure.mjs": "dda812ea944dccb7da75587281065e3479a13cc61c30d6ebc204a6541fe527eb",
+    "CONTRACT.md": "4b389acac77ae0b8f96c0f7741f252bd25cd09d805d07e9d83ce550106da6556",
+    ".fallowrc.json": "bef2811c3e0f9b2ba508cbdbd453fc73c73e97ca9a67106c7b63b3ac98cfade0"
+  },
+  "acceptedResultSha256": "263524255872941225395e50c7c5d43dbf6e322089af9ac81d56dc25a48d7d2a"
+}

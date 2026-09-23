@@ -1,0 +1,68 @@
+{
+  "scope": "isolated height/sea sampler and copied World Lab caller; no live page, browser, water stock, physics, or terrain integration",
+  "checks": [
+    "versioned terrain definition owns physical quantization and sea datum",
+    "final bed alone labels water, dry sea-level ground, or land without calling equality a coast",
+    "named coast jump is an exact cardinal wet/dry boundary rather than a shaping or datum-equality point",
+    "local residency and bounded worker overview share the copied height/sea generator",
+    "copied caller has no stale coast selector or independent terrain import"
+  ],
+  "errors": [],
+  "labelCounts": {
+    "surface-water": 494,
+    "sea-level-ground": 446,
+    "land": 15444
+  },
+  "namedBoundary": {
+    "name": "Northwater wet/dry boundary",
+    "x": -720,
+    "z": 135,
+    "anchor": {
+      "x": -720,
+      "z": -242
+    },
+    "distance": 377,
+    "wet": false,
+    "adjacentDirections": [
+      "south"
+    ],
+    "terrain": "sea-level-ground",
+    "bedLevel": 12,
+    "opposite": [
+      {
+        "direction": "south",
+        "x": -720,
+        "z": 136,
+        "terrain": "surface-water",
+        "bedLevel": 11,
+        "wet": true
+      }
+    ],
+    "shapingLine": {
+      "name": "Northwater coastal shaping line (not shoreline)",
+      "x": -720,
+      "z": -242
+    }
+  },
+  "sharedGenerator": {
+    "localBedLevel": 12,
+    "exactTerrain": "sea-level-ground",
+    "overviewFootprint": 4,
+    "overviewChecksum": "047f4699"
+  },
+  "choices": {
+    "legacyCoastLine": "coastLine remains continuous height shaping only",
+    "seaLevelGround": "bedLevel === seaSurfaceLevel is dry sea-level ground, not a shore label",
+    "shore": "only sampleCell cardinal wet/dry disagreement establishes the named wet/dry boundary",
+    "waterLimit": "surface-water remains all-below-datum initialization metadata; no ocean connectivity, cave flooding, or live stock is represented"
+  },
+  "hashes": {
+    "sourceTerrain": "1e0c01b88d6a28e60ef2cd150bf98c085612df3a75a57793a27d5d70c230af34",
+    "candidateTerrain": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+    "callerMain": "41c676b4a0d169ef6f5e03f47592e4efc520d4422c1750078dad26131843066d",
+    "callerWorker": "99f8961b02f758fec220781800d6c62fb7589d76083df7c790394ffb761ba29a",
+    "callerSection": "8b6c98ad43053366f90709be8c4fe5838ce85f3a2815619ef33f7a663f164cf1",
+    "callerHtml": "5ebaa58c67c34728e63c15bc9fe83b6c24cd9c242ef9455a5ac6a91609af43b5",
+    "probe": "8b8c90c2177b4fa472eac237947031aad553438e2eba724c36dd99a40e7a73c6"
+  }
+}

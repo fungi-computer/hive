@@ -1,0 +1,48 @@
+{
+  "scope": "Compile only. Native gas binary not executed.",
+  "invocationId": "7e772d36ec844b69a0b15bda46cdd331",
+  "commands": [
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-events",
+        "-source",
+        "sealed-heat.c"
+      ],
+      "exitCode": 1,
+      "wallSeconds": 2.3781816919799894,
+      "log": "command-1.log"
+    }
+  ],
+  "exitCode": 1,
+  "wallSeconds": 2.378372651000973,
+  "upstreamUnchanged": true,
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 8654,
+      "sha256": "6638edbacd873060ffd97ae7cb54bb0c12ddc7d4cbd9e8c0e38e797d83dd111a"
+    },
+    "command-1.log": {
+      "bytes": 93,
+      "sha256": "fe77349d0f75553070fdf109171997d63d584dd37c7020f2b9ddaec82215d627"
+    },
+    "compile-v1.py": {
+      "bytes": 2566,
+      "sha256": "109ded2aecc323c9e2b645b2bc5085dc2c4a6f64b4fa98861cc8036f4086424e"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "sealed-heat.c": {
+      "bytes": 6483,
+      "sha256": "6f4a334a97f4298480e624755222547fb39780d77e813d23affc76f9f2e8f9a9"
+    },
+    "source-checkpoint-v2.json": {
+      "bytes": 2608,
+      "sha256": "c083c0573f1dc10da5c0a02812a85a25c01336b0a66b29e3cf2bcf9bee23acc5"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "fixed-step-refined-identity",
+  "status": "completed",
+  "stepHeight": 0.54,
+  "fineCellsChecked": 4096,
+  "coarseDx": 1,
+  "fineDx": 0.5,
+  "elapsedMs": 13.944594000000052
+}

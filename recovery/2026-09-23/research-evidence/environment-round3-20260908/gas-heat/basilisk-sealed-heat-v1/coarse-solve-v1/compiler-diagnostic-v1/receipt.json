@@ -1,0 +1,77 @@
+{
+  "scope": "Compile only; algebra/physics not run",
+  "invocationId": "dadbb9b432c94cf9bf5d663dc631cc1c",
+  "commands": [
+    {
+      "argv": [
+        "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basilisk/src/qcc",
+        "-O2",
+        "-Wall",
+        "-source",
+        "-run=1",
+        "-dimensions=dimensions.log",
+        "algebra.c"
+      ],
+      "exitCode": 2,
+      "wallSeconds": 2.6164302860270254
+    }
+  ],
+  "exitCode": 2,
+  "wallSeconds": 2.616649036994204,
+  "sourceUnchanged": true,
+  "upstreamUnchanged": true,
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 7434,
+      "sha256": "f90cf5affbebc7a06f5d0f57f4c2a8a9aea56e9f7f85a0bd4919461a99501ef4"
+    },
+    "EXECUTABLE-CHECKPOINT.json": {
+      "bytes": 2429,
+      "sha256": "b304bd5abb3596f9d38dc64ef0f50c81a3be74794de7a0868ca07278548d74f2"
+    },
+    "QUALIFICATION.md": {
+      "bytes": 2398,
+      "sha256": "006d4953cf02492efa0dc4ff89d4554e34b3a190930429c6ad9dfa6f71966bb8"
+    },
+    "_algebra.c": {
+      "bytes": 1794259,
+      "sha256": "5ef72d3d0d80b9f69f33672f2faf53198e493ba47f02f679501cf710029d5f04"
+    },
+    "algebra.c": {
+      "bytes": 6620,
+      "sha256": "a49309735613f5ca78e79412e0f70f2c31ce42922b82a5f542361e6de83e569f"
+    },
+    "coarse-thermal.h": {
+      "bytes": 8870,
+      "sha256": "288b73d931162158be76f94a8bf970080055a0f584233b50d10f2e42ee091711"
+    },
+    "command-1.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "compile-v1.py": {
+      "bytes": 2250,
+      "sha256": "f9ed97070154deeb99bef39378586daa72c970cfd9ff77f92b9b77e1ed05d66c"
+    },
+    "dimensions.log": {
+      "bytes": 81,
+      "sha256": "4696ce0260d39da5fbba9612c032fa099c0999a90c0b767c90b39bf4669ba586"
+    },
+    "overlay.patch": {
+      "bytes": 1073,
+      "sha256": "c8d9b9e475d02319ad3f404de7fa88af5724bfbdb3604c4ccd4d14c6773fc025"
+    },
+    "sealed-heat-observation.h": {
+      "bytes": 7971,
+      "sha256": "98d4c1443234bc1225c8818e7ca28c4e2e1cf75604b05123d3f622e0e4ff7edc"
+    },
+    "sealed-heat.c": {
+      "bytes": 6607,
+      "sha256": "9ce5135616089f81d138f97c634a47d6c30fe75e9a811815fb718cb77b1b2dee"
+    },
+    "thermal-overlay.h": {
+      "bytes": 9050,
+      "sha256": "4a8ed85806adef7e32b46bd0b2d8ff5fbedc93c69c24511b08392cbbc1642596"
+    }
+  }
+}

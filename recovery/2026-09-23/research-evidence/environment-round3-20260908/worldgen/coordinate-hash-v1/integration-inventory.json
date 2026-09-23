@@ -1,0 +1,11 @@
+{
+  "baseline": {
+    "src/world-lab/terrain.js": "ca16eb0839a72a8ce0ef6479da0e85f675d985e76274946bf0dac6cc4fa0f7cd"
+  },
+  "candidate": {
+    "src/world-lab/terrain.js": "da48a8da4ce42e9f0b9827e38376d4577a6ad47c6f3dd1676793fd875d41b9a2",
+    "src/world-lab/lattice-hash.mjs": "10aab34eae4847d9775538878b05146c78ac4a166b45f4dbabf92c85943a0651"
+  },
+  "patchSha256": "1eebba4fddb844888cbc1b1fb3e1ccb5123aa4359efa5fe837df1cbf8d44ce9e",
+  "scope": "Source-only patch for current 2D lab consumer; no tracked file changed. 3D helper export omitted until a tracked volume consumer exists; all common helper/function bytes unchanged."
+}

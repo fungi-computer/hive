@@ -1,0 +1,11 @@
+{
+  "scope": "isolated World Lab height/sea caller copy; no tracked or live page change",
+  "sources": {
+    "src/world-lab/main.js": "fcec884e5eae1188deb08f9c605be7655b6ce2609db3359236f7fbfa42f4cfa2",
+    "src/world-lab/worker.js": "5dbb3817947c16bbc387721403070375e5f4e609067b436c021743ee854cbef7",
+    "src/world-lab/section.js": "be1370bca6b34cd83812090627bce1dca5d6e2bc31efa54a8233c6d5c061598b",
+    "src/world-lab/styles.css": "fd96c767d1d38b95b54d083f2e547362561302294b26b5dcba67a71da2eaaeb6",
+    "world-lab.html": "d9cb51a788e6d268c0adf402100c2fc8ba3d85ecbb42dc6b8bc52e5608f8ec92"
+  },
+  "candidate": "world-lab/{main,worker,section}.js import ../terrain.js as the one copied height/sea generator; no second terrain copy exists"
+}

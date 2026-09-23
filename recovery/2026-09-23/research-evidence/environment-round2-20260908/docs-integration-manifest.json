@@ -1,0 +1,17 @@
+{
+  "patch": "docs-integration.patch",
+  "patchSha256": "ca988591f897e9961d2c4c5f382069de2f68b3f650ec25a0a656802d630735cc",
+  "files": [
+    {
+      "path": "docs/decisions/environmental-fields-and-openings.md",
+      "beforeSha256": "2a8842f0d92c6aa64c95e322abbdcf2f2f3240fd25f0f5bb2c86dacb8b022d26",
+      "candidateSha256": "6853111a26701e5b9c08eee34bd629a8874c5f0630649befed31bbf21a544de3"
+    },
+    {
+      "path": "docs/decisions/rimworld-storyteller-role-20260908.md",
+      "beforeSha256": "5f62e271f159a70aba426035b1cf902c0b635422381b2c447ff56703d5adb522",
+      "candidateSha256": "2f3e99639a136adb6ea22c4d30ae2ffe6c832e1752bdae282641c61e4839ac79"
+    }
+  ],
+  "status": "Reviewed planning only; sole tracked integration remains Game Delivery. No runtime change."
+}

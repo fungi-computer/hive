@@ -1,0 +1,527 @@
+{
+  "version": "gas2-darcy-orifice-v1",
+  "dx": 1.0,
+  "nx": 4,
+  "nz": 6,
+  "mode": "high",
+  "mixing": 0.01,
+  "drag": 1.0,
+  "cells": [
+    {
+      "id": "c:000:000",
+      "x": 0.5,
+      "z": 0.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:000:001",
+      "x": 1.5,
+      "z": 0.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:000:002",
+      "x": 2.5,
+      "z": 0.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:000:003",
+      "x": 3.5,
+      "z": 0.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:001:000",
+      "x": 0.5,
+      "z": 1.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:001:001",
+      "x": 1.5,
+      "z": 1.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:001:002",
+      "x": 2.5,
+      "z": 1.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:001:003",
+      "x": 3.5,
+      "z": 1.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:002:000",
+      "x": 0.5,
+      "z": 2.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:002:001",
+      "x": 1.5,
+      "z": 2.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:002:002",
+      "x": 2.5,
+      "z": 2.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:002:003",
+      "x": 3.5,
+      "z": 2.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:003:000",
+      "x": 0.5,
+      "z": 3.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:003:001",
+      "x": 1.5,
+      "z": 3.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:003:002",
+      "x": 2.5,
+      "z": 3.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:003:003",
+      "x": 3.5,
+      "z": 3.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:004:000",
+      "x": 0.5,
+      "z": 4.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:004:001",
+      "x": 1.5,
+      "z": 4.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:004:002",
+      "x": 2.5,
+      "z": 4.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:004:003",
+      "x": 3.5,
+      "z": 4.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:005:000",
+      "x": 0.5,
+      "z": 5.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:005:001",
+      "x": 1.5,
+      "z": 5.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:005:002",
+      "x": 2.5,
+      "z": 5.5,
+      "volume": 2.0
+    },
+    {
+      "id": "c:005:003",
+      "x": 3.5,
+      "z": 5.5,
+      "volume": 2.0
+    }
+  ],
+  "edges": [
+    {
+      "id": "exhaust:0023:-001",
+      "i": 23,
+      "j": -1,
+      "kind": "exhaust",
+      "area": 0.5,
+      "length": 0.5,
+      "dz": 0.0,
+      "gate": "vent"
+    },
+    {
+      "id": "inlet:0000:-001",
+      "i": 0,
+      "j": -1,
+      "kind": "inlet",
+      "area": 0.5,
+      "length": 0.5,
+      "dz": 0.0,
+      "gate": "vent"
+    },
+    {
+      "id": "interior:0000:0001",
+      "i": 0,
+      "j": 1,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0000:0004",
+      "i": 0,
+      "j": 4,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0001:0002",
+      "i": 1,
+      "j": 2,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0001:0005",
+      "i": 1,
+      "j": 5,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0002:0003",
+      "i": 2,
+      "j": 3,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0002:0006",
+      "i": 2,
+      "j": 6,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0003:0007",
+      "i": 3,
+      "j": 7,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0004:0005",
+      "i": 4,
+      "j": 5,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0004:0008",
+      "i": 4,
+      "j": 8,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0005:0006",
+      "i": 5,
+      "j": 6,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0005:0009",
+      "i": 5,
+      "j": 9,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0006:0007",
+      "i": 6,
+      "j": 7,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0006:0010",
+      "i": 6,
+      "j": 10,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0007:0011",
+      "i": 7,
+      "j": 11,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0008:0009",
+      "i": 8,
+      "j": 9,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0009:0010",
+      "i": 9,
+      "j": 10,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0010:0011",
+      "i": 10,
+      "j": 11,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0011:0015",
+      "i": 11,
+      "j": 15,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "stair"
+    },
+    {
+      "id": "interior:0012:0013",
+      "i": 12,
+      "j": 13,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0012:0016",
+      "i": 12,
+      "j": 16,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0013:0014",
+      "i": 13,
+      "j": 14,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0013:0017",
+      "i": 13,
+      "j": 17,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0014:0015",
+      "i": 14,
+      "j": 15,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0014:0018",
+      "i": 14,
+      "j": 18,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0015:0019",
+      "i": 15,
+      "j": 19,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0016:0017",
+      "i": 16,
+      "j": 17,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0016:0020",
+      "i": 16,
+      "j": 20,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0017:0018",
+      "i": 17,
+      "j": 18,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0017:0021",
+      "i": 17,
+      "j": 21,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0018:0019",
+      "i": 18,
+      "j": 19,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0018:0022",
+      "i": 18,
+      "j": 22,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0019:0023",
+      "i": 19,
+      "j": 23,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 1.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0020:0021",
+      "i": 20,
+      "j": 21,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0021:0022",
+      "i": 21,
+      "j": 22,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    },
+    {
+      "id": "interior:0022:0023",
+      "i": 22,
+      "j": 23,
+      "kind": "interior",
+      "area": 2.0,
+      "length": 1.0,
+      "dz": 0.0,
+      "gate": "always"
+    }
+  ]
+}

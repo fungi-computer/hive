@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "hashes": {
+    "candidate.mjs": "ee49c25ead481a569b8acfef312411502077d3a293e4d10f7774e5402272d8f6",
+    "ownership-check.mjs": "d4775a2cd1fd8acc4c11849ddf54605e32874ca694b470f4a7f2a471137194d4",
+    "fixtures.mjs": "d7f53ed6e01fd3c27fabe0f4d5695fc0658a6efb691649f740c9636a7b72c416",
+    "PREDECLARED.md": "9c287550815c86955ed1fb7cccdd7a1a3a4491baec816d8edd70228db2d960fb"
+  },
+  "reference": {
+    "arrays": 15,
+    "bytes": 183808,
+    "kinds": {
+      "Float64Array": 15
+    }
+  },
+  "candidate": {
+    "arrays": 0,
+    "bytes": 0,
+    "kinds": {}
+  },
+  "retainedCheckpointUnchanged": true,
+  "constructorInputUnchanged": true,
+  "positiveFilmRetained": 1e-15,
+  "note": "Instrumented JavaScript typed-array constructor allocations only. O(1) JS objects, initialization, checkpoint/replace and V8 internal allocations are outside this per-step measurement."
+}

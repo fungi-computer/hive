@@ -1,0 +1,57 @@
+{
+  "scope": "First source shape only; root read before compiler or native run.",
+  "directory": "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/transport-accounted-v1",
+  "compiled": false,
+  "numericalRun": false,
+  "files": [
+    {
+      "path": "source-pins.json",
+      "bytes": 2709,
+      "sha256": "0685bcbb98aa3e05433191b0d467aa0d1a19826a9cf7ece1cf16d3dadbb1fd3a"
+    },
+    {
+      "path": "FIRST-SHAPE.md",
+      "bytes": 1143,
+      "sha256": "9500323cddbe739f5f6b430d030d47c468106d257054cdb856fd998491ff3388"
+    },
+    {
+      "path": "CONTRACT.md",
+      "bytes": 7441,
+      "sha256": "546c25c6af057a85c7f9de39b6b3ca733d271f7d4016a4020c278ed09eac97ad"
+    },
+    {
+      "path": "caller.patch",
+      "bytes": 7816,
+      "sha256": "3b11fff21b6e7dab09ee95362692bf175cd17bcb283ceda8f30be468c675fb47"
+    },
+    {
+      "path": "runner.patch",
+      "bytes": 7228,
+      "sha256": "4124597c09160b4a18f88f9cd8d9621737b363557a5e49c5e2514a5d0acaf188"
+    },
+    {
+      "path": "wave-transport-observation.h",
+      "bytes": 14696,
+      "sha256": "c6f1579028dd5404af024c39c41696130d86042f074abe1fd9c34d1bc5df79d7"
+    },
+    {
+      "path": "transport_accounting.py",
+      "bytes": 8394,
+      "sha256": "7fc7e1414728d81aa466f383ae76c1c4a9037396fe32b97c9d187960787ff2a6"
+    }
+  ],
+  "unmodifiedFrozenInputsChecked": [
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/wave.c",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/wave-observation.h",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/wave-reduced-observation.h",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/compile-wave.py",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/run-wave.py",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/force_accounting.py",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/SOURCE-INVENTORY.json",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/source-pins.json",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/run-source-pins.json",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/result-v1/native-result.json",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reduced-gravity-candidate-v1/RESULT-HANDOFF.json",
+    "/home/levi/src/hive/.botanical/research/environment-round3-20260908/sph-library-fit/basilisk-native-v1/basin-motion-v1/reporting-v2/source/compare-wave.mjs"
+  ]
+}

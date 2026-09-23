@@ -1,0 +1,10 @@
+{
+  "name": "rejection-retry-and-step-allocation",
+  "status": "passed",
+  "elapsedMs": 10.896614,
+  "rejectedCalls": 4,
+  "canonicalStateUnchanged": true,
+  "exactRetry": true,
+  "typedArraysDuringStep": 0,
+  "typedBytesDuringStep": 0
+}

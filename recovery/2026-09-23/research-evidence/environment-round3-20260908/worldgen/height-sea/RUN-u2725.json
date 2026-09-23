@@ -1,0 +1,7 @@
+{
+  "command": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh timeout 30s node .botanical/research/environment-round3-20260908/worldgen/height-sea/probe.mjs",
+  "unit": "run-u2725.scope",
+  "invocationId": "9276e2c339164f2d8cc103bbebeaa071",
+  "exitCode": 0,
+  "stdout": "{\"checks\":5,\"errors\":0,\"labelCounts\":{\"surface-water\":494,\"sea-level-ground\":446,\"land\":15444},\"namedBoundary\":{\"name\":\"Northwater wet/dry boundary\",\"x\":-720,\"z\":135,\"anchor\":{\"x\":-720,\"z\":-242},\"distance\":377,\"wet\":false,\"adjacentDirections\":[\"south\"],\"terrain\":\"sea-level-ground\",\"bedLevel\":12,\"opposite\":[{\"direction\":\"south\",\"x\":-720,\"z\":136,\"terrain\":\"surface-water\",\"bedLevel\":11,\"wet\":true}],\"shapingLine\":{\"name\":\"Northwater coastal shaping line (not shoreline)\",\"x\":-720,\"z\":-242}},\"sharedGenerator\":{\"localBedLevel\":12,\"exactTerrain\":\"sea-level-ground\",\"overviewFootprint\":4,\"overviewChecksum\":\"047f4699\"}}"
+}

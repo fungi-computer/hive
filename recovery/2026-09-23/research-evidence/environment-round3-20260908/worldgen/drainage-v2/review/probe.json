@@ -1,0 +1,17 @@
+{
+  "scope": "two tiny admission probes; no numerical suite or world generation",
+  "overflow": {
+    "admitted": true,
+    "allInputBedsFinite": true,
+    "maximumDepthFinite": false,
+    "capacityFinite": false,
+    "serializedComponent": "{\"id\":0,\"cells\":1,\"escapeElevationMetres\":1e+308,\"maximumDepthMetres\":null,\"rectangularPrismCapacityM3\":null}"
+  },
+  "duplicateRoots": {
+    "admitted": true,
+    "cells": 9,
+    "inputRootEntries": 10,
+    "oceanCellZero": true
+  },
+  "sourceSha256": "0908179fea4059d870f8810e0c0bffae0a3e46cb5f60f88d67983debce61dd94"
+}

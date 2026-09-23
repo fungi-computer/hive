@@ -1,0 +1,9 @@
+{
+  "finite-gas.mjs": "8d24cb07f9e9b19a1f2766d34c84e30e60ad26c3e22eef150b24da9887e2ae5a",
+  "momentum.mjs": "4c7af4ed79d2c64079c5d981257efee0ce31f7d7799ac2fd4a42e7820dae1674",
+  "projection.mjs": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09",
+  "geometry-owner.mjs": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77",
+  "PROPOSAL.md": "7e6381b5cc47f9a97efe22f49ddecd1afeace7db790f04553d2617ff27acc753",
+  "CONTRACT.md": "8fb4504b799e6d59e33537b6070bf79f1c3907017ca38ac65da6515fb7355bc3",
+  "../momentum-oracle-v1/oracle.mjs": "73f4a578c202dc3db63f08657aef5211a07c26f6d1572a8bd6b0537f84859d6b"
+}

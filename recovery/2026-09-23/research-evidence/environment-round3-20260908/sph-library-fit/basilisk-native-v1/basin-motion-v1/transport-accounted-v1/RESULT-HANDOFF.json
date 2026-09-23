@@ -1,0 +1,109 @@
+{
+  "scope": "Exactly one completed coarse/fine 2D wave and signed numerical-transport packet; not 3D/ledge/restart or game performance.",
+  "runUnit": "run-u3477.scope",
+  "invocationId": "3279babd7d294f94a0299e65c4f3eea3",
+  "exitCode": 0,
+  "combinedNativeCeilingSeconds": 120,
+  "actualNativeCaptureWallSeconds": 60.82530243101064,
+  "legacyPredecessor": {
+    "run": "u3386.scope",
+    "passed": false
+  },
+  "files": [
+    {
+      "path": "source-pins.json",
+      "bytes": 2880,
+      "sha256": "a3593cdb4e03f2d0916cc1859b315df439a16aab6161c255f51cd4909c72d996"
+    },
+    {
+      "path": "COMPILE-CHECKPOINT.md",
+      "bytes": 3080,
+      "sha256": "5476e95e5213d8bba0b8dfa929c8ed9da38d3007c95dcfba18d33017d9216024"
+    },
+    {
+      "path": "RESULTS.md",
+      "bytes": 6655,
+      "sha256": "08dffba97befad55d190028b2ad9eb2030986984725419c9bf0a3fb95686f394"
+    },
+    {
+      "path": "build-v1/receipt.json",
+      "bytes": 2554,
+      "sha256": "f50a6e92190e267d2c470c97a48614397ae7eb64e68e84ae21b5c7fc54545c0f"
+    },
+    {
+      "path": "build-v1/wave",
+      "bytes": 461944,
+      "sha256": "676ea7d3ff7276541d2832155e5aca565b655420d156c35ed6ea4c8d0a53b9e1"
+    },
+    {
+      "path": "build-v1/_wave.c",
+      "bytes": 2051189,
+      "sha256": "cb05d2ab63e0a20d72b5b9b2631bc5ee06d75cf1a8414534143fa1d0bd04861a"
+    },
+    {
+      "path": "result-v1/accounting-summary.json",
+      "bytes": 5346,
+      "sha256": "be6bcf6e2daf9e31dfd2abc2c41819ec7bee74fea9c4340488969e4473afe75e"
+    },
+    {
+      "path": "result-v1/coarse/capture.json",
+      "bytes": 12958293,
+      "sha256": "5af1eb20e84b48a4f30e0957da7036397f6f8847caedc34a5c6207e66365197a"
+    },
+    {
+      "path": "result-v1/coarse/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "result-v1/coarse/stdout.log",
+      "bytes": 9768626,
+      "sha256": "a38767a2107b0a9cd9e7aca9c7c5f4564b7cdeb0a3b7786d3a56f7d43bd97658"
+    },
+    {
+      "path": "result-v1/comparison.json",
+      "bytes": 1975313,
+      "sha256": "9d44c26e187bfcec5d26a30b6ca53303e71d6ba8f3a03410ebf35bfa15787a59"
+    },
+    {
+      "path": "result-v1/comparison.log",
+      "bytes": 7594,
+      "sha256": "7ca2fd9f0f8af996a900e414433a4eae7fcc9bb59daefd51be13f769e903e40a"
+    },
+    {
+      "path": "result-v1/fine/capture.json",
+      "bytes": 15219559,
+      "sha256": "449e7c2def95012cbceb23f0b2cd70ee8071e78ffcdd6cd6d591b82d04d47abd"
+    },
+    {
+      "path": "result-v1/fine/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "result-v1/fine/stdout.log",
+      "bytes": 11390842,
+      "sha256": "aaf2c6a00ac37e7d36ad467760c9d252ccee127de73c0bfdc762fd82487f4a1e"
+    },
+    {
+      "path": "result-v1/force-accounting.json",
+      "bytes": 9221,
+      "sha256": "e7705579163d8614d1d9a05e0a4792a6b1bca1d70de023da8784154fb435b66f"
+    },
+    {
+      "path": "result-v1/native-result.json",
+      "bytes": 31879081,
+      "sha256": "317691640076cf728b230bc5bdb16b90de8fafd3a6ef9c46861f977509bff8db"
+    },
+    {
+      "path": "result-v1/summary.json",
+      "bytes": 911,
+      "sha256": "120187e1c13eebd9a618e4287cbfd20ac7b4e0804cc6b3577e49265a799dcbbf"
+    },
+    {
+      "path": "result-v1/transport-accounting.json",
+      "bytes": 2805962,
+      "sha256": "125894dcce57cefdde5ea6985a653215c6ab4cd4c444adbaff5edc8963b17022"
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "sourceSha256": "9b549ae54d7fe0f9d32fd69471fb2794e0644b53a81afae802057c0610afc86c",
+  "qualificationSha256": "601d85074d98e4e50aa725b196b93da229c8d99a1dccce6cd098510a1e6bbc29",
+  "wallMs": 628.7960099999999,
+  "rssBytes": 88793088,
+  "rows": [
+    {
+      "name": "ambient rest, immutable input",
+      "status": "pass",
+      "wallMs": 58.036390999999995,
+      "smoke": 0,
+      "heat": 0,
+      "maxVelocity": 0,
+      "divergence": 0,
+      "minSmoke": 0,
+      "minTheta": 0,
+      "maxTheta": 0,
+      "pressureSolves": 20,
+      "iterations": 0
+    },
+    {
+      "name": "closed uniform warm hydrostatic rest",
+      "status": "pass",
+      "wallMs": 75.442936,
+      "smoke": 0,
+      "heat": 144719.99999999994,
+      "maxVelocity": 9.518372869867848e-12,
+      "divergence": 8.375196219903906e-12,
+      "minSmoke": 0,
+      "minTheta": 4.999999999832536,
+      "maxTheta": 5.000000000149487,
+      "iterations": 790
+    },
+    {
+      "name": "projection removes known discrete gradient",
+      "status": "pass",
+      "wallMs": 4.856434000000007,
+      "divergence": 5.60307356067824e-12,
+      "remainingVelocity": 6.306510869080739e-12,
+      "iterations": 88
+    },
+    {
+      "name": "random field projection, energy and idempotence",
+      "status": "pass",
+      "wallMs": 24.617773,
+      "before": 9.607514960033296,
+      "after": 1.7285763330199693,
+      "divergence": 6.19258810896639e-12,
+      "idempotenceError": 0,
+      "iterations": 101
+    },
+    {
+      "name": "viscous periodic shear, exact decay/refinement",
+      "status": "pass",
+      "wallMs": 314.967804,
+      "results": [
+        {
+          "n": 8,
+          "rmsError": 0.007543218582719836,
+          "maxError": 0.013938050515667322,
+          "steps": 250,
+          "iterations": 0
+        },
+        {
+          "n": 16,
+          "rmsError": 0.0017860089152390605,
+          "maxError": 0.003503382509470798,
+          "steps": 250,
+          "iterations": 0
+        }
+      ]
+    },
+    {
+      "name": "conservative scalar translation, exact solution/refinement",
+      "status": "pass",
+      "wallMs": 40.504407000000015,
+      "results": [
+        {
+          "n": 8,
+          "rmsConcentrationError": 0.13533489446451547,
+          "massError": 1.1102230246251565e-16,
+          "heatError": 3.979039320256561e-13
+        },
+        {
+          "n": 16,
+          "rmsConcentrationError": 0.07498119845360375,
+          "massError": 1.1102230246251565e-16,
+          "heatError": 6.750155989720952e-14
+        },
+        {
+          "n": 32,
+          "rmsConcentrationError": 0.03854514953548587,
+          "massError": 5.551115123125783e-17,
+          "heatError": 7.993605777301127e-15
+        }
+      ]
+    },
+    {
+      "name": "restart reconstructs cache and preserves velocity history",
+      "status": "pass",
+      "wallMs": 71.19530999999995,
+      "exactStateAndReceipts": true,
+      "historyDifference": 0.00010560579161890312,
+      "operatorBuilds": 1,
+      "stateHash": "e05dd444204d32bddf9eb1f48a5e2cb1c470d322f56807ccf7e9dec67f15d4d3"
+    },
+    {
+      "name": "warm open boundary resolves balanced counterflow",
+      "status": "pass",
+      "wallMs": 38.57101,
+      "inward": 0.22361571630754756,
+      "outward": 0.22361571632106836,
+      "carrierMismatch": 1.3520795594246238e-11,
+      "divergence": 9.705094367040701e-12
+    }
+  ]
+}

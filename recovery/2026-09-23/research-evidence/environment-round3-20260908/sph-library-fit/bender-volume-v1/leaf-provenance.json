@@ -1,0 +1,8 @@
+{
+  "source": "upstream/Simulator/SimulatorBase.cpp",
+  "sourceSha256": "b56506c8e88c2bc2ec26fc96e9305ca24e36a9ee10a35263cce161a9f44dde33",
+  "startLine": 2639,
+  "endLine": 2669,
+  "leafSha256": "1ca2154acf1d3234b4dd7260841356d90371c5f1eff27a4a680ee0b429d4e2e5",
+  "extraction": "exact substring plus final newline; query and integrand use mapped SDF field0; no equation edits"
+}

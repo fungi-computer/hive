@@ -1,0 +1,54 @@
+{
+  "scope": "native reference; unmodified pinned upstream, fixed clock, one thread; no game/WASM claim",
+  "source": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "sha256": {
+    "reference.cpp": "0134c5acafbe144e140421eac99a9b03f563f43e7311cb1413af7d74a4da9fa3",
+    "reference": "0050bcc0ca097a94f5e0ae1a08b7187e1bf6d30e9aa85dd793ce7a04afb6b41e",
+    "compile-reference.py": "9c21574a0605aa64111099091a92b155e2a875f3c130576599268f747331fbb0",
+    "run-reference.py": "4b07bf6e463a415809dfae0a200c900f3b84397302f8b6b07178387312902de5"
+  },
+  "results": [
+    {
+      "mode": "freefall",
+      "exit": 0,
+      "result": {
+        "mode": "freefall",
+        "pass": true,
+        "particles": 512,
+        "boundaryParticles": 0,
+        "dt": 0.001,
+        "steps": 100,
+        "time": 0.10000000000000007,
+        "stepWallMs": 187.68443,
+        "massKg": 125.97119999999997,
+        "representedM3": 0.12597119999999998,
+        "massErrorKg": 0,
+        "momentumErrorKgMS": 1.2005717390906057e-12,
+        "comErrorM": 5.551115123125783e-17,
+        "momentumComparison": "closed fluid momentum law",
+        "maxPressureIterations": 2,
+        "maxDivergenceIterations": 1,
+        "pressureCapHits": 0,
+        "divergenceCapHits": 0,
+        "initialMaxDensityRatio": 0.7999536345180254,
+        "maxPreStepDensityRatio": 0.7999536345182802,
+        "finalMaxDensityRatio": 0.7999536268793525,
+        "finalParticlesWithFewerThan20FluidNeighbors": 296,
+        "minY": 0.22045950000000009,
+        "maxWallPenetrationM": 0,
+        "maxSpeedMS": 0.9809999999999991
+      }
+    },
+    {
+      "mode": "compression",
+      "exit": -11,
+      "result": null
+    },
+    {
+      "mode": "tank",
+      "exit": -11,
+      "result": null
+    }
+  ],
+  "maxChildRssKiB": 16384
+}

@@ -1,0 +1,15 @@
+{
+  "mode": "nonfinite",
+  "nativeExitCode": 3,
+  "wallSeconds": 0.0029200839926488698,
+  "stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "bytes": 44,
+    "sha256": "b4aae36a7be4587f57283db08965def874df060011aa0e0e72896c7ac3b9472f"
+  },
+  "accepted": true,
+  "errors": []
+}
