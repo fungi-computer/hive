@@ -116,10 +116,18 @@ The active integration branch is pushed to `origin`. The preservation branch
 `archive/hive-preservation-20260923` is also pushed: its Git ancestry retains
 all 87 worktree commit tips, and its tree contains exact snapshots of 154
 non-ignored dirty source files, the two stages of the old unresolved index
-entry, and 16 raw framework proof ledgers. The manifest records original paths
-and SHA-256 hashes. This is a recovery anchor, not an accepted merge of those
-lanes. The old dirty worktrees remain in place. Other ignored `.botanical`
-proof archives remain local and should not be swept without separate custody.
+entry, and 16 raw framework proof ledgers. A second archive audit preserved
+591 unique authored notes/current pause/browser/motion artifacts, 923 unique
+environmental experiment results and scripts, 522 compact historical proof
+metadata files, and 16 large terrain/camera reports compressed losslessly
+from 539 MB to 17 MB. Every tier has original paths and SHA-256 hashes in a
+manifest; archived bytes and the decompressed large reports were verified.
+This is a recovery anchor, not an accepted merge of those lanes or a claim
+that every historical experiment is valid. The old dirty worktrees remain in
+place. Remaining ignored `.botanical` files are predominantly rebuildable
+toolchains, distributions, runtime stores, external dependencies and
+intermediate duplicate captures; they remain local and should not be swept
+without separate custody.
 
 The disk audit initially found about 3.4 GB free on a 75 GB filesystem. After
 confirming no Rust build or proof process was active, the integration worktree's
