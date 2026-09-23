@@ -1,4 +1,4 @@
-import type { RegionInitial, RegionRecordChange, RegionRecordReader, RegionStateRecord } from "./index.ts";
+import type { RegionInitial, RegionRecordChange, RegionRecordReader } from "./index.ts";
 
 type SqlValue = string | number | null | ArrayBuffer | Uint8Array;
 export type RecordSqlOwner = {
@@ -65,13 +65,35 @@ export function createRecordReader(owner: RecordSqlOwner, maxRecordBytes: number
     close() { active = false; },
   };
 }
-export function existingRecordSize(owner: RecordSqlOwner, key: string): { size: number; exists: boolean } {
-  const found = owner.sql.exec<{ key_bytes: number; value_bytes: number }>("SELECT length(CAST(record_key AS BLOB)) AS key_bytes,length(record_bytes) AS value_bytes FROM hive_region_records WHERE format_version=? AND record_key=?", RECORD_FORMAT_VERSION, key).toArray()[0];
-  return found ? { exists: true, size: found.key_bytes + found.value_bytes + RECORD_METADATA_BYTES } : { exists: false, size: 0 };
+// Leave room for the format binding under the host's conservative 100-variable
+// statement budget. The surrounding Region transaction owns every batch.
+const KEY_BATCH_SIZE = 99;
+const PUT_BATCH_SIZE = 33;
+const placeholders = (count: number) => Array(count).fill("?").join(",");
+
+export function existingRecordSizes(owner: RecordSqlOwner, keys: readonly string[]): Map<string, number> {
+  const sizes = new Map<string, number>();
+  for (let offset = 0; offset < keys.length; offset += KEY_BATCH_SIZE) {
+    const batch = keys.slice(offset, offset + KEY_BATCH_SIZE);
+    const rows = owner.sql.exec<{ record_key: string; size: number }>(
+      `SELECT record_key,length(CAST(record_key AS BLOB))+length(record_bytes)+${RECORD_METADATA_BYTES} AS size FROM hive_region_records WHERE format_version=? AND record_key IN (${placeholders(batch.length)})`,
+      RECORD_FORMAT_VERSION, ...batch,
+    ).toArray();
+    for (const row of rows) sizes.set(row.record_key, row.size);
+  }
+  return sizes;
 }
 export function applyRecords(owner: RecordSqlOwner, change: RegionRecordChange): void {
-  for (const key of change.removes) owner.sql.exec("DELETE FROM hive_region_records WHERE format_version=? AND record_key=?", RECORD_FORMAT_VERSION, key);
-  for (const record of change.puts) owner.sql.exec("INSERT OR REPLACE INTO hive_region_records VALUES (?,?,?)", RECORD_FORMAT_VERSION, record.key, record.bytes);
+  for (let offset = 0; offset < change.removes.length; offset += KEY_BATCH_SIZE) {
+    const batch = change.removes.slice(offset, offset + KEY_BATCH_SIZE);
+    owner.sql.exec(`DELETE FROM hive_region_records WHERE format_version=? AND record_key IN (${placeholders(batch.length)})`, RECORD_FORMAT_VERSION, ...batch);
+  }
+  for (let offset = 0; offset < change.puts.length; offset += PUT_BATCH_SIZE) {
+    const batch = change.puts.slice(offset, offset + PUT_BATCH_SIZE);
+    // UPDATE preserves the existing row; REPLACE would delete then insert it.
+    owner.sql.exec(`INSERT INTO hive_region_records (format_version,record_key,record_bytes) VALUES ${batch.map(() => "(?,?,?)").join(",")} ON CONFLICT(record_key) DO UPDATE SET format_version=excluded.format_version,record_bytes=excluded.record_bytes`,
+      ...batch.flatMap(record => [RECORD_FORMAT_VERSION, record.key, record.bytes]));
+  }
 }
 export function readRecordPage(owner: RecordSqlOwner, expectedRevision: number, afterKey: string, limit: number, maxRecordBytes: number) {
   const metadata = owner.sql.exec<{ record_key: string; value_bytes: number }>("SELECT record_key,length(record_bytes) AS value_bytes FROM hive_region_records WHERE format_version=? AND record_key>? ORDER BY record_key LIMIT ?", RECORD_FORMAT_VERSION, afterKey, Math.min(limit, 128)).toArray();
@@ -87,10 +109,18 @@ export function readRecordPage(owner: RecordSqlOwner, expectedRevision: number, 
     bytes += size;
     admitted.push(row);
   }
+  const payloads = new Map<string, SqlValue>();
+  for (let offset = 0; offset < admitted.length; offset += KEY_BATCH_SIZE) {
+    const batch = admitted.slice(offset, offset + KEY_BATCH_SIZE);
+    const rows = owner.sql.exec<{ record_key: string; record_bytes: SqlValue }>(
+      `SELECT record_key,record_bytes FROM hive_region_records WHERE format_version=? AND record_key IN (${placeholders(batch.length)})`,
+      RECORD_FORMAT_VERSION, ...batch.map(row => row.record_key),
+    ).toArray();
+    for (const row of rows) payloads.set(row.record_key, row.record_bytes);
+  }
   const records = admitted.map(({ record_key }) => {
-    const row = owner.sql.exec<{ record_bytes: SqlValue }>("SELECT record_bytes FROM hive_region_records WHERE format_version=? AND record_key=?", RECORD_FORMAT_VERSION, record_key).toArray()[0];
-    if (!row) throw new Error("region-record-frontier");
-    return { key: record_key, bytes: copyBytes(row.record_bytes, maxRecordBytes) };
+    if (!payloads.has(record_key)) throw new Error("region-record-frontier");
+    return { key: record_key, bytes: copyBytes(payloads.get(record_key), maxRecordBytes) };
   });
   const pageLimit = Math.min(limit, 128);
   const hasMore = admitted.length < metadata.length || metadata.length === pageLimit;

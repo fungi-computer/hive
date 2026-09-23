@@ -92,6 +92,31 @@ frontier has no per-principal tombstone growth. The versioned replay table rejec
 old or unsupported storage; there is no old-format migration. Events remain
 separately bounded delivery obligations and are not silently pruned.
 
+The record owner batches prior-size reads and deletions in groups of 99 keys,
+and initialization/commit upserts in groups of 33 rows. Every statement stays
+within 100 bound variables. Existing rows are updated instead of replaced;
+all chunks remain inside the original Region transaction. Count and UTF-8 byte
+budgets are checked against the complete change before any record mutation.
+Record-page metadata admits at most 128 rows and 1 MiB before fetching payloads
+in bounded batches; returned ordering and current-format validation are unchanged.
+
+`record-batches.test.js` covers mixed replacement/insertion/deletion, Unicode
+accounting, page continuation, restart/replay, budgets, and rollback after each
+of eight write chunks. The existing 23 Region/admission/retention laws also pass.
+The preserved Fallow review at `.botanical/engine-do/region-fallow-first.json`
+identified complexity in Region dispatch/validation and the JSON codec. This
+change consolidates record SQL in its existing owner; those broader advisories
+remain and no test entrypoint was removed.
+
+A paired actual-workerd run of the first 20 v3 occurrences reduced median SQL
+statements from 316 to 19 and reported rows written from 307 to 156. Reported
+rows read increased from 246 to 435. SQL wall time totaled 65 versus 56 ms,
+while transaction wall time totaled 2,166 versus 2,150 ms; this short comparison
+does not establish a CPU or capacity improvement. Both runs produced identical
+physical state and 1,482 record rows and passed exact receipt replay and autonomous
+progress after process restart. Inventory, measurements and retained artifact
+paths are in [the paired evidence](../../../engine/implementation/clearing-repair/evidence/20260923-record-batch-workerd.json).
+
 ## Current proof and remaining join
 
 `region.test.js` exercises nine laws using native Node SQLite, including rollback

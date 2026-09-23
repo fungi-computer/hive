@@ -9,10 +9,13 @@ import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { execFileSync } from "node:child_process";
 
-assert(process.argv[2] === "--output" && process.argv.length === 4, "Usage: node framework-driver-proof.mjs --output <directory>");
+assert(process.argv[2] === "--output" && (process.argv.length === 4 || process.argv.length === 6 && process.argv[4] === "--minimum-sequence"), "Usage: node framework-driver-proof.mjs --output <directory> [--minimum-sequence <3..100>]");
+const minimumSequence = Number(process.argv[5] ?? 3);
+assert(Number.isInteger(minimumSequence) && minimumSequence >= 3 && minimumSequence <= 100);
 const output = resolve(process.argv[3]);
 await mkdir(output, {recursive:true});
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
+const ledger = [];
 const token = randomBytes(32).toString("hex");
 const tokenHash = hash(token);
 const game = "colony-framework-proof-256-100-v3";
@@ -35,13 +38,13 @@ export class PublicEngineRegion extends Base {
 await build({stdin:{contents:entry,resolveDir:root,loader:"ts"},outfile:workerPath,bundle:true,format:"esm",platform:"neutral",target:"es2022",external:["cloudflare:workers"],
   plugins:[{name:"wasm",setup(build){build.onResolve({filter:/\.wasm$/},()=>({path:"./hive_kernel_bg.wasm",external:true}));}}]});
 await copyFile(resolve("engine/generated/hive_kernel_bg.wasm"),wasmPath);
-const inventory = await Promise.all(["tools/public-engine-host/worker.ts","tools/public-engine-host/pack-registration.ts","engine/src/runtime/occurrence-driver.ts","engine/src/runtime/region-program.ts","src/engine/region/index.ts","engine/src/games/colony-framework-proof-v2-driver.ts","engine/src/games/colony-performance-config.ts","engine/src/games/colony-framework-proof-v3.ts","engine/generated/hive_kernel_bg.wasm"].map(async path=>({path,sha256:hash(await readFile(path))})));
+const inventory = await Promise.all(["tools/public-engine-host/worker.ts","tools/public-engine-host/pack-registration.ts","engine/src/runtime/occurrence-driver.ts","engine/src/runtime/region-program.ts","src/engine/region/index.ts","engine/src/games/colony-framework-proof-v2-driver.ts","engine/src/games/colony-performance-config.ts","engine/src/games/colony-framework-proof-v3.ts","src/engine/region/records.ts","engine/generated/hive_kernel_bg.wasm"].map(async path=>({path,sha256:hash(await readFile(path))})));
 const implementationHash = hash(JSON.stringify(inventory));
 let mf;
 const options = { workers: [{ name:"hive-framework-driver-proof", modules:[{type:"ESModule",path:workerPath},{type:"CompiledWasm",path:wasmPath}],
   compatibilityDate:"2026-09-04", durableObjects:{REGIONS:{className:"PublicEngineRegion",useSQLite:true}},
   bindings:{IMPLEMENTATION_HASH:implementationHash,PUBLIC_ORIGIN:"https://framework-proof.invalid"} }],
-  resourcePersistencePath:resolve(output,"storage"),isolatedResourcePersistencePath:resolve(output,"storage"),log:new Log(LogLevel.ERROR),port:0 };
+  resourcePersistencePath:resolve(output,"storage"),isolatedResourcePersistencePath:resolve(output,"storage"),log:new Log(LogLevel.ERROR),port:0, handleStructuredLogs(log) { try { const value=JSON.parse(log.message); if(value.proof === "framework-host-cost-v1") ledger.push(value); } catch {} } };
 const start = async()=>{mf=new Miniflare(convertV4MiniflareOptions(options));await mf.ready;};
 const endpoint = `http://framework.test/v1/${game}`;
 const request = async(operation,body)=>{
@@ -64,8 +67,9 @@ const until = async(check,label)=>{const deadline=Date.now()+30_000;while(Date.n
 const checkpoints=[];
 try {
   await start();
+  const started = performance.now();
   const initial=await request("observe");
-  await until(async()=>{const value=await rows();return value?.host.next_sequence>=3?value:null;},"scheduled second occurrence");
+  await until(async()=>{const value=await rows();return value?.host.next_sequence>=minimumSequence?value:null;},"scheduled second occurrence");
   const pauseBody={id:"proof-pause",replayEpoch:initial.replayEpoch,command:{kind:"pause"}};
   const paused=await request("command",pauseBody);
   assert.deepEqual(await request("command",pauseBody),paused,"lost ordinary reply preserves exact result");
@@ -96,7 +100,7 @@ try {
   const stop=await request("command",{id:"proof-stop",replayEpoch:resume.replayEpoch,command:{kind:"pause"}});
   assert.equal(stop.status,"applied");
   const final=await rows();
-  await writeFile(resolve(output,"RESULT.json"),JSON.stringify({source:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),dirtySource:execFileSync("git",["status","--porcelain"],{encoding:"utf8"}).trim(),implementationHash,inventory,game,checkpoints,finalSequence:final.host.next_sequence,
+  await writeFile(resolve(output,"RESULT.json"),JSON.stringify({source:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),dirtySource:execFileSync("git",["status","--porcelain"],{encoding:"utf8"}).trim(),implementationHash,inventory,game,checkpoints,ledger,elapsedWallMs:performance.now()-started,minimumSequence,finalSequence:final.host.next_sequence,
     limits:["Short actual-workerd host law, not capacity or 10-minute qualification","Proof-only RPC replays the last actual Region occurrence; production routes are unchanged","Exhaustive schedule parity and real native command rollback are covered by occurrence-driver.test.ts"]},null,2));
   console.log(JSON.stringify({proof:"framework-driver-workerd",status:"passed",output,checkpoints}));
 }finally{await mf?.dispose();}

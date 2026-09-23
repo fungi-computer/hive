@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createReceiptOwner } from "./receipts.ts";
 import { decode, encode, type Json } from "./codec.ts";
-import { RECORD_FORMAT_VERSION, applyRecords, checkedChange, checkedInitial, createRecordReader, existingRecordSize, readRecordPage, recordSize } from "./records.ts";
+import { RECORD_FORMAT_VERSION, applyRecords, checkedChange, checkedInitial, createRecordReader, existingRecordSizes, readRecordPage, recordSize } from "./records.ts";
 
 export type { Json } from "./codec.ts";
 type SqlValue = string | number | null | ArrayBuffer | Uint8Array;
@@ -336,8 +336,7 @@ export function openRegion<State, Command>(options: {
         initial.records.length,
         initialBytes,
       );
-      for (const record of initial.records)
-        owner.sql.exec("INSERT INTO hive_region_records VALUES (?,?,?)", RECORD_FORMAT_VERSION, record.key, record.bytes);
+      applyRecords(owner, { puts: initial.records, removes: [] });
     }
     const clockRows = owner.sql
       .exec<ClockRow>("SELECT * FROM hive_region_clock WHERE singleton=1")
@@ -507,11 +506,7 @@ export function openRegion<State, Command>(options: {
       (sum, event) => sum + bytes(event.wire),
       0,
     );
-    const oldRecords = new Map<string, number>();
-    for (const change of [...recordChange.puts.map(({ key }) => key), ...recordChange.removes]) {
-      const prior = existingRecordSize(owner, change);
-      if (prior.exists) oldRecords.set(change, prior.size);
-    }
+    const oldRecords = existingRecordSizes(owner, [...recordChange.puts.map(({ key }) => key), ...recordChange.removes]);
     const nextRecordCount = current.record_count - recordChange.removes.filter((key) => oldRecords.has(key)).length +
       recordChange.puts.filter(({ key }) => !oldRecords.has(key)).length;
     if (nextRecordCount < 0 || nextRecordCount > limits.records)
