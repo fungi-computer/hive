@@ -10,6 +10,9 @@ export const colonyPerformanceWorkerCounts = Object.freeze([
 export type ColonyPerformanceWorkerCount =
   (typeof colonyPerformanceWorkerCounts)[number];
 
+/** Versioned, distributed capacity fixture; never silently change its workload. */
+export const colonyFrameworkProofGameId = "colony-framework-proof-256-100-v1" as const;
+
 export function colonyPerformanceGameId(
   size: ColonyPerformanceSize,
   workers: ColonyPerformanceWorkerCount,

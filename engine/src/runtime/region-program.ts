@@ -84,7 +84,13 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
       if (committed.status !== "existing") throw new Error("party join binding was not committed");
       return { player: committed.player, party: committed.party, people: committed.people };
     }
-    case "step": return session.step(command.delta);
+    case "step":
+      // The clock receipt proves an occurrence was committed. Native action
+      // results from internal jobs can be numerous and already belong to the
+      // candidate's physical state/outcome owner; echoing them into the clock
+      // receipt can exceed its bounded durable result budget.
+      session.step(command.delta);
+      return null;
     case "pause": session.pause(); return [];
     case "resume": session.resume(); return [];
   }

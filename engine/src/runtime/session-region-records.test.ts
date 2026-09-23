@@ -169,6 +169,7 @@ test("actual Colony water records commit with session and recover after failed S
     const command = { id: "step-1", command: { kind: "step", delta: 0.1 } };
     const receipt = dispatch(region, command);
     assert.equal(receipt.status, "applied");
+    assert.deepEqual(receipt.result, { tick: 2, paused: false, results: null }, "clock receipt does not duplicate internal action results");
     assert.equal(region.readCommitted().state.session.tick, 2, "fresh-world bootstrap and first simulation step are distinct commits");
     const saved = records(region);
     assert.ok(saved.some(record => record.key === "kernel/environment/water"));

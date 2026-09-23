@@ -12,8 +12,8 @@ import { terrainWireForRevision } from "../../engine/src/runtime/terrain-wire";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
 import { colonyServerPack } from "../../engine/src/games/colony";
-import { createColonyPerformancePack } from "../../engine/src/games/colony-performance";
-import { parseColonyPerformanceGameId } from "../../engine/src/games/colony-performance-config";
+import { createColonyFrameworkProofPack, createColonyPerformancePack } from "../../engine/src/games/colony-performance";
+import { colonyFrameworkProofGameId, parseColonyPerformanceGameId } from "../../engine/src/games/colony-performance-config";
 import { formationsPack } from "../../engine/src/games/formations";
 import { piratesPack } from "../../engine/src/games/pirates";
 import { survivalPack } from "../../engine/src/games/survival";
@@ -99,6 +99,7 @@ const MAX_OBSERVATION_BYTES = 1024 * 1024;
 const RECORD_PAGE_SIZE = 40;
 
 function packFor(pack: PublicPack) {
+  if (pack === colonyFrameworkProofGameId) return createColonyFrameworkProofPack();
   const preset = parseColonyPerformanceGameId(pack);
   if (preset) return createColonyPerformancePack(preset.size, preset.workers);
   switch (pack) {
@@ -297,7 +298,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       implementationHash: this.hostEnv.IMPLEMENTATION_HASH,
       ownerPrincipal: playerPrincipal,
       hostPrincipal,
-      clockControllerPrincipals: parseColonyPerformanceGameId(pack) ? [playerPrincipal] : [],
+      clockControllerPrincipals: parseColonyPerformanceGameId(pack) || pack === colonyFrameworkProofGameId ? [playerPrincipal] : [],
       seed: 17,
       scopeForPrincipal: (principal) => {
         if (principal === hostPrincipal) return { kind: "host" };
@@ -1006,7 +1007,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         return withCors(await this.observationResponse(), origin);
       }
       const operation = new URL(request.url).pathname.split("/").at(-1);
-      if (parseColonyPerformanceGameId(pack) && request.method === "POST" &&
+      if ((parseColonyPerformanceGameId(pack) || pack === colonyFrameworkProofGameId) && request.method === "POST" &&
           operation === "placement") {
         const query = await readPlacementDecision(request);
         // This private preset owns one pre-authored player/party. A URL or query

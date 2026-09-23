@@ -10,7 +10,8 @@ import { FiniteResource, MaterialLot } from "../sdk/common";
 import { Worker } from "./colony-components";
 import { ColonyTree } from "./colony-work";
 import { FieldWaterWork } from "../sdk/process-supply";
-import { createColonyPerformancePack } from "./colony-performance";
+import { createColonyFrameworkProofPack, createColonyPerformancePack } from "./colony-performance";
+import { treeJob } from "./colony";
 import type { GamePack } from "../contracts";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -44,6 +45,47 @@ test("performance actors and trees occupy distinct generated columns", () => {
     initialPlacements: Array<{ entity: string; column: [number, number] }>;
   };
   assert.equal(new Set(environment.initialPlacements.map(row => row.column.join(","))).size, environment.initialPlacements.length);
+});
+
+test("versioned framework workload occupies distant parts of one Region with 128 real jobs", () => {
+  const pack = createColonyFrameworkProofPack();
+  const again = createColonyFrameworkProofPack();
+  assert.deepEqual([...pack.definition], [...again.definition]);
+  const definition = decode(pack.definition);
+  const environment = JSON.parse(new TextDecoder().decode(pack.environmentDefinition!)) as {
+    world: { bounds: { minX: number; maxX: number; minZ: number; maxZ: number } };
+    initialPlacements: Array<{ entity: string; column: [number, number] }>;
+  };
+  assert.equal(definition.game, pack.id);
+  assert.equal(environment.world.bounds.maxX - environment.world.bounds.minX, 256);
+  assert.equal(definition.initial.filter(row => row.components["colony.worker"]).length, 100);
+  assert.equal(definition.initial.filter(row => row.components["colony.tree"]).length, 128);
+  assert.equal(pack.initialActions?.filter(action => action.kind === "create-job").length, 128);
+  const columns = environment.initialPlacements.map(row => row.column);
+  assert.equal(new Set(columns.map(column => column.join(","))).size, columns.length);
+  const active = environment.initialPlacements.filter(row => row.entity.startsWith("colony.worker.") || row.entity.startsWith("party:1.person.") || row.entity.startsWith("colony.tree."));
+  assert.ok(Math.min(...active.map(row => row.column[0])) < -80);
+  assert.ok(Math.max(...active.map(row => row.column[0])) > 80);
+  assert.ok(Math.min(...active.map(row => row.column[1])) < -80);
+  assert.ok(Math.max(...active.map(row => row.column[1])) > 80);
+});
+
+test("distributed framework workload gives 100 workers distinct native work attempts", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  const pack = createColonyFrameworkProofPack();
+  const session = new GameSession({ port, pack });
+  try {
+    session.start();
+    for (let tick = 0; tick < 30; tick++) session.step(.1);
+    const tasks = decode(pack.definition).initial.filter(row => row.components["colony.tree"])
+      .map(row => `${treeJob(row.id as import("../contracts").EntityId)}:task:fell` as import("../contracts").EntityId);
+    const attempts = tasks.flatMap((_, offset) => offset % 64 === 0 ? session.workAttempts(tasks.slice(offset, offset + 64)) : []);
+    const executing = attempts.filter(attempt => attempt.phase.kind === "executing");
+    assert.equal(new Set(executing.map(attempt => attempt.worker)).size, 100);
+    assert.equal(executing.length, 100);
+  } finally {
+    port.dispose();
+  }
 });
 
 test("largest sparse-world preset starts and advances the real Colony systems", () => {

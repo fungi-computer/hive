@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { parseColonyPerformanceGameId, type ColonyPerformanceSize, type ColonyPerformanceWorkerCount } from "../../engine/src/games/colony-performance-config";
+import { colonyFrameworkProofGameId, parseColonyPerformanceGameId, type ColonyPerformanceSize, type ColonyPerformanceWorkerCount } from "../../engine/src/games/colony-performance-config";
 import { placementDecisionQuerySchema } from "../../engine/src/runtime/placement-decision";
 
 export const PACKS = ["survival", "pirates", "colony", "formations"] as const;
-export type PublicPack = (typeof PACKS)[number] | `colony-performance-${ColonyPerformanceSize}-${ColonyPerformanceWorkerCount}`;
+export type PublicPack = (typeof PACKS)[number] | `colony-performance-${ColonyPerformanceSize}-${ColonyPerformanceWorkerCount}` | typeof colonyFrameworkProofGameId;
 export const BODY_BYTES = 8192;
 export const LEASE_MS = 15_000;
 export const STEP_MS = 100;
@@ -53,8 +53,8 @@ export function packFromPath(pathname: string): PublicPack | null {
   // Colony request through the old bearer-token singleton.
   if (!match || match[1] === "colony") return null;
   const performance = parseColonyPerformanceGameId(match[1]);
-  if (!performance && !PACKS.some(pack => pack === match[1])) return null;
-  if (match[2] === "placement" && !performance) return null;
+  if (!performance && match[1] !== colonyFrameworkProofGameId && !PACKS.some(pack => pack === match[1])) return null;
+  if (match[2] === "placement" && !performance && match[1] !== colonyFrameworkProofGameId) return null;
   return match[1] as PublicPack;
 }
 
