@@ -3,7 +3,10 @@
 September 23, 2026. **Current source plan, not a capacity claim.** This is the
 single ordered sprint for proving the native Hive engine on a Cloudflare Durable
 Object. Levi's current priority is the simulation/host loop, not rendering. The
-playable Clearing and original-art acceptance still matter, but do not drive this
+current evidence, open gates and paused-game handoff are in
+[FRAMEWORK-HANDOFF-20260923.md](FRAMEWORK-HANDOFF-20260923.md). The ten-minute
+hosted capacity and second-pack behavior gates remain unproved. The playable
+Clearing and original-art acceptance still matter, but do not drive this
 performance pass. The [Clearing delivery plan](CLEARING-CONSOLIDATION-PLAN.md),
 [coherent-world sprint](implementation/clearing-repair/15-coherent-world-and-creator-sprint.md),
 [platform audit](implementation/clearing-repair/20-engine-platform-audit-20260922.md),
