@@ -1,0 +1,319 @@
+{
+  "proof": "region-record-batches-workerd-v1",
+  "baselineSource": "7f3fbb47fa7f719f4610d8943b70c29cee49cf34",
+  "changedSourceBase": "7f3fbb47fa7f719f4610d8943b70c29cee49cf34",
+  "wasm": "5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89",
+  "physicalStateAndRecordsEqual": true,
+  "physicalStateAndRecordsSha256": "812ebf5a544cdc62d50514f836d3516444ecca8e434d72bd3731cbfe971df358",
+  "physicalRecordCount": 1482,
+  "occurrencesPerRun": 20,
+  "limits": [
+    "Local workerd timings are wall service phases, not platform CPU.",
+    "One paired short run establishes statement/row reduction, not capacity or timing significance.",
+    "Upsert increases reported rows read; physical bytes are unchanged."
+  ],
+  "runs": {
+    "before": {
+      "artifact": "/home/levi/src/hive-worktrees/do-record-baseline-20260923/.botanical/record-baseline-workerd/RESULT.json",
+      "implementationHash": "4bc16ad8e34b962b13163e59f27da4eb0a82adc867830d6bf40b990f75d62afe",
+      "inventory": [
+        {
+          "path": "tools/public-engine-host/worker.ts",
+          "sha256": "021f4a1acade397ade6dab4c4586ddebed1472106e62377ec3793f376a23bead"
+        },
+        {
+          "path": "tools/public-engine-host/pack-registration.ts",
+          "sha256": "d3c336f12b524872fbf9823cdaa336c23557b8e0aade215db78331f9364ff897"
+        },
+        {
+          "path": "engine/src/runtime/occurrence-driver.ts",
+          "sha256": "3b76aa9c31c1a2fee3037bae424d030cf63d41dbb71487e75314a2f632e1db54"
+        },
+        {
+          "path": "engine/src/runtime/region-program.ts",
+          "sha256": "f145a097b8edc8f11ef51fb9444d7a9535033a46a056fc9a4f3d4c2ae6fc518c"
+        },
+        {
+          "path": "src/engine/region/index.ts",
+          "sha256": "c13cbc6e1aec175581533d5d5f3e16a5d55a87d33a61863543fb1704f9172390"
+        },
+        {
+          "path": "engine/src/games/colony-framework-proof-v2-driver.ts",
+          "sha256": "d7fb0b3e60189ca565098736e43472673a749539b997ae15e962a48ff8791802"
+        },
+        {
+          "path": "engine/src/games/colony-performance-config.ts",
+          "sha256": "2f39b6e6ff3aa4fcea4bebe3bd0f275e2442ec539caf164b1ddf5bc9b5d89d31"
+        },
+        {
+          "path": "engine/src/games/colony-framework-proof-v3.ts",
+          "sha256": "8dd364c40caabe096a9b66e0b15f0cfc3d2276f1d84559bf90be50eccba4d8e0"
+        },
+        {
+          "path": "src/engine/region/records.ts",
+          "sha256": "854234e702fb5e2b6ea709ed28f795ebe7bd2b394063a3f82180088c4960e91a"
+        },
+        {
+          "path": "engine/generated/hive_kernel_bg.wasm",
+          "sha256": "5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89"
+        }
+      ],
+      "elapsedWallMs": 7804.128804,
+      "costs": {
+        "advanceWallMs": {
+          "p50": 39,
+          "p95": 85,
+          "p99": 572,
+          "max": 572,
+          "total": 1409
+        },
+        "captureWallMs": {
+          "p50": 11,
+          "p95": 22,
+          "p99": 34,
+          "max": 34,
+          "total": 270
+        },
+        "changedRecordBytes": {
+          "p50": 157746,
+          "p95": 253864,
+          "p99": 453262,
+          "max": 453262,
+          "total": 3726928
+        },
+        "recordPuts": {
+          "p50": 149,
+          "p95": 169,
+          "p99": 796,
+          "max": 796,
+          "total": 3318
+        },
+        "recordRemoves": {
+          "p50": 0,
+          "p95": 16,
+          "p99": 47,
+          "max": 47,
+          "total": 66
+        },
+        "sqlWallMs": {
+          "p50": 3,
+          "p95": 5,
+          "p99": 10,
+          "max": 10,
+          "total": 65
+        },
+        "rowsRead": {
+          "p50": 246,
+          "p95": 332,
+          "p99": 392,
+          "max": 392,
+          "total": 4932
+        },
+        "rowsWritten": {
+          "p50": 307,
+          "p95": 388,
+          "p99": 1595,
+          "max": 1595,
+          "total": 6762
+        },
+        "statements": {
+          "p50": 316,
+          "p95": 444,
+          "p99": 1604,
+          "max": 1604,
+          "total": 7008
+        },
+        "alarmLatenessMs": {
+          "p50": 1,
+          "p95": 1,
+          "p99": 300,
+          "max": 300,
+          "total": 313
+        },
+        "dispatchWallMs": {
+          "p50": 60,
+          "p95": 110,
+          "p99": 639,
+          "max": 639,
+          "total": 1896
+        },
+        "transactionWallMs": {
+          "p50": 73,
+          "p95": 122,
+          "p99": 664,
+          "max": 664,
+          "total": 2166
+        }
+      },
+      "restartBeforeSequence": 20,
+      "restartSequence": 21,
+      "lastOccurrence": {
+        "sequence": 19,
+        "revision": 20,
+        "alarmLatenessMs": 0,
+        "dispatchWallMs": 41,
+        "transactionWallMs": 58,
+        "advanceWallMs": 19,
+        "captureWallMs": 12,
+        "recordPuts": 152,
+        "recordRemoves": 0,
+        "changedRecordBytes": 172254,
+        "sqlWallMs": 3,
+        "rowsRead": 316,
+        "rowsWritten": 307,
+        "statements": 316
+      }
+    },
+    "after": {
+      "artifact": "/home/levi/src/hive-worktrees/do-framework-driver-20260923/.botanical/record-batches-workerd/RESULT.json",
+      "implementationHash": "18dde9619b8488e41450d659cfd38971181a8dc1883d8f8cfd9974408380739b",
+      "inventory": [
+        {
+          "path": "tools/public-engine-host/worker.ts",
+          "sha256": "021f4a1acade397ade6dab4c4586ddebed1472106e62377ec3793f376a23bead"
+        },
+        {
+          "path": "tools/public-engine-host/pack-registration.ts",
+          "sha256": "d3c336f12b524872fbf9823cdaa336c23557b8e0aade215db78331f9364ff897"
+        },
+        {
+          "path": "engine/src/runtime/occurrence-driver.ts",
+          "sha256": "3b76aa9c31c1a2fee3037bae424d030cf63d41dbb71487e75314a2f632e1db54"
+        },
+        {
+          "path": "engine/src/runtime/region-program.ts",
+          "sha256": "f145a097b8edc8f11ef51fb9444d7a9535033a46a056fc9a4f3d4c2ae6fc518c"
+        },
+        {
+          "path": "src/engine/region/index.ts",
+          "sha256": "4d9ffd85a3fdf64170a876a1a1a673136bf1f258f0aa4a9591b2ef8fbe9024c1"
+        },
+        {
+          "path": "engine/src/games/colony-framework-proof-v2-driver.ts",
+          "sha256": "d7fb0b3e60189ca565098736e43472673a749539b997ae15e962a48ff8791802"
+        },
+        {
+          "path": "engine/src/games/colony-performance-config.ts",
+          "sha256": "2f39b6e6ff3aa4fcea4bebe3bd0f275e2442ec539caf164b1ddf5bc9b5d89d31"
+        },
+        {
+          "path": "engine/src/games/colony-framework-proof-v3.ts",
+          "sha256": "8dd364c40caabe096a9b66e0b15f0cfc3d2276f1d84559bf90be50eccba4d8e0"
+        },
+        {
+          "path": "src/engine/region/records.ts",
+          "sha256": "12f62396521dd6715b6193da980b422f587aa1dc9b34f9e34e6f88540ec7bd7a"
+        },
+        {
+          "path": "engine/generated/hive_kernel_bg.wasm",
+          "sha256": "5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89"
+        }
+      ],
+      "elapsedWallMs": 7497.478314,
+      "costs": {
+        "advanceWallMs": {
+          "p50": 36,
+          "p95": 80,
+          "p99": 574,
+          "max": 574,
+          "total": 1385
+        },
+        "captureWallMs": {
+          "p50": 12,
+          "p95": 28,
+          "p99": 33,
+          "max": 33,
+          "total": 294
+        },
+        "changedRecordBytes": {
+          "p50": 157746,
+          "p95": 253864,
+          "p99": 453262,
+          "max": 453262,
+          "total": 3726928
+        },
+        "recordPuts": {
+          "p50": 149,
+          "p95": 169,
+          "p99": 796,
+          "max": 796,
+          "total": 3318
+        },
+        "recordRemoves": {
+          "p50": 0,
+          "p95": 16,
+          "p99": 47,
+          "max": 47,
+          "total": 66
+        },
+        "sqlWallMs": {
+          "p50": 3,
+          "p95": 4,
+          "p99": 8,
+          "max": 8,
+          "total": 56
+        },
+        "rowsRead": {
+          "p50": 435,
+          "p95": 655,
+          "p99": 832,
+          "max": 832,
+          "total": 8382
+        },
+        "rowsWritten": {
+          "p50": 156,
+          "p95": 245,
+          "p99": 1583,
+          "max": 1583,
+          "total": 4482
+        },
+        "statements": {
+          "p50": 19,
+          "p95": 22,
+          "p99": 46,
+          "max": 46,
+          "total": 396
+        },
+        "alarmLatenessMs": {
+          "p50": 0,
+          "p95": 2,
+          "p99": 409,
+          "max": 409,
+          "total": 418
+        },
+        "dispatchWallMs": {
+          "p50": 65,
+          "p95": 103,
+          "p99": 634,
+          "max": 634,
+          "total": 1894
+        },
+        "transactionWallMs": {
+          "p50": 80,
+          "p95": 113,
+          "p99": 654,
+          "max": 654,
+          "total": 2150
+        }
+      },
+      "restartBeforeSequence": 20,
+      "restartSequence": 21,
+      "lastOccurrence": {
+        "sequence": 19,
+        "revision": 20,
+        "alarmLatenessMs": 0,
+        "dispatchWallMs": 46,
+        "transactionWallMs": 60,
+        "advanceWallMs": 21,
+        "captureWallMs": 15,
+        "recordPuts": 152,
+        "recordRemoves": 0,
+        "changedRecordBytes": 172254,
+        "sqlWallMs": 1,
+        "rowsRead": 468,
+        "rowsWritten": 155,
+        "statements": 19
+      }
+    }
+  }
+}

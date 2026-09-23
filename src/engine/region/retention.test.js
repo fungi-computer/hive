@@ -83,7 +83,7 @@ test("retirement, physical writes, receipts and epoch advance roll back together
     records: f.db.prepare("SELECT * FROM hive_region_records").all(),
   });
   const saved = metadata();
-  for (const sql of ["DELETE FROM hive_region_receipts", "UPDATE hive_region SET revision=", "INSERT OR REPLACE INTO hive_region_records", "INSERT INTO hive_region_receipts", "UPDATE hive_region_replay"]) {
+  for (const sql of ["DELETE FROM hive_region_receipts", "UPDATE hive_region SET revision=", "INSERT INTO hive_region_records", "INSERT INTO hive_region_receipts", "UPDATE hive_region_replay"]) {
     f.fail = sql;
     assert.throws(() => region.dispatch("alice", input("next", 1)), /injected-sql-failure/);
     f.fail = "";
