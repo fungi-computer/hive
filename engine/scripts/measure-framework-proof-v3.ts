@@ -150,6 +150,21 @@ const { port, session } = makeSession(),
   recovered = makeSession();
 const samples: unknown[] = [],
   commands: unknown[] = [];
+const advanceMs: number[] = [],
+  captureMs: number[] = [],
+  changedBytes: number[] = [];
+const summary = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const percentile = (p: number) =>
+    sorted[Math.max(0, Math.ceil(sorted.length * p) - 1)] ?? null;
+  return {
+    count: values.length,
+    p50: percentile(0.5),
+    p95: percentile(0.95),
+    p99: percentile(0.99),
+    max: sorted.at(-1) ?? null,
+  };
+};
 let firstWaterStep: number | null = null,
   maxChangedBytes = 0,
   error: string | null = null,
@@ -170,8 +185,22 @@ try {
     try {
       const issued = driveColonyFrameworkProofV2(session, step);
       session.runDisposableCandidate(() => {
+        const advanceAt = performance.now();
         session.step(schedule.stepSeconds);
+        advanceMs.push(performance.now() - advanceAt);
+        const captureAt = performance.now();
         const capture = session.captureForCommit();
+        captureMs.push(performance.now() - captureAt);
+        changedBytes.push(
+          capture.changes.puts.reduce(
+            (sum, row) =>
+              sum +
+              row.bytes.length +
+              new TextEncoder().encode(row.key).length +
+              16,
+            0,
+          ),
+        );
         maxChangedBytes = Math.max(
           maxChangedBytes,
           capture.changes.puts.reduce(
@@ -340,6 +369,9 @@ try {
         completedSteps,
         firstWaterStep,
         maxChangedBytes,
+        advanceMs: summary(advanceMs),
+        captureMs: summary(captureMs),
+        changedBytes: summary(changedBytes),
         wallMs: performance.now() - started,
         error,
         initialWater,
