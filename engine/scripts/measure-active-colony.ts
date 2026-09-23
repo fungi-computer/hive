@@ -66,10 +66,15 @@ const advance = () => {
 };
 try {
   session.start();
+  if (capture) {
+    session.captureForCommit();
+    session.acceptCapture();
+  }
   for (let tick = 0; tick < 900; tick++) {
     const start = performance.now();
     if (candidate) session.runDisposableCandidate(advance);
     else advance();
+    if (capture) session.acceptCapture();
     steps.push(performance.now() - start);
   }
   const completed = session.query(query(ColonyTree, FiniteResource)).filter(row => row.get(FiniteResource).quantity === 0).length;
