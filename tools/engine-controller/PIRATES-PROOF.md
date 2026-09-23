@@ -122,6 +122,12 @@ establish hosted parity.
 - Accepted receipt: revision 7, command `load-cargo-0`; recovered terminal: revision 62, two units delivered, zero pending.
 - Raw evidence: `.botanical/pirates-controller-luna-20260923-retry1/result.json`.
 
+`survival.mts` adds a second scoped consumer over the existing public Survival
+pack, using the same controller module and execution capability. Its intended
+real DO proof and this lane's missing generated-WASM limitation are recorded in
+[SURVIVAL-PROOF.md](SURVIVAL-PROOF.md); Pirates evidence does not stand in for
+that second-pack result.
+
 The first corrected-adapter attempt preserved its output-envelope mismatch in
 `.botanical/pirates-controller-luna-20260923/failure-output-shape.txt`; restoring
 the consumer's existing envelope fixed that result without changing owner or

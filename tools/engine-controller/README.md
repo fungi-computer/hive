@@ -179,3 +179,13 @@ replay after reconstruction. Goblin's retained law fixture currently fails at
 initial Region admission (`region-byte-budget`) before any controller command;
 it is not evidence for the current command boundary. Its projection uses the
 current physical `y` footing and Region initial-state shape.
+
+## Existing Survival pack
+
+`survival.mts` registers only projected hunger/wellbeing/bread facts and the
+pack's `takeFood`/`eatFood` commands through the same Mycelium module contract.
+It uses the existing `/v1/survival` public engine endpoint; no host runtime or
+simulation owner is added. The intended local SQLite restart/replay proof and
+the generated-WASM limitation in this lane are recorded in
+[SURVIVAL-PROOF.md](SURVIVAL-PROOF.md). This second pack is not a full Shiitake
+model/session or hosted-parity claim.
