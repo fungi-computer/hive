@@ -254,7 +254,7 @@ fn run_verified<Witness>(
                 corrected
             }
             SearchOutcome::NoPath(_) => { state.exact = ExactCost::Excluded; true }
-            SearchOutcome::Deferred(_) => { state.exact = ExactCost::Deferred; true }
+            SearchOutcome::Deferred(_) => { state.exact = ExactCost::Deferred; false }
         };
         if requires_rematch {
             if match_passes == MAX_MATCH_PASSES { break; }
@@ -274,9 +274,9 @@ fn run_verified<Witness>(
     let used_workers = assignments.iter().map(|assignment| assignment.worker.as_str()).collect::<BTreeSet<_>>();
     let used_tasks = assignments.iter().map(|assignment| assignment.task.as_str()).collect::<BTreeSet<_>>();
     let remaining = AssignmentEpisode {
-        candidates: pairs.iter().filter(|((worker, task), state)| !used_workers.contains(worker.as_str()) && !used_tasks.contains(task.as_str()) && !matches!(state.exact, ExactCost::Excluded | ExactCost::Deferred))
+        candidates: pairs.iter().filter(|((worker, task), state)| !used_workers.contains(worker.as_str()) && !used_tasks.contains(task.as_str()) && !matches!(state.exact, ExactCost::Excluded))
             .map(|((worker, task), state)| Candidate { worker: worker.clone(), task: task.clone(), cost: state.bound }).collect(),
-        proposed: proposed.into_iter().filter(|assignment| !used_workers.contains(assignment.worker.as_str()) && !used_tasks.contains(assignment.task.as_str()) && pairs.get(&(assignment.worker.clone(), assignment.task.clone())).is_some_and(|state| !matches!(state.exact, ExactCost::Excluded | ExactCost::Deferred))).collect(),
+        proposed: proposed.into_iter().filter(|assignment| !used_workers.contains(assignment.worker.as_str()) && !used_tasks.contains(assignment.task.as_str()) && pairs.get(&(assignment.worker.clone(), assignment.task.clone())).is_some_and(|state| !matches!(state.exact, ExactCost::Excluded))).collect(),
     };
     let deferred = pairs.into_iter().filter_map(|(key, state)| matches!(state.exact, ExactCost::Deferred).then_some(key)).collect();
     Ok((PlanningResult { assignments, deferred, route_validations, match_passes }, remaining))
@@ -503,6 +503,27 @@ mod tests {
         assert!(episode.is_empty());
         assert_eq!(workers.len(), 32);
         assert_eq!(tasks.len(), 32);
+    }
+
+    #[test]
+    fn deferred_matching_keeps_the_same_joint_proposal_across_reload() {
+        let window = PlanningWindow {
+            workers: vec![WorkerCandidate { id: "w".into(), party: "p".into() }],
+            tasks: vec![TaskCandidate { id: "t".into(), party: "p".into(), priority: 4, last_considered: 0, due_tick: 0 }],
+        };
+        let candidates = vec![Candidate { worker: "w".into(), task: "t".into(), cost: 1.0 }];
+        let mut episode = AssignmentEpisode::new(&window, &candidates).unwrap();
+        let deferred: PlanningResult<()> = episode.advance(&window, |_| Ok(SearchOutcome::Deferred("budget".into()))).unwrap();
+        assert_eq!(deferred.match_passes, 0);
+        assert_eq!(deferred.deferred.len(), 1);
+        assert!(!episode.is_empty());
+        assert_eq!(episode.candidates(), candidates);
+        let mut restored: AssignmentEpisode = serde_json::from_str(&serde_json::to_string(&episode).unwrap()).unwrap();
+        restored.validate(&window).unwrap();
+        let resumed = restored.advance(&window, |_| Ok(SearchOutcome::Reachable((1.0, ())))).unwrap();
+        assert_eq!(resumed.assignments.len(), 1);
+        assert_eq!(resumed.match_passes, 0);
+        assert!(restored.is_empty());
     }
 
     #[test]
