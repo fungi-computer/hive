@@ -52,7 +52,7 @@ export function checkedInitial<State>(initial: RegionInitial<State>, limits: Rec
   if (total > Math.min(limits.storageBytes, RECORD_INITIAL_BYTES)) throw new Error("region-initial-record-bytes");
   return { state: initial.state, records: initial.records.map((_, index) => ({ key: keys[index], bytes: copyBytes(rawBytes[index]!, limits.recordBytes) })), };
 }
-export function createRecordReader(owner: RecordSqlOwner, maxRecordBytes: number): RegionRecordReader & { close(): void } {
+export function createRecordReader(owner: RecordSqlOwner, maxRecordBytes: number, maxRecords: number): RegionRecordReader & { close(): void } {
   let active = true;
   return {
     read(key) {
@@ -61,6 +61,15 @@ export function createRecordReader(owner: RecordSqlOwner, maxRecordBytes: number
       const found = owner.sql.exec<{ record_bytes: SqlValue }>("SELECT record_bytes FROM hive_region_records WHERE format_version=? AND record_key=?", RECORD_FORMAT_VERSION, checked).toArray()[0];
       if (!found) return undefined;
       return copyBytes(found.record_bytes, maxRecordBytes);
+    },
+    records() {
+      if (!active) throw new Error("region-record-reader-closed");
+      const rows = owner.sql.exec<{ record_key: string; record_bytes: SqlValue }>(
+        "SELECT record_key,record_bytes FROM hive_region_records WHERE format_version=? ORDER BY record_key LIMIT ?",
+        RECORD_FORMAT_VERSION, maxRecords + 1,
+      ).toArray();
+      if (rows.length > maxRecords) throw new Error("region-record-capacity");
+      return rows.map(row => ({ key: recordKey(row.record_key), bytes: copyBytes(row.record_bytes, maxRecordBytes) }));
     },
     close() { active = false; },
   };

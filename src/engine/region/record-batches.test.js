@@ -73,3 +73,28 @@ test("aggregate count and storage limits reject before batched mutations; absent
   assert.throws(() => smaller.dispatch("player", { id: "too-large", replayEpoch: 0, command: { puts: [0, 100, 80] } }), /region-storage-budget/);
   assert.deepEqual(limited.snapshot(), saved);
 });
+
+test("transaction readers enumerate the exact sorted bounded SQL inventory only while open", t => {
+  const db = new DatabaseSync(":memory:");
+  t.after(() => db.close());
+  const owner = sqliteTestOwner(db);
+  let heldReader;
+  let seen;
+  const program = {
+    id: "record-inventory-v1",
+    initial: () => ({ state: { n: 0 }, records: [{ key: "kernel/z", bytes: new Uint8Array([3]) }, { key: "kernel/a", bytes: new Uint8Array([1]) }, { key: "kernel/m", bytes: new Uint8Array([2]) }] }),
+    parseState: structuredClone,
+    parseCommand: structuredClone,
+    authorize: () => true,
+    execute(state, _command, reader) {
+      heldReader = reader;
+      seen = reader.records();
+      return { status: "applied", result: {}, events: [], records: { puts: [], removes: [] } };
+    },
+  };
+  const region = openRegion({ owner, region: "record-inventory", program, limits: { records: 3 } });
+  assert.equal(region.dispatch("player", { id: "inventory", replayEpoch: 0, command: {} }).status, "applied");
+  assert.deepEqual(seen.map(record => record.key), ["kernel/a", "kernel/m", "kernel/z"]);
+  assert.deepEqual(seen.map(record => [...record.bytes]), [[1], [2], [3]]);
+  assert.throws(() => heldReader.records(), /region-record-reader-closed/);
+});

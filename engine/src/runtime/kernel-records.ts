@@ -104,6 +104,11 @@ function validateKeyList(keys: readonly unknown[]): asserts keys is readonly str
   if (airKeys.length && (!environment || !seen.has(`${ATMOSPHERE_PREFIX}header`) || !seen.has(`${ATMOSPHERE_PREFIX}emissions`)))
     throw new Error("atmosphere record set is incomplete");
 }
+/** Validates a SQL-owned recovery inventory before native restore. Keys are printable ASCII,
+ * so SQLite BINARY order and JavaScript string order agree for this domain. */
+export function validateKernelRecordInventory(keys: readonly unknown[]): asserts keys is readonly string[] {
+  validateKeyList(keys);
+}
 function decodeEntities(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): KernelEntitySnapshot {
   const stateRecords = records.filter(({ key }) => key.startsWith(ENTITY_PREFIX));
   if (stateRecords.reduce((sum, record) => sum + record.bytes.byteLength, 0) > ENTITY_BYTES) throw new Error("entity records exceed 8MiB");
