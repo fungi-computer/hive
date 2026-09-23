@@ -5,6 +5,9 @@ import test from "node:test";
 import { initSync, WasmKernel, WasmKernelRecords } from "../../generated/hive_kernel.js";
 import { KernelRecordCapture, captureKernelRecords, restoreKernelRecords } from "./kernel-records";
 import { checkedChange } from "../../../src/engine/region/records.ts";
+import { createColonyFrameworkProofPack } from "../games/colony-performance.ts";
+import { GameSession } from "./session.ts";
+import { wasmKernelPort } from "./wasm-kernel.ts";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -34,10 +37,12 @@ test("actual WASM captures opaque water records and restores atomically", () => 
   try {
     first.load(JSON.stringify({ format: "hive-game", version: 3, game: "colony", components: [], materialCatalog: [], initial: [] }));
     first.load_environment(JSON.stringify(environmentFixture));
+    const beforeWater = capture(first).find(record => record.key === "kernel/environment/water")!.bytes;
     const step = JSON.stringify({ delta: 0.2, writes: [], actions: [] });
     const advanced = JSON.parse(first.advance(step));
-    assert.ok(advanced.environmentWork.work.faces > 0);
+    assert.equal(advanced.revision, 1);
     const saved = capture(first);
+    assert.notDeepEqual(saved.find(record => record.key === "kernel/environment/water")!.bytes, beforeWater);
     assert.ok(saved.every(({ bytes }) => bytes instanceof Uint8Array && bytes.length <= 256 * 1024));
     assert.ok(saved.some(({ key }) => key === "kernel/environment/water"));
     restore(recovered, structuredClone(saved));
@@ -151,4 +156,65 @@ test("cold recovery above one MiB starts from its committed capture frontier", (
     assert.deepEqual([...stored].sort(([a], [b]) => a.localeCompare(b)).map(([key, bytes]) => ({ key, bytes })), capture(recovered));
     t.diagnostic(JSON.stringify({ baselineBytes, stepBytes, changedRecords: changed.changes.puts.length }));
   } finally { source.free(); recovered.free(); }
+});
+
+test("a short/long change to the first entity leaves every other persistence identity unchanged", () => {
+  const kernel = new WasmKernel();
+  const recovered = new WasmKernel();
+  try {
+    kernel.load(JSON.stringify({
+      format: "hive-game", version: 3, game: "stable-identities", materialCatalog: [],
+      components: [{ id: "fixture.text", version: 1, fields: { value: "string" } }],
+      initial: Array.from({ length: 300 }, (_, i) => ({ id: `entity-${String(i).padStart(4, "0")}`, components: { "fixture.text": { value: "x".repeat(4096) } } })),
+    }));
+    const owner = new KernelRecordCapture(kernel);
+    owner.capture();
+    for (const value of ["short", "y".repeat(4096)]) {
+      kernel.advance(JSON.stringify({ delta: 0, writes: [{ entity: "entity-0000", component: "fixture.text", value: { value } }], actions: [] }));
+      const changed = owner.capture();
+      assert.deepEqual(changed.changes.puts.map(row => row.key).sort(), ["kernel/state/entities/entity-0000", "kernel/state/root"]);
+      assert.deepEqual(changed.changes.removes, []);
+      checkedChange(changed.changes, { recordBytes: 256 * 1024, records: 4096, changedRecords: 1024, storageBytes: 8 * 1024 * 1024 });
+      restoreKernelRecords(recovered, () => new WasmKernelRecords(), changed.snapshot);
+      assert.deepEqual(capture(recovered), capture(kernel));
+    }
+    const saved = captureKernelRecords(kernel);
+    assert.throws(() => restoreKernelRecords(recovered, () => new WasmKernelRecords(), { ...saved, version: 1 as never }), /unsupported kernel record snapshot/);
+    assert.throws(() => restoreKernelRecords(recovered, () => new WasmKernelRecords(), {
+      ...saved, records: saved.records.filter(row => row.key !== "kernel/state/entities/entity-0000"),
+    }));
+    assert.deepEqual(capture(recovered), capture(kernel), "missing identity cannot partially replace the recovered world");
+    const oldHeader = saved.records.map(row => row.key === "kernel/header"
+      ? { ...row, bytes: Uint8Array.from([3, ...row.bytes.slice(1)]) } : row);
+    assert.throws(() => restore(recovered, oldHeader));
+    assert.deepEqual(capture(recovered), capture(kernel));
+  } finally { kernel.free(); recovered.free(); }
+});
+
+test("distributed 100-worker fixture stays within changed-record admission through the former step-13 cliff", (t) => {
+  const port = wasmKernelPort(new WasmKernel());
+  const session = new GameSession({ port, pack: createColonyFrameworkProofPack() });
+  let maxBytes = 0, maxRecords = 0;
+  try {
+    session.start();
+    session.captureForCommit();
+    for (let step = 1; step <= 40; step++) {
+      session.runDisposableCandidate(() => {
+        session.step(.1);
+        const capture = session.captureForCommit();
+        checkedChange(capture.changes, { recordBytes: 256 * 1024, records: 4096, changedRecords: 1024, storageBytes: 8 * 1024 * 1024 });
+        const bytes = capture.changes.puts.reduce((sum, record) => sum + record.bytes.length + new TextEncoder().encode(record.key).length + 16, 0);
+        maxBytes = Math.max(maxBytes, bytes);
+        maxRecords = Math.max(maxRecords, capture.changes.puts.length + capture.changes.removes.length);
+        if (step === 20) {
+          const recovered = new WasmKernel();
+          try {
+            restoreKernelRecords(recovered, () => new WasmKernelRecords(), capture.snapshot.kernel);
+            assert.deepEqual(captureKernelRecords(recovered), capture.snapshot.kernel);
+          } finally { recovered.free(); }
+        }
+      });
+    }
+    t.diagnostic(JSON.stringify({ fixture: "colony-framework-proof-256-100-v1", steps: 40, maxBytes, maxRecords }));
+  } finally { port.dispose(); }
 });

@@ -1,3 +1,4 @@
+import { readKernelEntities } from "./kernel-records";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { GameSession } from "./session";
@@ -217,24 +218,25 @@ class TestPort implements KernelPort {
     };
     state.impactQueue = this.impacts;
     this.entityJson = JSON.stringify(state);
-    const bytes = new TextEncoder().encode(this.entityJson);
+    const root = JSON.parse(this.entityJson);
+    const rows = root.scene.initial;
+    root.scene.initial = [];
+    for (const key of ["routes", "direct", "projectile_contacts", "party_bindings", "work_attempts", "jobs", "tasks"]) root[key] ??= [];
+    const bytes = new TextEncoder().encode(JSON.stringify(root));
     return {
       format: "hive-kernel-records",
-      version: 1,
+      version: 2,
       revision: this.revision,
       time: state.time,
       records: [
         { key: "kernel/header", bytes: new Uint8Array([1]) },
-        { key: "kernel/entities/0000", bytes },
+        { key: "kernel/state/root", bytes },
+        ...rows.map((row: { id: string }) => ({ key: `kernel/state/entities/${row.id}`, bytes: new TextEncoder().encode(JSON.stringify(row)) })),
       ],
     };
   }
   restore(snapshot: KernelSnapshot): void {
-    const record = snapshot.records.find(
-      ({ key }) => key === "kernel/entities/0000",
-    );
-    if (!record) throw new Error("missing test entity record");
-    this.entityJson = new TextDecoder().decode(record.bytes);
+    this.entityJson = JSON.stringify(readKernelEntities(snapshot));
     this.revision = snapshot.revision;
     this.impacts =
       (JSON.parse(this.entityJson) as { impactQueue?: Impact[] }).impactQueue ??

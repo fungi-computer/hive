@@ -8,15 +8,15 @@ use std::collections::BTreeMap;
 pub const RECORD_BYTES: usize = 256 * 1024;
 pub const ENTITY_BYTES: usize = 8 * 1024 * 1024;
 pub const TOTAL_BYTES: usize = 9 * 1024 * 1024;
-pub const MAX_RECORDS: usize = 48;
-pub const MAX_KEY_BYTES: usize = 80;
+pub const MAX_RECORDS: usize = 65_536;
+pub const MAX_KEY_BYTES: usize = 160;
 const HEADER_KEY: &str = "kernel/header";
 const ENV_HEADER_KEY: &str = "kernel/environment/header";
 const DEFINITION_KEY: &str = "kernel/environment/definition";
 const TERRAIN_KEY: &str = "kernel/environment/terrain";
 const WATER_KEY: &str = "kernel/environment/water";
 const STRUCTURES_KEY: &str = "kernel/environment/structures";
-const ENTITY_PREFIX: &str = "kernel/entities/";
+const ENTITY_PREFIX: &str = "kernel/state/";
 const ATMOSPHERE_PREFIX: &str = "kernel/atmosphere/";
 const ATMOSPHERE_BYTES: usize = 2 * 1024 * 1024 + 64 * 1024;
 const MAX_ATMOSPHERE_CHUNKS: usize = 9;
@@ -24,12 +24,13 @@ const MAX_ATMOSPHERE_CHUNKS: usize = 9;
 #[derive(Serialize, Deserialize)]
 struct Header {
     version: u16,
-    entity_bytes: u64,
+    entity_counts: [u32; 9],
     environment: bool,
     atmosphere_bytes: Option<u64>,
 }
 
 pub struct RecordBundle {
+    total_bytes: usize,
     records: BTreeMap<String, Vec<u8>>,
 }
 
@@ -69,13 +70,14 @@ impl RecordCapture {
         };
         let sequence = self.sequence.checked_add(1).ok_or("record capture sequence exhausted")?;
         let baseline = self.baseline.as_ref().filter(|_| since == self.sequence);
-        let records = next.records.iter().filter(|(key, bytes)|
+        let records: BTreeMap<String, Vec<u8>> = next.records.iter().filter(|(key, bytes)|
             baseline.and_then(|prior| prior.records.get(*key)) != Some(*bytes))
             .map(|(key, bytes)| (key.clone(), bytes.clone())).collect();
         let manifest = CaptureManifest { sequence, base: baseline.map(|_| since), revision, time, keys };
         self.sequence = sequence;
         self.baseline = Some(next);
-        Ok((RecordBundle { records }, manifest))
+        let total_bytes = records.values().map(Vec::len).sum();
+        Ok((RecordBundle { records, total_bytes }, manifest))
     }
 }
 
@@ -83,6 +85,7 @@ impl RecordBundle {
     pub fn new() -> Self {
         Self {
             records: BTreeMap::new(),
+            total_bytes: 0,
         }
     }
 
@@ -105,6 +108,7 @@ impl RecordBundle {
             return Err("record bytes exceed 9MiB".into());
         }
         self.records.insert(key.to_owned(), bytes.to_vec());
+        self.total_bytes = next;
         Ok(())
     }
 
@@ -118,14 +122,12 @@ impl RecordBundle {
             .ok_or_else(|| "record key not found".into())
     }
     fn total_bytes(&self) -> usize {
-        self.records.values().map(Vec::len).sum()
+        self.total_bytes
     }
 
     pub fn from_records(records: KernelRecords) -> Result<Self, String> {
-        let entity = records.entities.into_bytes();
-        if entity.len() > ENTITY_BYTES {
-            return Err("entity records exceed 8MiB".into());
-        }
+        let entity = crate::stable_entity_records::encode(&records.entities)?;
+        let entity_counts = crate::stable_entity_records::counts(&entity);
         records
             .environment
             .as_ref()
@@ -151,7 +153,7 @@ impl RecordBundle {
         if atmosphere.is_some() && records.environment.is_none() {
             return Err("atmosphere records require environment".into());
         }
-        let entity_chunks = entity.len().div_ceil(RECORD_BYTES).max(1);
+        let entity_chunks = entity.len();
         let atmosphere_chunks = atmosphere
             .as_ref()
             .map_or(0, |bytes| bytes.len().div_ceil(RECORD_BYTES).max(1));
@@ -163,11 +165,11 @@ impl RecordBundle {
             return Err("record count exceeds bound".into());
         }
         let mut bundle = Self::new();
-        insert_chunks(&mut bundle, ENTITY_PREFIX, &entity, 32, ENTITY_BYTES)?;
+        for (key, bytes) in entity { bundle.insert(&key, &bytes)?; }
         let environment_present = records.environment.is_some();
         let header = postcard::to_allocvec(&Header {
-            version: 3,
-            entity_bytes: entity.len() as u64,
+            version: 4,
+            entity_counts,
             environment: environment_present,
             atmosphere_bytes: atmosphere.as_ref().map(|bytes| bytes.len() as u64),
         })
@@ -208,7 +210,7 @@ impl RecordBundle {
         }
         let (header, remainder): (Header, &[u8]) =
             take_from_bytes(header_bytes).map_err(|_| "invalid record header")?;
-        if !remainder.is_empty() || header.version != 3 || header.entity_bytes > ENTITY_BYTES as u64
+        if !remainder.is_empty() || header.version != 4
         {
             return Err("invalid record header binding".into());
         }
@@ -257,15 +259,12 @@ impl RecordBundle {
                 return Err("environment record exceeds bound".into());
             }
         }
-        let entity = collect_chunks(
-            &self.records,
-            ENTITY_PREFIX,
-            Some(header.entity_bytes),
-            32,
-            ENTITY_BYTES,
-        )?
-        .ok_or("missing entity chunks")?;
-        let entities = String::from_utf8(entity).map_err(|_| "entity records are not UTF-8")?;
+        let entity_records = self.records.iter().filter(|(key, _)| key.starts_with(ENTITY_PREFIX))
+            .map(|(key, bytes)| (key.clone(), bytes.clone())).collect();
+        if crate::stable_entity_records::counts(&entity_records) != header.entity_counts {
+            return Err("entity record set is incomplete".into());
+        }
+        let entities = crate::stable_entity_records::decode(&entity_records)?;
         let environment = if header.environment {
             let definition = self
                 .records
@@ -322,16 +321,8 @@ fn validate_key(key: &str) -> Result<(), String> {
     {
         return Err("invalid record key".into());
     }
-    if let Some(suffix) = key.strip_prefix(ENTITY_PREFIX) {
-        if suffix.len() != 4
-            || !suffix.bytes().all(|byte| byte.is_ascii_digit())
-            || suffix
-                .parse::<usize>()
-                .map_err(|_| "invalid entity chunk")?
-                >= 32
-        {
-            return Err("invalid entity chunk key".into());
-        }
+    if key.starts_with(ENTITY_PREFIX) {
+        crate::stable_entity_records::validate_key(key)?;
     } else if key.strip_prefix(ATMOSPHERE_PREFIX).is_some() {
         let suffix = key.strip_prefix(ATMOSPHERE_PREFIX).unwrap();
         if suffix.len() != 4
@@ -435,22 +426,25 @@ fn collect_chunks(
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn fixture_snapshot(value: &str) -> String {
+        serde_json::json!({"format":"hive-kernel", "version":19, "scene":{"initial":[{"id":"subject", "components":{"value":value}}]}, "routes":[], "direct":[], "projectile_contacts":[], "party_bindings":[], "work_attempts":[], "jobs":[], "tasks":[]}).to_string()
+    }
     fn capture_bundle(entity: &str) -> RecordBundle {
-        RecordBundle::from_records(KernelRecords { entities: entity.into(), environment: None, atmosphere: None }).unwrap()
+        RecordBundle::from_records(KernelRecords { entities: fixture_snapshot(entity), environment: None, atmosphere: None }).unwrap()
     }
 
     #[test]
     fn capture_transfers_only_exact_changed_records_and_tracks_removals() {
         let mut cursor = RecordCapture::default();
-        let (first, first_manifest) = cursor.capture(capture_bundle(&"a".repeat(RECORD_BYTES + 1)), Some(0), 1, 0.1).unwrap();
+        let (first, first_manifest) = cursor.capture(capture_bundle(&"a".repeat(4096)), Some(0), 1, 0.1).unwrap();
         assert_eq!(first.keys(), first_manifest.keys);
-        let (same, same_manifest) = cursor.capture(capture_bundle(&"a".repeat(RECORD_BYTES + 1)), Some(first_manifest.sequence), 1, 0.1).unwrap();
+        let (same, same_manifest) = cursor.capture(capture_bundle(&"a".repeat(4096)), Some(first_manifest.sequence), 1, 0.1).unwrap();
         assert!(same.keys().is_empty());
         assert_eq!(same_manifest.base, Some(first_manifest.sequence));
         let (changed, manifest) = cursor.capture(capture_bundle("b"), Some(same_manifest.sequence), 2, 0.2).unwrap();
-        assert_eq!(changed.keys(), manifest.keys);
-        assert!(!manifest.keys.contains(&"kernel/entities/0001".to_owned()));
-        assert_eq!(changed.read("kernel/entities/0000").unwrap(), b"b");
+        assert_eq!(changed.keys(), vec!["kernel/state/entities/subject"]);
+        assert!(manifest.keys.contains(&"kernel/state/root".to_owned()));
+        assert!(String::from_utf8(changed.read("kernel/state/entities/subject").unwrap()).unwrap().contains("b"));
     }
 
     #[test]
@@ -468,8 +462,8 @@ mod tests {
         assert!(third.sequence > second.sequence);
     }
     #[test]
-    fn entity_chunk_roundtrip_and_limits() {
-        let entities = format!("{}é", "a".repeat(RECORD_BYTES - 1));
+    fn stable_entity_record_roundtrip_and_limits() {
+        let entities = fixture_snapshot(&format!("{}é", "a".repeat(4096)));
         let records = KernelRecords {
             entities: entities.clone(),
             environment: None,
@@ -481,7 +475,7 @@ mod tests {
     #[test]
     fn opaque_empty_environment_roundtrips() {
         let records = KernelRecords {
-            entities: "{}".into(),
+            entities: fixture_snapshot(""),
             environment: Some((
                 String::new(),
                 crate::terrain_water::TerrainWaterRecords {
@@ -505,7 +499,7 @@ mod tests {
     #[test]
     fn environment_requires_structures_record() {
         let records = KernelRecords {
-            entities: "{}".into(),
+            entities: fixture_snapshot(""),
             environment: Some((
                 String::new(),
                 crate::terrain_water::TerrainWaterRecords {
@@ -525,19 +519,19 @@ mod tests {
     #[test]
     fn rejects_previous_record_format_without_migration() {
         let records = KernelRecords {
-            entities: "{}".into(),
+            entities: fixture_snapshot(""),
             environment: None,
             atmosphere: None,
         };
         let mut bundle = RecordBundle::from_records(records).unwrap();
-        bundle.records.get_mut(HEADER_KEY).unwrap()[0] = 1;
+        bundle.records.get_mut(HEADER_KEY).unwrap()[0] = 3;
         assert!(bundle.decode().is_err());
     }
 
     #[test]
     fn rejects_missing_extra_duplicate_oversized_and_trailing_header() {
         let records = KernelRecords {
-            entities: "{}".into(),
+            entities: fixture_snapshot(""),
             environment: None,
             atmosphere: None,
         };
@@ -546,7 +540,7 @@ mod tests {
         header.push(0);
         assert!(bundle.decode().is_err());
         let mut bundle = RecordBundle::from_records(KernelRecords {
-            entities: "{}".into(),
+            entities: fixture_snapshot(""),
             environment: None,
             atmosphere: None,
         })
@@ -554,7 +548,7 @@ mod tests {
         bundle.records.remove(HEADER_KEY);
         assert!(bundle.decode().is_err());
         let mut bundle = RecordBundle::from_records(KernelRecords {
-            entities: "{}".into(),
+            entities: fixture_snapshot(""),
             environment: None,
             atmosphere: None,
         })
@@ -564,14 +558,14 @@ mod tests {
         let mut bundle = RecordBundle::new();
         assert!(bundle.insert("kernel/extra", &[]).is_err());
         let oversized = vec![0; RECORD_BYTES + 1];
-        assert!(bundle.insert("kernel/entities/0000", &oversized).is_err());
-        assert!(bundle.insert("kernel/entities/0000", &[]).is_ok());
-        assert!(bundle.insert("kernel/entities/0000", &[]).is_err());
+        assert!(bundle.insert("kernel/state/entities/subject", &oversized).is_err());
+        assert!(bundle.insert("kernel/state/entities/subject", &[]).is_ok());
+        assert!(bundle.insert("kernel/state/entities/subject", &[]).is_err());
     }
 
     fn atmosphere_records(atmosphere: Option<Vec<u8>>) -> KernelRecords {
         KernelRecords {
-            entities: "{}".into(),
+            entities: fixture_snapshot(""),
             environment: Some((
                 String::new(),
                 crate::terrain_water::TerrainWaterRecords {
@@ -617,7 +611,7 @@ mod tests {
         assert!(bundle.decode().is_err());
 
         let mut no_environment = RecordBundle::from_records(KernelRecords {
-            entities: "{}".into(),
+            entities: fixture_snapshot(""),
             environment: None,
             atmosphere: None,
         })
