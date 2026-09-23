@@ -19,6 +19,7 @@ const socketHandlePattern = /^[A-Za-z0-9._:-]{1,256}$/;
 const commandInput = z
   .object({
     id: z.string().min(1).max(160),
+    replayEpoch: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
     expectedRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
     command: z.unknown(),
   })
