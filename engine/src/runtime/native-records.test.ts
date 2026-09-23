@@ -169,6 +169,7 @@ test("a short/long change to the first entity leaves every other persistence ide
     }));
     const owner = new KernelRecordCapture(kernel);
     owner.capture();
+    owner.acceptCapture();
     for (const value of ["short", "y".repeat(4096)]) {
       kernel.advance(JSON.stringify({ delta: 0, writes: [{ entity: "entity-0000", component: "fixture.text", value: { value } }], actions: [] }));
       const changed = owner.capture();
@@ -177,6 +178,7 @@ test("a short/long change to the first entity leaves every other persistence ide
       checkedChange(changed.changes, { recordBytes: 256 * 1024, records: 4096, changedRecords: 1024, storageBytes: 8 * 1024 * 1024 });
       restoreKernelRecords(recovered, () => new WasmKernelRecords(), changed.snapshot);
       assert.deepEqual(capture(recovered), capture(kernel));
+      owner.acceptCapture();
     }
     const saved = captureKernelRecords(kernel);
     assert.throws(() => restoreKernelRecords(recovered, () => new WasmKernelRecords(), { ...saved, version: 1 as never }), /unsupported kernel record snapshot/);
@@ -191,13 +193,14 @@ test("a short/long change to the first entity leaves every other persistence ide
   } finally { kernel.free(); recovered.free(); }
 });
 
-test("distributed 100-worker fixture stays within changed-record admission through the former step-13 cliff", (t) => {
+test("distributed 100-worker fixture stays within changed-record admission through the former step-13 cliff", (t: { diagnostic(message: string): void }) => {
   const port = wasmKernelPort(new WasmKernel());
   const session = new GameSession({ port, pack: createColonyFrameworkProofPack() });
   let maxBytes = 0, maxRecords = 0;
   try {
     session.start();
     session.captureForCommit();
+    session.acceptCapture();
     for (let step = 1; step <= 40; step++) {
       session.runDisposableCandidate(() => {
         session.step(.1);
@@ -213,8 +216,43 @@ test("distributed 100-worker fixture stays within changed-record admission throu
             assert.deepEqual(captureKernelRecords(recovered), capture.snapshot.kernel);
           } finally { recovered.free(); }
         }
+        if (step % 10 === 0) assert.deepEqual(capture.snapshot.kernel, port.snapshot(), "journal delta matches detached checkpoint");
+        session.acceptCapture();
       });
     }
     t.diagnostic(JSON.stringify({ fixture: "colony-framework-proof-256-100-v1", steps: 40, maxBytes, maxRecords }));
   } finally { port.dispose(); }
+});
+
+test("capture acknowledgement preserves later mutations and discarded candidates recover the last committed journal", () => {
+  const kernel = new WasmKernel(), recovered = new WasmKernel();
+  try {
+    kernel.load(JSON.stringify({ format: "hive-game", version: 3, game: "journal", materialCatalog: [],
+      components: [{ id: "fixture.text", version: 1, fields: { value: "string" } }],
+      initial: [{ id: "a", components: { "fixture.text": { value: "before" } } }, { id: "b", components: { "fixture.text": { value: "before" } } }],
+    }));
+    const owner = new KernelRecordCapture(kernel);
+    const committed = structuredClone(owner.capture().snapshot);
+    owner.acceptCapture();
+    owner.capture();
+    const write = (target: WasmKernel, id: string, value: string) => target.advance(JSON.stringify({ delta: 0, writes: [{ entity: id, component: "fixture.text", value: { value } }], actions: [] }));
+    write(kernel, "a", "after-first-capture");
+    owner.acceptCapture(); // acknowledges only the generation captured before a changed
+    const first = owner.capture();
+    assert(first.changes.puts.some(row => row.key === "kernel/state/entities/a"));
+    write(kernel, "b", "second-provisional-occurrence");
+    const second = owner.capture();
+    assert(second.changes.puts.some(row => row.key === "kernel/state/entities/b"));
+    assert.deepEqual(second.snapshot, captureKernelRecords(kernel));
+    const sequence = restoreKernelRecords(recovered, () => new WasmKernelRecords(), committed);
+    const restored = new KernelRecordCapture(recovered);
+    restored.restored(committed, sequence);
+    assert.deepEqual(restored.capture().changes, { puts: [], removes: [] });
+    write(recovered, "a", "after-first-capture");
+    write(recovered, "b", "second-provisional-occurrence");
+    assert.deepEqual(restored.capture().snapshot, second.snapshot, "retry produces the same one final state");
+    owner.acceptCapture();
+    assert.throws(() => owner.acceptCapture(), /not awaiting acknowledgement/);
+    assert.deepEqual(owner.capture().changes, { puts: [], removes: [] });
+  } finally { kernel.free(); recovered.free(); }
 });

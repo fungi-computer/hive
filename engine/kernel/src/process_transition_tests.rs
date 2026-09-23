@@ -328,7 +328,7 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
         let entity = kernel.entity(&id).unwrap();
         let old = kernel.ecs.get::<Lot>(entity).unwrap().container.clone();
         kernel.contents.get_mut(&old).unwrap().remove(&entity);
-        kernel.ecs.get_mut::<Lot>(entity).unwrap().container = "process-stock".into();
+        crate::record_changes::edit::<Lot>(entity, &mut kernel.ecs).unwrap().container = "process-stock".into();
         kernel.contents.get_mut("process-stock").unwrap().insert(entity);
     }
     for (role, quantity) in [("malt", 2), ("water", 2), ("mugwort", 1), ("wood", 1), ("barm", 1), ("keg", 1)] {
@@ -432,9 +432,7 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
 
 fn admitted() -> (Kernel, String) {
     let mut kernel = fixture(false);
-    kernel
-        .ecs
-        .get_mut::<Lot>(kernel.entity("lot:malt").unwrap())
+    crate::record_changes::edit::<Lot>(kernel.entity("lot:malt").unwrap(), &mut kernel.ecs)
         .unwrap()
         .quantity = 1;
     let extra = kernel
@@ -498,7 +496,7 @@ fn attended_process_contributes_one_deterministic_labor_requirement() {
     assert!(matches!(&requirement.operation, crate::work_planner::WorkOperation::ProcessAttendance { process: target } if target == &requirement.task));
 
     let process_entity = kernel.entity(&requirement.task).unwrap();
-    kernel.ecs.entity_mut(process_entity).get_mut::<StagedProcess>().unwrap().phase = ProcessPhase::Complete;
+    crate::record_changes::edit::<StagedProcess>(process_entity, &mut kernel.ecs).unwrap().phase = ProcessPhase::Complete;
     assert!(kernel.process_work_requirement(&requirement.task, "party:process").unwrap().is_none());
 }
 
@@ -518,7 +516,7 @@ fn process_attendance_retains_selected_contact_and_blocks_after_geometry_change(
     let attempt = restored.ecs.get::<crate::work_attempt::WorkAttempt>(attempt_entity).unwrap();
     assert!(matches!(&attempt.phase, crate::work_attempt::AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { contact: selected, .. }, .. } if selected == &contact));
     let station = restored.entity("station").unwrap();
-    restored.ecs.entity_mut(station).get_mut::<crate::components::ConstructionSite>().unwrap().target = crate::components::ConstructionTarget::Cell { cell: crate::generation::Cell { x: 99, y: 99, z: 0 }, orientation: crate::structure_geometry::Cardinal::North };
+    crate::record_changes::edit::<crate::components::ConstructionSite>(station, &mut restored.ecs).unwrap().target = crate::components::ConstructionTarget::Cell { cell: crate::generation::Cell { x: 99, y: 99, z: 0 }, orientation: crate::structure_geometry::Cardinal::North };
     restored.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
     let attempt = restored.ecs.get::<crate::work_attempt::WorkAttempt>(attempt_entity).unwrap();
     assert!(matches!(&attempt.phase, crate::work_attempt::AttemptPhase::Outcome { result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::AccessLost }, .. }));
