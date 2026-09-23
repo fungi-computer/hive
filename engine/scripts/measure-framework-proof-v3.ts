@@ -176,7 +176,6 @@ try {
         const capture = session.captureForCommit();
         maxChangedBytes = Math.max(
           maxChangedBytes,
-        ...(measureRecordBytes ? { recordBytes } : {}),
           capture.changes.puts.reduce(
             (sum, row) =>
               sum +
@@ -281,6 +280,7 @@ try {
       });
     } catch (failure) {
       error = `step${step}: ${failure instanceof Error ? failure.message : String(failure)}`;
+      console.error(error, failure instanceof Error ? failure.stack : "");
       break;
     }
   }
