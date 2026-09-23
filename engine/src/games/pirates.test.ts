@@ -12,7 +12,7 @@ import {
 } from "./pirates";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
-import { MaterialLot } from "../sdk/common";
+import { MaterialLot, SupplyAllocation } from "../sdk/common";
 import { WorkParticipation } from "../sdk/work-control";
 import { query } from "../sdk/authoring";
 
@@ -114,6 +114,13 @@ test("pirate cargo uses shared hauling through translated/rotated frames and in-
       assert(recoveredInFlight, `heading ${facing} never picked up cargo`);
       const cargo = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
       assert.equal(cargo.filter(lot => lot.container === holdId).reduce((sum, lot) => sum + lot.quantity, 0), 2);
+      assert.equal(cargo.filter(lot => lot.kind === "bread").reduce((sum, lot) => sum + lot.quantity, 0), 4);
+      assert.equal(cargo.filter(lot => lot.kind === "wood").reduce((sum, lot) => sum + lot.quantity, 0), 3);
+      assert.deepEqual(
+        session.query(query(SupplyAllocation)).map(row => row.get(SupplyAllocation).state).sort(),
+        ["delivered", "delivered"],
+        "both authored supply obligations settle through the shared allocation owner",
+      );
       assert.equal(cargo.reduce((sum, lot) => sum + lot.quantity, 0), 7);
       session.restore(session.save());
       for (let tick = 0; tick < 20; tick++) session.step(0.1);

@@ -10,7 +10,7 @@ import type { WorkerEvent, WorkerTransportEvent } from "./protocol";
 import { colonyPack } from "../games/colony";
 import { survivalPack, Condition, Fatigue } from "../games/survival";
 import { formationsPack, FormationMember } from "../games/formations";
-import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
+import { Container, MaterialLot, Position, encodeDefinition } from "../sdk/common";
 import { command, component, entity, query, system } from "../sdk/authoring";
 import { z } from "zod";
 const emptyInput = z.object({}).strict();
@@ -116,6 +116,8 @@ test("survival can take and eat successive split lots, including after restore",
   try {
     const session = new GameSession({ port, pack: survivalPack });
     session.start();
+    assert(survivalPack.components.some((definition) => definition.id === Container.id),
+      "the pack declares the native container capability used by its authored inventory");
     session.request({
       kind: "move",
       entity: entity("survival.survivor.1"),
@@ -125,6 +127,9 @@ test("survival can take and eat successive split lots, including after restore",
     for (let meal = 0; meal < 2; meal++) {
       session.command("takeFood", {});
       assert.equal(session.step(0.1)[0].accepted, true);
+      const carried = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).container === entity("survival.survivor.1"));
+      assert.equal(carried.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), meal + 1,
+        "native transfer moves physical custody without duplicating bread");
       session.command("eatFood", {});
       assert.equal(session.step(0.1)[0].accepted, true);
       session.restore(session.save());
