@@ -322,7 +322,15 @@ The two-client local workerd host audit is
 `tools/public-engine-host/PUBLICATION-COST-AUDIT-20260923.md`. At the earlier
 matching WASM, warm SQL p50/p95 was 2/3 ms while delivered observation build
 was 20/37 ms and socket encode/send 2/3 ms. This is a 40-publication local
-host sample, not a ten-minute run or a post-air hosted performance measurement.
+host sample. A second 40-step local workerd run on the post-air WASM and two
+connected clients passed exact replay and autonomous restart. In its warm
+steps 20–39, SQL p50/p95 was 2/3 ms, transaction-through-commit 52/65 ms,
+changed capture 11/20 ms, and delivered observation build 16/24 ms. Alarm
+lateness p95 was 1 ms. Its receipt is
+`.botanical/publication-cost-air-4b7ffac0/RESULT.json` (SHA-256
+`3a4e5e70489bdc5729b630be7edfd8941c3eef0208cf1d2a45c50a3be97a7a74`).
+These short local workerd samples are not a ten-minute or hosted performance
+measurement.
 No speculative decoration cache was added: its measured substage was too small
 to justify another retained state owner. Full `cargo test` still runs 14 stale
 `engine/kernel/tests/kernel.rs` fixtures that omit the now-required
