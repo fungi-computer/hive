@@ -45,6 +45,7 @@ try {
   // The DO stores a full baseline at creation; compare only later changes.
   const initialCapture = session.captureForCommit();
   initialCaptureBytes = initialCapture.snapshot.kernel.records.reduce((sum, record) => sum + record.bytes.length, 0);
+  session.acceptCapture();
   for (let tick = 1; tick <= count; tick++) {
     session.runDisposableCandidate(() => {
       const started = performance.now();
@@ -67,6 +68,8 @@ try {
       changedBytes.push(stepBytes);
       if (stepBytes > 1024 * 1024) overHostChangeLimit++;
     });
+    // This diagnostic treats the captured candidate as committed each step.
+    session.acceptCapture();
     if (tick === 1 || tick % 10 === 0 || tick === count) {
       const started = performance.now();
       const attempts = taskIds.flatMap((_, offset) => offset % 64 === 0 ? session.workAttempts(taskIds.slice(offset, offset + 64)) : []);
