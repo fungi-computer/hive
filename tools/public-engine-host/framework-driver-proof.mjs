@@ -16,7 +16,7 @@ for (let index = 4; index < process.argv.length; index += 2) {
   assert(["--minimum-sequence", "--clients"].includes(process.argv[index]) && process.argv[index + 1] !== undefined, "invalid proof option");
   cliOptions.set(process.argv[index], process.argv[index + 1]);
 }
-const minimumSequence = Number(cliOptions.get("--minimum-sequence") ?? 3);
+const minimumSequence = Number(cliOptions.get("--minimum-sequence") ?? 25);
 const clientCount = Number(cliOptions.get("--clients") ?? 2);
 assert(Number.isInteger(minimumSequence) && minimumSequence >= 3 && minimumSequence <= 100);
 assert(Number.isInteger(clientCount) && clientCount >= 0 && clientCount <= 4);
@@ -46,7 +46,7 @@ export class PublicEngineRegion extends Base {
 await build({stdin:{contents:entry,resolveDir:root,loader:"ts"},outfile:workerPath,bundle:true,format:"esm",platform:"neutral",target:"es2022",external:["cloudflare:workers"],
   plugins:[{name:"wasm",setup(build){build.onResolve({filter:/\.wasm$/},()=>({path:"./hive_kernel_bg.wasm",external:true}));}}]});
 await copyFile(resolve("engine/generated/hive_kernel_bg.wasm"),wasmPath);
-const inventory = await Promise.all(["tools/public-engine-host/worker.ts","tools/public-engine-host/pack-registration.ts","engine/src/runtime/occurrence-driver.ts","engine/src/runtime/region-program.ts","src/engine/region/index.ts","engine/src/games/colony-framework-proof-v2-driver.ts","engine/src/games/colony-performance-config.ts","engine/src/games/colony-framework-proof-v3.ts","src/engine/region/records.ts","engine/generated/hive_kernel_bg.wasm"].map(async path=>({path,sha256:hash(await readFile(path))})));
+const inventory = await Promise.all(["tools/public-engine-host/worker.ts","tools/public-engine-host/host-cadence.ts","tools/public-engine-host/pack-registration.ts","engine/src/runtime/occurrence-driver.ts","engine/src/runtime/region-program.ts","src/engine/region/index.ts","engine/src/games/colony-framework-proof-v2-driver.ts","engine/src/games/colony-performance-config.ts","engine/src/games/colony-framework-proof-v3.ts","src/engine/region/records.ts","engine/generated/hive_kernel_bg.wasm"].map(async path=>({path,sha256:hash(await readFile(path))})));
 const implementationHash = hash(JSON.stringify(inventory));
 let mf;
 const options = { workers: [{ name:"hive-framework-driver-proof", modules:[{type:"ESModule",path:workerPath},{type:"CompiledWasm",path:wasmPath}],
@@ -62,18 +62,25 @@ const request = async(operation,body)=>{
 const rows = async()=>{
   for(const path of await readdir(resolve(output,"storage"),{recursive:true}).catch(error=>{if(error.code==="ENOENT")return[];throw error;})) {
     if(!path.endsWith(".sqlite"))continue;
-    const db=new DatabaseSync(resolve(output,"storage",path),{readOnly:true});
+    let db;
     try {
+      db=new DatabaseSync(resolve(output,"storage",path),{readOnly:true});
       if(!db.prepare("SELECT name FROM sqlite_master WHERE name='hive_public_host'").get())continue;
       const host=db.prepare("SELECT * FROM hive_public_host WHERE token_hash=?").get(tokenHash);
       if(host){const clock=db.prepare("SELECT * FROM hive_region_clock").get();const region=db.prepare("SELECT revision,state_json FROM hive_region").get();const stockpiles=host.paused ? db.prepare("SELECT record_bytes FROM hive_region_records WHERE record_key LIKE 'kernel/state/entities/%'").all().map(row=>JSON.parse(new TextDecoder().decode(row.record_bytes))).filter(row=>row.components["hive.stockpile-cell"]) : [];
         return{host,clock,region,stockpiles};}
-    }finally{db.close();}
+    } catch(error) {
+      if(error?.errcode===5 || error?.errstr==="database is locked") return undefined;
+      throw error;
+    } finally { db?.close(); }
   }
 };
-const until = async(check,label)=>{const deadline=Date.now()+30_000;while(Date.now()<deadline){const value=await check();if(value)return value;await delay(50);}throw new Error(`timed out: ${label}`);};
+const until = async(check,label)=>{const deadline=Date.now()+30_000;while(Date.now()<deadline){const value=await check();if(value)return value;await delay(20);}throw new Error(`timed out: ${label}`);};
 const checkpoints=[];
 const clients=[];
+const occurrenceObservations=[];
+let lastObservedSequence;
+let lastObservedAt;
 async function connectClient(number) {
   const { handle } = await request("connect");
   const local = await mf.ready;
@@ -81,14 +88,14 @@ async function connectClient(number) {
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   const socket = new WebSocket(url, { origin: "https://framework-proof.invalid", headers: { host: "framework.test" } });
   const events = [];
-  const client = { number, socket, events, observations: 0 };
+  const client = { number, socket, events, observations: 0, slow: number === 2 };
   clients.push(client);
   socket.on("message", raw => {
     const event = JSON.parse(raw.toString());
     events.push(event);
     if (event.type === "observation") {
       client.observations++;
-      socket.send(JSON.stringify({ type: "observation-ack", revision: event.revision, replayEpoch: event.replayEpoch }));
+      if (!client.slow) socket.send(JSON.stringify({ type: "observation-ack", revision: event.revision, replayEpoch: event.replayEpoch }));
     }
   });
   await new Promise((resolve, reject) => {
@@ -105,7 +112,20 @@ try {
   const started = performance.now();
   const initial=await request("observe");
   for (let index = 0; index < clientCount; index++) await connectClient(index + 1);
-  await until(async()=>{const value=await rows();return value?.host.next_sequence>=minimumSequence?value:null;},"scheduled second occurrence");
+  await until(async()=>{const value=await rows();if(value){
+    const observedAt=performance.now();
+    if(lastObservedSequence!==value.host.next_sequence){
+      if(lastObservedSequence!==undefined) occurrenceObservations.push({sequence:value.host.next_sequence,observedIntervalMs:observedAt-lastObservedAt,deadlineAheadMs:value.host.due_deadline_ms===null?null:value.host.due_deadline_ms-Date.now()});
+      lastObservedSequence=value.host.next_sequence;lastObservedAt=observedAt;
+    }
+    if(value.host.next_sequence>=minimumSequence)return value;
+  }return null;},"scheduled second occurrence");
+  if(clients.length>=2){
+    assert.ok(clients[0].observations>1,"fast client keeps receiving committed observations");
+    assert.equal(clients[1].observations,1,"slow client retains one unacknowledged frame without blocking simulation");
+    clients[1].socket.send(JSON.stringify({type:"observation-ack",revision:clients[1].events.find(event=>event.type==="observation").revision,replayEpoch:clients[1].events.find(event=>event.type==="observation").replayEpoch}));
+    await until(()=>clients[1].observations>1?true:null,"slow client resumes after acknowledging");
+  }
   const pauseBody={id:"proof-pause",replayEpoch:initial.replayEpoch,command:{kind:"pause"}};
   const paused=await request("command",pauseBody);
   assert.deepEqual(await request("command",pauseBody),paused,"lost ordinary reply preserves exact result");
@@ -138,7 +158,12 @@ try {
   await delay(50);
   for (const client of clients) client.socket.close();
   const final=await rows();
-  await writeFile(resolve(output,"RESULT.json"),JSON.stringify({source:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),dirtySource:execFileSync("git",["status","--porcelain"],{encoding:"utf8"}).trim(),implementationHash,inventory,game,checkpoints,ledger,clients:clients.map(({number,observations})=>({number,observations})),elapsedWallMs:performance.now()-started,minimumSequence,clientCount,finalSequence:final.host.next_sequence,
-    limits:["Short actual-workerd host law, not capacity or 10-minute qualification","Proof-only RPC replays the last actual Region occurrence; production routes are unchanged","Exhaustive schedule parity and real native command rollback are covered by occurrence-driver.test.ts"]},null,2));
+  const distribution=values=>{const sorted=[...values].sort((a,b)=>a-b),at=f=>sorted[Math.max(0,Math.ceil(sorted.length*f)-1)]??0;return{count:sorted.length,p50:at(.5),p95:at(.95),p99:at(.99),max:sorted.at(-1)??0,total:values.reduce((a,b)=>a+b,0)}};
+  const elapsedIntervals=occurrenceObservations.map(sample=>sample.observedIntervalMs);
+  const wakeLateness=ledger.filter(sample=>sample.kind==="committed-steps").flatMap(sample=>sample.samples.map(step=>step.alarmLatenessMs));
+  const transactionElapsed=ledger.filter(sample=>sample.kind==="committed-steps").flatMap(sample=>sample.samples.map(step=>step.transactionWallMs));
+  await writeFile(resolve(output,"RESULT.json"),JSON.stringify({source:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),dirtySource:execFileSync("git",["status","--porcelain"],{encoding:"utf8"}).trim(),implementationHash,inventory,game,checkpoints,ledger,clients:clients.map(({number,observations,slow})=>({number,observations,slow})),elapsedWallMs:performance.now()-started,minimumSequence,clientCount,finalSequence:final.host.next_sequence,
+    cadenceLedger:{clock:"performance.now() observation between durable sequence changes; 20ms storage polling can add observation delay",observedIntervalsMs:distribution(elapsedIntervals),alarmLatenessMs:distribution(wakeLateness),transactionElapsedMs:distribution(transactionElapsed),samples:occurrenceObservations},
+    limits:["Short actual-workerd host law, not capacity or 10-minute qualification","Elapsed timers are wall measurements, not CPU measurements; observer polling adds latency","Proof-only RPC replays the last actual Region occurrence; production routes are unchanged","Exhaustive schedule parity and real native command rollback are covered by occurrence-driver.test.ts"]},null,2));
   console.log(JSON.stringify({proof:"framework-driver-workerd",status:"passed",output,checkpoints,clients:clients.map(({number,observations})=>({number,observations}))}));
 }finally{for (const client of clients) client.socket.close();await mf?.dispose();}

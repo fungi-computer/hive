@@ -31,7 +31,7 @@ export class PublicEngineRegion extends Base {
 }`;
 await build({stdin:{contents:entry,resolveDir:process.cwd(),loader:"ts"},outfile:workerPath,bundle:true,format:"esm",platform:"neutral",target:"es2022",external:["cloudflare:workers"],plugins:[{name:"wasm",setup(b){b.onResolve({filter:/\.wasm$/},()=>({path:"./hive_kernel_bg.wasm",external:true}));}}]});
 await copyFile("engine/generated/hive_kernel_bg.wasm",wasmPath);
-const inventory=await Promise.all(["tools/public-engine-host/worker.ts","tools/public-engine-host/wake-policy.ts","engine/src/runtime/host-status.ts","src/engine/region/index.ts","src/engine/region/records.ts","engine/generated/hive_kernel_bg.wasm"].map(async path=>({path,sha256:hash(await readFile(path))})));
+const inventory=await Promise.all(["tools/public-engine-host/worker.ts","tools/public-engine-host/host-cadence.ts","engine/src/runtime/host-status.ts","src/engine/region/index.ts","src/engine/region/records.ts","engine/generated/hive_kernel_bg.wasm"].map(async path=>({path,sha256:hash(await readFile(path))})));
 const implementationHash=hash(JSON.stringify(inventory));
 const results=[];
 for(const code of ["region-record-capacity","injected-storage-failure"]){
