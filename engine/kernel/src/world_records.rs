@@ -169,22 +169,38 @@ mod tests {
         let mut kernel = Kernel::new();
         kernel.load(&serde_json::json!({"format":"hive-game","version":3,"game":"sparse-records","components":[],"materialCatalog":[],"initial":initial}).to_string()).unwrap();
         let mut cursor = RecordCapture::default();
-        let (_, baseline) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(0), kernel.revision, kernel.time).unwrap();
+        let baseline_bundle = RecordBundle::from_records(kernel.save_records().unwrap()).unwrap();
+        let baseline_keys: BTreeSet<_> = baseline_bundle.keys().into_iter().collect();
+        let (_, baseline) = cursor.capture(baseline_bundle, Some(0), kernel.revision, kernel.time).unwrap();
         kernel.accept_record_journal(kernel.record_journal_token());
 
         let retained = kernel.entity("row-0").unwrap();
         kernel.ecs.entity_mut(retained).remove::<Body>();
         kernel.ecs.entity_mut(retained).insert(Traversal { clearance_cells: 1, max_step_cells: 1 });
         let removed = kernel.entity("row-1").unwrap();
+        // Match canonical owners: retire the external indexes before Bevy's
+        // despawn hook removes the entity's final persisted components.
+        kernel.ids.remove("row-1");
+        kernel.known.remove("row-1");
         kernel.ecs.despawn(removed);
 
         let token = kernel.record_journal_token();
         let (delta, manifest) = cursor.capture_changed(kernel.changed_records().unwrap(), baseline.sequence, kernel.revision, kernel.time, kernel.record_state_weight()).unwrap();
         assert!(delta.keys().iter().any(|key| key == "kernel/state/entities/row-0"), "component removal replaces the stable entity row");
-        assert_eq!(manifest.removes, ["kernel/state/entities/row-1"], "despawn emits the exact stable identity tombstone");
-        let (difference, _) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(manifest.sequence), kernel.revision, kernel.time).unwrap();
+        assert!(manifest.removes.iter().any(|key| key == "kernel/state/entities/row-1"), "despawn emits the stable identity tombstone");
+        let checkpoint = RecordBundle::from_records(kernel.save_records().unwrap()).unwrap();
+        let checkpoint_keys: BTreeSet<_> = checkpoint.keys().into_iter().collect();
+        let exact_removes: Vec<_> = baseline_keys.difference(&checkpoint_keys).cloned().collect();
+        assert_eq!(manifest.removes, exact_removes, "entity and motion-page removals match the checkpoint exactly");
+        let (difference, _) = cursor.capture(checkpoint, Some(manifest.sequence), kernel.revision, kernel.time).unwrap();
         assert!(difference.keys().is_empty(), "incremental rows and removals equal the detached full checkpoint");
         kernel.accept_record_journal(token);
+
+        // Direct ECS removal can leave a stale external-ID entry. Capture must
+        // treat that Bevy handle as absent and emit the entity tombstone safely.
+        kernel.ecs.despawn(retained);
+        let stale_delta = kernel.changed_records().unwrap();
+        assert!(stale_delta.removes.iter().any(|key| key == "kernel/state/entities/row-0"));
     }
 
     #[test]
