@@ -262,4 +262,55 @@ mod tests {
         }
         assert!(decode(&Records::new()).unwrap().is_none());
     }
+
+    #[test]
+    fn incremental_capture_retires_empty_air_tiles_and_matches_checkpoint() {
+        use crate::record_bundle::{RecordBundle, RecordCapture, RecordDelta};
+        use crate::world::KernelRecords;
+        fn bundle(air: &[u8]) -> RecordBundle {
+            let entities = serde_json::json!({
+                "format":"hive-kernel", "version":21,
+                "scene":{"initial":[]}, "routes":[], "direct":[],
+                "projectile_contacts":[], "party_bindings":[], "work_attempts":[],
+                "jobs":[], "tasks":[],
+                "planner":{"routeSearches":{"entries":{},"occurrence":null,"spent":0}}
+            }).to_string();
+            RecordBundle::from_records(KernelRecords {
+                entities,
+                environment: Some((String::new(), crate::terrain_water::TerrainWaterRecords {
+                    header: vec![1], terrain: vec![2], water: vec![3], structures: vec![4],
+                })),
+                atmosphere: Some(air.to_vec()),
+            }).unwrap()
+        }
+        let mut saved = fixture();
+        let initial = bundle(&write(&saved).unwrap());
+        let mut persisted: Records = initial.keys().into_iter()
+            .map(|key| { let bytes = initial.read(&key).unwrap(); (key, bytes) }).collect();
+        let mut cursor = RecordCapture::default();
+        let (_, first) = cursor.capture(initial, Some(0), 0, 0.0).unwrap();
+        let retired = tile(saved.atmosphere.state.queue[0]);
+        let state = &mut saved.atmosphere.state;
+        let cells: Vec<_> = state.stocks.keys().copied().filter(|cell| tile(*cell) == retired).collect();
+        for cell in cells {
+            let amount = state.stocks.remove(&cell).unwrap();
+            state.smoke_out += amount.smoke;
+            state.heat_out += amount.heat;
+        }
+        state.queue.retain(|cell| tile(*cell) != retired);
+        state.clock = 0.25;
+        let current = write(&saved).unwrap();
+        let (changed, second) = cursor.capture_changed(RecordDelta {
+            puts: bundle(&current), removes: Vec::new(), searches: Vec::new(),
+            routes: Vec::new(), motion: BTreeMap::new(),
+        }, first.sequence, 1, 0.25, 0).unwrap();
+        assert!(!second.keys.contains(&tile_key(retired)));
+        persisted.retain(|key, _| second.keys.contains(key));
+        for key in changed.keys() { persisted.insert(key.clone(), changed.read(&key).unwrap()); }
+        let mut recovered = RecordBundle::new();
+        for (key, bytes) in persisted { recovered.insert(&key, &bytes).unwrap(); }
+        assert_eq!(recovered.decode().unwrap().atmosphere.unwrap(), current);
+        let (difference, _) = cursor.capture(bundle(&current), Some(second.sequence), 1, 0.25).unwrap();
+        assert!(difference.keys().is_empty(), "incremental air removal equals full checkpoint");
+    }
 }
