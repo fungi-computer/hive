@@ -1,0 +1,9 @@
+{
+  "name": "hive-goblin-local-proof",
+  "main": "./goblin-worker.ts",
+  "compatibility_date": "2026-09-04",
+  "durable_objects": {
+    "bindings": [{ "name": "REGIONS", "class_name": "GoblinRegion" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GoblinRegion"] }]
+}

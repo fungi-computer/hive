@@ -1,0 +1,839 @@
+import type {
+  Activity,
+  Actor,
+  Cell,
+  Clearing,
+  Job,
+  Site,
+  Transfer,
+  WaterDeliveryOperation,
+} from "./model.ts";
+import {
+  blockedCells,
+  sameCell,
+  sourceAccessCells,
+  terrainEditProblem,
+  terrainRimCells,
+} from "./world.js";
+import { beginWalk, route, walk, face } from "./movement.js";
+import {
+  BUILDINGS,
+  brewStationAccessCells,
+  constructionBuffer,
+  removalProblem,
+  resolveMaterialDestination,
+  resolveMaterialEndpoint,
+  shelfContainer,
+  shelteredBeds,
+  workPosition,
+  workPositions,
+} from "./construction.js";
+import {
+  consumeContainerPortion,
+  createGroundLot,
+  deliverTransfer,
+  drawPailWater,
+  embedConstruction,
+  interruptTransfer,
+  pickupTransfer,
+  pourPailWater,
+  releaseContainer,
+  salvageConstruction,
+  transferForActor,
+} from "./materials.ts";
+import {
+  advanceRestContact,
+  consumableCareDefinition,
+  REST_CONTACT,
+  settleCareConsumption,
+} from "./needs.ts";
+import {
+  repairReclaimedCache,
+  cacheRepairBuffer,
+  resolveCacheRepairBuffer,
+  resolveMaterialWithdrawal,
+  resolveOpenFiniteSourceContainer,
+  sourceContainerSpec,
+  sourceIsOpen,
+  sourcePailContainer,
+} from "./finite-sources.ts";
+import { isNight } from "./routine.ts";
+import { HARVEST_TICKS, SOW_TICKS } from "./herbs.ts";
+import { attendBrew, attendRecipeOutput } from "./brewing.ts";
+import { recipeOutputActionForWire } from "./recipes.ts";
+import {
+  finiteWorkLifecycle,
+  resolveWaterDelivery,
+  settleWaterDelivery,
+  waterDeliveryTargetForJob,
+} from "./water-delivery.ts";
+import {
+  backfillShallowVoxel,
+  removeShallowVoxel,
+  terrainBackfillBuffer,
+  terrainCell,
+} from "./terrain.ts";
+export const CHOP_TICKS = 80;
+const TERRAIN_TICKS = 40;
+function groundCell(at: Cell): Cell {
+  return { x: at.x, z: at.z, level: at.level };
+}
+export function finishActivity(state: Clearing, p: Actor): void {
+  Object.assign(p, {
+    mode: "idle",
+    task: null,
+    assignment: null,
+    path: [],
+    leg: 0,
+    work: 0,
+  });
+  state.workDirty = true;
+}
+export function interruptWork(state: Clearing, p: Actor): void {
+  const operation =
+    p.task?.kind === "water-delivery"
+      ? state.operations.find(
+          (entry): entry is WaterDeliveryOperation =>
+            entry.kind === "water-delivery" && entry.id === p.task?.target,
+        )
+      : undefined;
+  const drop = { cell: { x: p.x, z: p.z, level: p.level }, legal: true };
+  const r = operation
+    ? finiteWorkLifecycle.interrupt(state.operations, state.materials, {
+        kind: "park", actor: p.id, operation: operation.id, drop,
+      })
+    : p.task?.kind === "consume"
+      ? finiteWorkLifecycle.interrupt(state.operations, state.materials, {
+          kind: "release", operation: p.task.target, drop,
+        })
+      : interruptTransfer(state.materials, p.id, drop);
+  if (!r.ok) throw new Error(r.reason);
+  finishActivity(state, p);
+}
+function finishJob(s: Clearing, p: Actor, id: string) {
+  s.jobs = s.jobs.filter((j) => j.id !== id);
+  s.finishedJobs++;
+  finishActivity(s, p);
+}
+function transferEndpoint(s: Clearing, id: string) {
+  const site = resolveMaterialDestination(s.sites, id);
+  if (site)
+    return { destination: site.destination, target: site.site, access: null };
+  const repair = resolveCacheRepairBuffer(s, id);
+  if (repair)
+    return {
+      destination: repair.destination,
+      target: repair.source,
+      access: sourceAccessCells(repair.source),
+    };
+  const terrainJob = s.jobs.find(
+    (job): job is Extract<Job, { kind: "backfill" }> =>
+      job.kind === "backfill" && terrainBackfillBuffer(job.id).id === id,
+  );
+  return terrainJob
+    ? {
+        destination: terrainBackfillBuffer(terrainJob.id),
+        target: terrainJob,
+        access: terrainRimCells(s, terrainJob),
+      }
+    : null;
+}
+function terrainWork(
+  s: Clearing,
+  p: Actor,
+  t: Extract<Activity, { kind: "dig" | "backfill" }>,
+): void {
+  const job = s.jobs.find(
+    (candidate): candidate is Extract<Job, { kind: "dig" | "backfill" }> =>
+      candidate.id === t.job && candidate.kind === t.kind,
+  );
+  if (!job || t.target !== job.id || terrainEditProblem(s, job)) {
+    interruptWork(s, p);
+    return;
+  }
+  const geometry = terrainCell(s.terrain, job.x, job.z);
+  if (
+    (job.kind === "dig" && !geometry.solid) ||
+    (job.kind === "backfill" && geometry.solid)
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  const rim = terrainRimCells(s, job);
+  if (!accessWork(s, p, rim)) return;
+  face(p, job);
+  if (++p.work < TERRAIN_TICKS) return;
+  if (job.kind === "dig") {
+    const created = createGroundLot(s.materials, "soil", 1, groundCell(p));
+    if (!created.ok || !removeShallowVoxel(s.terrain, job)) {
+      interruptWork(s, p);
+      return;
+    }
+    s.notice = "One shallow soil voxel is on the rim.";
+  } else {
+    const buffer = terrainBackfillBuffer(job.id);
+    const soil = s.materials.lots.find(
+      (lot) =>
+        lot.material === "soil" &&
+        lot.location.kind === "container" &&
+        lot.location.container === buffer.id &&
+        lot.quantity >= 1,
+    );
+    if (!soil) {
+      interruptWork(s, p);
+      return;
+    }
+    const consumed = consumeContainerPortion(s.materials, {
+      lot: soil.id,
+      container: buffer.id,
+      material: "soil",
+      quantity: 1,
+    });
+    if (!consumed.ok || !backfillShallowVoxel(s.terrain, job)) {
+      interruptWork(s, p);
+      return;
+    }
+    s.notice = "The shallow ground is backfilled.";
+  }
+  s.workDirty = true;
+  finishJob(s, p, job.id);
+}
+function transfer(s: Clearing, p: Actor, t: Activity) {
+  const x = s.materials.transfers.find((x) => x.id === t.target);
+  if (!x) {
+    interruptWork(s, p);
+    return;
+  }
+  if (x.phase.kind === "reserved") {
+    const r = pickupTransfer(s.materials, x.id, {
+      sourceReachable: true,
+      destinationReachableWithPayload: true,
+    });
+    if (!r.ok) {
+      interruptWork(s, p);
+      return;
+    }
+    s.notice = `${p.name} picked up ${r.value.material}.`;
+    finishActivity(s, p);
+    return;
+  }
+  if (x.intent.kind !== "deliver") {
+    s.notice = `${p.name} is holding material for its operation.`;
+    finishActivity(s, p);
+    return;
+  }
+  if (x.owner.kind !== "job") {
+    interruptWork(s, p);
+    return;
+  }
+  const owner = x.owner;
+  const resolved = transferEndpoint(s, x.intent.destination);
+  if (!resolved) {
+    interruptWork(s, p);
+    return;
+  }
+  const r = deliverTransfer(s.materials, x.id, resolved.destination, true);
+  if (!r.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  s.notice = `${p.name} delivered material.`;
+  if (s.jobs.find((job) => job.id === owner.job)?.kind === "store")
+    finishJob(s, p, owner.job);
+  else finishActivity(s, p);
+}
+function build(s: Clearing, p: Actor, t: Activity) {
+  const site = s.sites.find((x) => x.id === t.target);
+  if (!site) {
+    interruptWork(s, p);
+    return;
+  }
+  if (++site.work < BUILDINGS[site.type].ticks) {
+    p.work = site.work;
+    return;
+  }
+  const r = embedConstruction(
+    s.materials,
+    constructionBuffer(site),
+    "wood",
+    BUILDINGS[site.type].wood,
+  );
+  if (!r.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  site.finishedAt = s.tick;
+  s.notice = `${BUILDINGS[site.type].label} finished.`;
+  finishJob(s, p, t.job);
+}
+function deconstruct(s: Clearing, p: Actor, t: Activity) {
+  const site = s.sites.find((x) => x.id === t.target);
+  if (!site || removalProblem(s, site, p)) {
+    interruptWork(s, p);
+    return;
+  }
+  if (++p.work < BUILDINGS[site.type].deconstructTicks) return;
+  if (site.type === "shelf") {
+    const rel = releaseContainer(s.materials, shelfContainer(site.id), {
+      contentsDrop: { cell: groundCell(site), legal: true },
+      carriedDrops: Object.fromEntries(
+        Object.values(s.actors).map((a) => [
+          a.id,
+          { cell: { x: a.x, z: a.z, level: a.level }, legal: true },
+        ]),
+      ),
+    });
+    if (!rel.ok) {
+      interruptWork(s, p);
+      return;
+    }
+    const releasedJobs = new Set(
+      rel.value.owners.flatMap((owner) =>
+        owner.kind === "job" ? [owner.job] : [],
+      ),
+    );
+    for (const job of s.jobs)
+      if (
+        job.kind === "store" &&
+        job.destination === shelfContainer(site.id).id
+      )
+        releasedJobs.add(job.id);
+    for (const actor of Object.values(s.actors))
+      if (actor.task && releasedJobs.has(actor.task.job))
+        finishActivity(s, actor);
+    s.jobs = s.jobs.filter((job) => !releasedJobs.has(job.id));
+  }
+  const sal = salvageConstruction(
+    s.materials,
+    constructionBuffer(site),
+    BUILDINGS[site.type].salvageWood,
+    { cell: groundCell(site), legal: true },
+  );
+  if (!sal.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  s.sites = s.sites.filter((x) => x.id !== site.id);
+  finishJob(s, p, t.job);
+}
+function herb(s: Clearing, p: Actor, t: Activity) {
+  const h = s.herbs.find((x) => x.id === t.target);
+  if (!h) {
+    interruptWork(s, p);
+    return;
+  }
+  const sow = t.kind === "sow";
+  if (++h.work < (sow ? SOW_TICKS : HARVEST_TICKS)) return;
+  if (sow) {
+    h.stage = "planted";
+    h.work = 0;
+    h.plantedAt = s.tick;
+    h.establishment = null;
+    finishJob(s, p, t.job);
+  } else {
+    s.herbs = s.herbs.filter((x) => x !== h);
+    const r = createGroundLot(
+      s.materials,
+      "mugwort",
+      1 as any,
+      groundCell(h),
+      `herb-bundle-${s.nextId++}`,
+    );
+    if (!r.ok) throw new Error(r.reason);
+    s.harvestedHerbs++;
+    finishJob(s, p, t.job);
+  }
+}
+function nearestPath(s: Clearing, from: Cell, cells: readonly Cell[]) {
+  return (
+    cells
+      .map((cell) => route(from, cell, blockedCells(s), s))
+      .filter((path): path is Cell[] => path !== null)
+      .sort((left, right) => left.length - right.length)[0] ?? null
+  );
+}
+function atAny(p: Actor, cells: readonly Cell[]): boolean {
+  return cells.some((cell) => sameCell(p, cell));
+}
+function accessWork(s: Clearing, p: Actor, cells: readonly Cell[]): boolean {
+  if (p.mode === "walk") {
+    const walked = walk(p, blockedCells(s), s);
+    if (walked === "blocked") interruptWork(s, p);
+    if (walked !== "arrived") return false;
+    p.mode = p.task?.kind ?? "idle";
+  }
+  if (atAny(p, cells)) return true;
+  const path = nearestPath(s, p, cells);
+  if (!path) {
+    interruptWork(s, p);
+    return false;
+  }
+  beginWalk(p, path);
+  return false;
+}
+function repairCache(s: Clearing, p: Actor, t: Activity): void {
+  const cache = s.sources.find(
+    (source) =>
+      source.id === t.target && source.kind === "reclaimed-timber-cache",
+  );
+  if (!cache || cache.kind !== "reclaimed-timber-cache" || cache.repaired) {
+    interruptWork(s, p);
+    return;
+  }
+  if (!accessWork(s, p, sourceAccessCells(cache))) return;
+  if (++p.work < t.duration) return;
+  const buffer = cacheRepairBuffer(cache);
+  const wood =
+    buffer &&
+    s.materials.lots.find(
+      (lot) =>
+        lot.material === "wood" &&
+        lot.location.kind === "container" &&
+        lot.location.container === buffer.id &&
+        lot.quantity >= 2,
+    );
+  if (!wood || !buffer) {
+    interruptWork(s, p);
+    return;
+  }
+  const consumed = consumeContainerPortion(s.materials, {
+    lot: wood.id,
+    container: buffer.id,
+    material: "wood",
+    quantity: 2,
+  });
+  if (!consumed.ok || !repairReclaimedCache(s, cache.id)) {
+    interruptWork(s, p);
+    return;
+  }
+  s.notice = "The reclaimed cache is open.";
+  finishJob(s, p, t.job);
+}
+function acquireWaterPail(
+  s: Clearing,
+  p: Actor,
+  operation: WaterDeliveryOperation,
+  held: Transfer,
+): boolean {
+  if (held.phase.kind === "carrying") return true;
+  const origin = held.phase.origin;
+  const cache =
+    origin.kind === "container"
+      ? s.sources.find(
+          (source) =>
+            origin.kind === "container" &&
+            origin.container === sourcePailContainer(source.id),
+        )
+      : undefined;
+  const acquireCells =
+    origin.kind === "ground"
+      ? [origin.cell]
+      : cache
+        ? sourceAccessCells(cache)
+        : [];
+  if ((cache && !sourceIsOpen(cache)) || acquireCells.length === 0) {
+    interruptWork(s, p);
+    return false;
+  }
+  if (!accessWork(s, p, acquireCells)) return false;
+  const picked = pickupTransfer(s.materials, held.id, {
+    sourceReachable: true,
+    destinationReachableWithPayload: true,
+  });
+  if (!picked.ok) {
+    interruptWork(s, p);
+    return false;
+  }
+  if (operation.phase === "acquire") operation.phase = "draw";
+  return true;
+}
+
+function drawWater(
+  s: Clearing,
+  p: Actor,
+  operation: WaterDeliveryOperation,
+): boolean {
+  if (operation.phase !== "draw") return true;
+  const spring = s.sources.find(
+    (source) => source.id === operation.spring && source.kind === "spring",
+  );
+  if (!spring) {
+    interruptWork(s, p);
+    return false;
+  }
+  if (!accessWork(s, p, sourceAccessCells(spring))) return false;
+  const sourceLot = s.materials.lots
+    .filter(
+      (lot) =>
+        lot.material === "water" &&
+        lot.location.kind === "container" &&
+        lot.location.container === sourceContainerSpec(spring).id &&
+        lot.quantity >= operation.quantity,
+    )
+    .sort((left, right) => left.id.localeCompare(right.id))[0];
+  if (!sourceLot) {
+    interruptWork(s, p);
+    return false;
+  }
+  const drawn = drawPailWater(s.materials, {
+    operation: operation.id,
+    source: sourceContainerSpec(spring),
+    sourceLot: sourceLot.id,
+    quantity: operation.quantity,
+    access: {
+      sourceReachable: true,
+      destinationReachableWithPayload: true,
+    },
+  });
+  if (!drawn.ok) {
+    interruptWork(s, p);
+    return false;
+  }
+  operation.water = drawn.value.id;
+  operation.phase = "pour";
+  return true;
+}
+
+function waterDelivery(s: Clearing, p: Actor, t: Activity): void {
+  const operation = s.operations.find(
+    (entry): entry is WaterDeliveryOperation =>
+      entry.kind === "water-delivery" && entry.id === t.target,
+  );
+  const job = s.jobs.find((entry) => entry.id === t.job);
+  const expected = job && waterDeliveryTargetForJob(s, job);
+  const pail =
+    operation && s.materials.lots.find((lot) => lot.id === operation.pail);
+  if (
+    !operation ||
+    operation.job !== t.job ||
+    (job?.kind !== "fill-kettle" &&
+      job?.kind !== "water-mugwort" &&
+      job?.kind !== "care") ||
+    !expected ||
+    operation.target.kind !== expected.kind ||
+    (operation.target.kind === "kettle" &&
+      expected.kind === "kettle" &&
+      operation.target.station !== expected.station) ||
+    (operation.target.kind === "mugwort" &&
+      expected.kind === "mugwort" &&
+      operation.target.herb !== expected.herb) ||
+    (operation.target.kind === "hydration" &&
+      expected.kind === "hydration" &&
+      operation.target.actor !== expected.actor) ||
+    !pail ||
+    pail.material !== "pail"
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  const held = transferForActor(s.materials, p.id);
+  if (
+    held &&
+    (held.intent.kind !== "use" ||
+      held.intent.operation !== operation.id ||
+      held.owner.kind !== "operation" ||
+      held.owner.operation !== operation.id ||
+      (held.phase.kind === "reserved"
+        ? held.phase.sourceLot
+        : held.phase.lot) !== pail.id)
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  if (!held) {
+    interruptWork(s, p);
+    return;
+  }
+  if (!acquireWaterPail(s, p, operation, held)) return;
+  if (!drawWater(s, p, operation)) return;
+  if (operation.phase !== "pour") return;
+  const destination = resolveWaterDelivery(s, operation.target);
+  if (!destination) {
+    interruptWork(s, p);
+    return;
+  }
+  if (!accessWork(s, p, destination.access)) return;
+  const settled = settleWaterDelivery(s, operation);
+  if (!settled.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  const released = finiteWorkLifecycle.interrupt(s.operations, s.materials, {
+    kind: "release", operation: operation.id,
+    drop: { cell: groundCell(p), legal: true },
+  });
+  if (!released.ok) throw new Error(released.reason);
+  s.notice =
+    operation.target.kind === "kettle"
+      ? "The kettle holds two water."
+      : operation.target.kind === "mugwort"
+        ? "The mugwort is established."
+        : "Water restores hydration.";
+  finishJob(s, p, t.job);
+}
+function consume(s: Clearing, p: Actor, t: Activity): void {
+  const operation = s.operations.find(
+    (entry): entry is import("./model.ts").ConsumeOperation =>
+      entry.kind === "consume" && entry.id === t.target,
+  );
+  const job = s.jobs.find((entry) => entry.id === t.job);
+  const held = transferForActor(s.materials, p.id);
+  const definition =
+    operation && consumableCareDefinition(operation.definition);
+  if (
+    !operation ||
+    !definition ||
+    job?.kind !== "care" ||
+    job.target !== p.id ||
+    job.need !== definition.effect.need ||
+    operation.job !== job.id ||
+    operation.actor !== p.id ||
+    !held ||
+    held.phase.kind !== "carrying"
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  if (++p.work < definition.attendTicks) return;
+  if (
+    !settleCareConsumption(s, { actor: p.id, operation, lot: held.phase.lot })
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  const released = finiteWorkLifecycle.interrupt(s.operations, s.materials, {
+    kind: "release", operation: operation.id,
+  });
+  if (!released.ok) throw new Error(released.reason);
+  s.notice = "A ration restores nourishment.";
+  finishJob(s, p, t.job);
+}
+function brew(s: Clearing, p: Actor, t: Activity): void {
+  const process = s.processes.find((candidate) => candidate.id === t.target);
+  const job = s.jobs.find((candidate) => candidate.id === t.job);
+  const station =
+    process && s.sites.find((site) => site.id === process.station);
+  if (
+    !process ||
+    process.job !== t.job ||
+    (process.phase !== "prepare" && process.phase !== "keg") ||
+    job?.kind !== "brew" ||
+    !station ||
+    station.type !== "brew-station" ||
+    station.finishedAt === null
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  if (!accessWork(s, p, brewStationAccessCells(station))) return;
+  const advanced = attendBrew(s, process.id);
+  if (!advanced.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  p.work = process.progress;
+  if (advanced.value === "fermenting") {
+    s.notice = "Herbal ale is fermenting.";
+    finishActivity(s, p);
+  } else if (advanced.value === "settled") {
+    s.notice = "Herbal ale is settled in the keg.";
+    finishJob(s, p, t.job);
+  }
+}
+function recipeOutput(s: Clearing, p: Actor, t: Activity): void {
+  const job = s.jobs.find(
+    (
+      candidate,
+    ): candidate is Extract<
+      typeof candidate,
+      { kind: "tap" | "clear-spent-grain" }
+    > =>
+      candidate.id === t.job &&
+      (candidate.kind === "tap" || candidate.kind === "clear-spent-grain"),
+  );
+  const station = job && s.sites.find((site) => site.id === job.target);
+  if (
+    !job ||
+    t.target !== job.transformation ||
+    !station ||
+    station.type !== "brew-station" ||
+    station.finishedAt === null
+  ) {
+    interruptWork(s, p);
+    return;
+  }
+  if (!accessWork(s, p, brewStationAccessCells(station))) return;
+  const advanced = attendRecipeOutput(s, {
+    id: `${recipeOutputActionForWire(job.kind)}:${job.id}`,
+    station,
+    action: recipeOutputActionForWire(job.kind),
+    transformation: job.transformation,
+    progress: job.progress,
+  });
+  if (!advanced.ok) {
+    interruptWork(s, p);
+    return;
+  }
+  if (advanced.value === "working") {
+    job.progress++;
+    p.work = job.progress;
+    return;
+  }
+  s.notice =
+    job.kind === "tap"
+      ? "One herbal ale serving is tapped."
+      : "Spent grain cleared from the tray.";
+  finishJob(s, p, job.id);
+}
+export function advanceWork(s: Clearing, p: Actor): void {
+  const t = p.task;
+  if (!t) return;
+  if (t.kind === "repair-cache") return repairCache(s, p, t);
+  if (t.kind === "water-delivery") return waterDelivery(s, p, t);
+  if (t.kind === "consume") {
+    const transfer = transferForActor(s.materials, p.id);
+    if (!transfer || transfer.intent.kind !== "use") {
+      interruptWork(s, p);
+      return;
+    }
+    if (transfer.phase.kind === "reserved") {
+      const withdrawal =
+        transfer.phase.origin.kind === "container"
+          ? resolveMaterialWithdrawal(s, transfer.phase.origin.container)
+          : null;
+      const reachable =
+        transfer.phase.origin.kind === "ground"
+          ? accessWork(s, p, [transfer.phase.origin.cell])
+          : withdrawal?.kind === "site"
+            ? accessWork(s, p, workPositions(s, withdrawal.site, "build"))
+            : withdrawal?.kind === "finite-source"
+              ? accessWork(s, p, withdrawal.accessCells)
+              : false;
+      if (!reachable) {
+        if (transfer.phase.origin.kind === "container" && !withdrawal)
+          interruptWork(s, p);
+        return;
+      }
+      if (
+        !pickupTransfer(s.materials, transfer.id, {
+          sourceReachable: true,
+          destinationReachableWithPayload: true,
+        }).ok
+      ) {
+        interruptWork(s, p);
+        return;
+      }
+      return;
+    }
+    consume(s, p, t);
+    return;
+  }
+  if (t.kind === "brew") return brew(s, p, t);
+  if (t.kind === "tap" || t.kind === "clear-spent-grain")
+    return recipeOutput(s, p, t);
+  if (t.kind === "dig" || t.kind === "backfill") return terrainWork(s, p, t);
+  const target =
+    t.kind === "transfer"
+      ? (() => {
+          const x = s.materials.transfers.find((x) => x.id === t.target);
+          if (!x) return;
+          const phase = x.phase;
+          if (phase.kind === "carrying")
+            return x.intent.kind === "deliver"
+              ? transferEndpoint(s, x.intent.destination)?.target
+              : p;
+          return phase.origin.kind === "ground"
+            ? phase.origin.cell
+            : (resolveMaterialEndpoint(
+                s.sites,
+                phase.origin.container,
+                "withdraw",
+              )?.site ??
+                resolveOpenFiniteSourceContainer(s, phase.origin.container)
+                  ?.source);
+        })()
+      : t.kind === "chop"
+        ? s.trees.find((x) => x.id === t.target)
+        : t.kind === "sow" || t.kind === "harvest"
+          ? s.herbs.find((x) => x.id === t.target)
+          : s.sites.find((x) => x.id === t.target);
+  if (!target || !s.jobs.some((j) => j.id === t.job)) {
+    interruptWork(s, p);
+    return;
+  }
+  if (p.mode === "walk") {
+    const r = walk(p, blockedCells(s), s);
+    if (r === "blocked") interruptWork(s, p);
+    if (r !== "arrived") return;
+    p.mode = t.kind;
+    face(p, target);
+    return;
+  }
+  const currentTransfer =
+    t.kind === "transfer"
+      ? s.materials.transfers.find((x) => x.id === t.target)
+      : undefined;
+  const carriedDeliveryAccess =
+    currentTransfer?.phase.kind === "carrying" &&
+    currentTransfer.intent.kind === "deliver"
+      ? transferEndpoint(s, currentTransfer.intent.destination)?.access
+      : null;
+  const reservedFiniteAccess =
+    currentTransfer?.phase.kind === "reserved" &&
+    currentTransfer.phase.origin.kind === "container"
+      ? resolveOpenFiniteSourceContainer(
+          s,
+          currentTransfer.phase.origin.container,
+        )?.accessCells
+      : null;
+  const okay =
+    t.kind === "transfer" && carriedDeliveryAccess
+      ? atAny(p, carriedDeliveryAccess)
+      : t.kind === "transfer" && reservedFiniteAccess
+        ? atAny(p, reservedFiniteAccess)
+        : t.kind === "transfer" && currentTransfer?.phase.kind === "reserved"
+          ? currentTransfer.phase.origin.kind === "ground"
+            ? sameCell(p, target)
+            : workPosition(s, p, target, "build")
+          : t.kind === "build" ||
+              t.kind === "deconstruct" ||
+              t.kind === "transfer"
+            ? workPosition(
+                s,
+                p,
+                target,
+                t.kind === "deconstruct" ? "deconstruct" : "build",
+              )
+            : t.kind === "sleep"
+              ? sameCell(p, target)
+              : Math.abs(p.x - target.x) + Math.abs(p.z - target.z) === 1 &&
+                p.level === target.level;
+  if (!okay) {
+    interruptWork(s, p);
+    return;
+  }
+  if (t.kind === "transfer") {
+    if (++p.work >= t.duration) transfer(s, p, t);
+  } else if (t.kind === "build") build(s, p, t);
+  else if (t.kind === "deconstruct") deconstruct(s, p, t);
+  else if (t.kind === "sow" || t.kind === "harvest") herb(s, p, t);
+  else if (t.kind === "chop") {
+    const tree = target as any;
+    if (++tree.work >= CHOP_TICKS) {
+      tree.felledAt = s.tick;
+      createGroundLot(s.materials, "wood", 6 as any, groundCell(tree));
+      s.felled++;
+      finishJob(s, p, t.job);
+    }
+  } else if (t.kind === "sleep") {
+    if (!advanceRestContact(s, { actor: p.id, job: t.job, bed: t.target })) {
+      interruptWork(s, p);
+      return;
+    }
+    if (
+      p.needs.rest >= REST_CONTACT.recoverAt &&
+      !(s.jobs.find((j) => j.id === t.job)?.routine && isNight(s))
+    )
+      finishJob(s, p, t.job);
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "hive-engine-do-local-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fungi.computer/cairn": "file:vendor/fungi.computer-cairn-0.0.0.tgz",
+    "@fungi.computer/watchdog": "file:vendor/fungi.computer-watchdog-0.0.0.tgz",
+    "zod": "4.5.4"
+  }
+}

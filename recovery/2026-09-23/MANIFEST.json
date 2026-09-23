@@ -1,0 +1,2013 @@
+{
+  "createdUtc": "2026-09-23T15:04:59.883793+00:00",
+  "deletedPaths": [
+    {
+      "path": "src/world-lab/lattice-hash.mjs",
+      "worktree": "/home/levi/src/hive"
+    }
+  ],
+  "exclusions": [
+    "node_modules",
+    ".botanical",
+    ".fungi",
+    "dist",
+    "target",
+    "generated"
+  ],
+  "integrationHead": "8ba4ac3b58fb641c0684989a0fbf26863d45b23d",
+  "purpose": "exact source custody, not acceptance or a merge",
+  "sourceFiles": [
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/ARCHITECTURE.md",
+      "bytes": 70342,
+      "gitBlob": "4b0a8e0d8eb3bb90ce2a8ecfc5f7d379bf034b00",
+      "mode": "100644",
+      "path": "ARCHITECTURE.md",
+      "sha256": "71afb371d6e1a987258f614c1bedee6c5600d58ce13421150668059be1e5c6b0",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/PROTOTYPE.md",
+      "bytes": 55021,
+      "gitBlob": "6781d9cfac7164a163382f2623b6d403c701af50",
+      "mode": "100644",
+      "path": "PROTOTYPE.md",
+      "sha256": "d7d8332ab389095aa33710f87ad430b7dc94dfeec1cc22ee5df6dacb8575041c",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/colony-work.test.mjs",
+      "bytes": 302786,
+      "gitBlob": "f588db3353a282e5322f755f5c9f7a32f1d0f874",
+      "mode": "100644",
+      "path": "colony-work.test.mjs",
+      "sha256": "d3eb5af551aa6370f202ae17ad92274fd868963587486b39d2f4410e9f7ae49a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/engine/kernel/src/job.rs",
+      "bytes": 7993,
+      "gitBlob": "d99a0a91d5ca2f01daa1e019e14f183128520aa6",
+      "mode": "100644",
+      "path": "engine/kernel/src/job.rs",
+      "sha256": "808932b13cfb063762efcae1e3d52925945e36fd7934643c06d64639a077212f",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/engine/kernel/src/lib.rs",
+      "bytes": 19920,
+      "gitBlob": "c45a9e4553f9ba6a9e13e60bd51e77e0ae537cf9",
+      "mode": "100644",
+      "path": "engine/kernel/src/lib.rs",
+      "sha256": "19f6445fece484dbc3897868dac07f78c3e287a4990a5b269350231240c7c002",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/care-fixture.mjs",
+      "bytes": 4029,
+      "gitBlob": "631f06a48ea11d86afcd96ad8e2c26f0a709c9a7",
+      "mode": "100644",
+      "path": "scripts/care-fixture.mjs",
+      "sha256": "6efda8ffc8c4e22c45d400f80184c9afd516aabe77a1be6b1b9780456b6aefa4",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/opaque-quarry.mjs",
+      "bytes": 2939,
+      "gitBlob": "94c1176deabbf2f94b0a68247e60ffcd83828966",
+      "mode": "100644",
+      "path": "scripts/opaque-quarry.mjs",
+      "sha256": "9219de2544f5489625e6bac299f8954f1f9e90271f008bf6414b31bd990aba1a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/ore-depot.mjs",
+      "bytes": 5359,
+      "gitBlob": "370be17f7a324f158ab6641a59d91adcc9bee524",
+      "mode": "100644",
+      "path": "scripts/ore-depot.mjs",
+      "sha256": "c0743e43e7c5ba2b3c205c1f5210bfae6d7f675e94e4dd4a6b21a12fdea07ca0",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-caps-style.mjs",
+      "bytes": 4865,
+      "gitBlob": "614a623c4492a54c8a04392a24c0bce68a998340",
+      "mode": "100644",
+      "path": "scripts/prove-caps-style.mjs",
+      "sha256": "431c5729bfe245c2555760a5d332a0fd63e47d74c17d59848238bd902b9dd5f2",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-care.mjs",
+      "bytes": 12023,
+      "gitBlob": "71d2ab5dc6e36a66e6094bc2e25e98a7121893ae",
+      "mode": "100644",
+      "path": "scripts/prove-care.mjs",
+      "sha256": "17d621c9cf00682b8d4b6bb20bd7778b60c058af558540dab1ee68a7fa6f3de4",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-clearing-minimap-live.mjs",
+      "bytes": 18381,
+      "gitBlob": "2bccb23baeedb248f206787119009ff83a3e3dd9",
+      "mode": "100644",
+      "path": "scripts/prove-clearing-minimap-live.mjs",
+      "sha256": "07229eaf4d48e788adcefac1eeb5bcd573e6b7ab7300bebfe44f339e3e14cd27",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-clearing-minimap-narrow.mjs",
+      "bytes": 8566,
+      "gitBlob": "4ebd00fc46fd99723131709130925617acbab33b",
+      "mode": "100644",
+      "path": "scripts/prove-clearing-minimap-narrow.mjs",
+      "sha256": "5c5fc36c05740b7d2669bde1dbf1ceee750c5243dc140fcbff2cc87414c04874",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-common-transfer-v7.mjs",
+      "bytes": 15132,
+      "gitBlob": "e57000be71d5d7074625c900be62f4f45541262d",
+      "mode": "100644",
+      "path": "scripts/prove-common-transfer-v7.mjs",
+      "sha256": "d7bc59a61457569b79c2e265ca7413bf74ee7ef2702911f4972794c0c9e6bcac",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-deconstruct-presentation.mjs",
+      "bytes": 6846,
+      "gitBlob": "dc4cf5a1c31a29db6f3c252ca5ec855b1db756cb",
+      "mode": "100644",
+      "path": "scripts/prove-deconstruct-presentation.mjs",
+      "sha256": "f1d92ce49a7268427ce59254f9208801ab7d0a40921cbfb48b49e1a0cd164c68",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-hosted-save-studies-smoke.mjs",
+      "bytes": 9950,
+      "gitBlob": "df49b828ea87cce4558e2f026e388935bdc2dfe3",
+      "mode": "100644",
+      "path": "scripts/prove-hosted-save-studies-smoke.mjs",
+      "sha256": "db99fc11e26a14a2599b6a2ebef4b633b497bde2c3967e38fc9c8eaa8c155731",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-live-display-identity.mjs",
+      "bytes": 3847,
+      "gitBlob": "ec7c052dc11b3319d387ccc4e7161fe5a27cd7aa",
+      "mode": "100644",
+      "path": "scripts/prove-live-display-identity.mjs",
+      "sha256": "b3326d081122231f2027a3101624cbf43a5410721b94b35e67ac1b98528fb27c",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-mixed-storage-v8.mjs",
+      "bytes": 26120,
+      "gitBlob": "fc3f4cb267382a217e7670f45543cfd38b910941",
+      "mode": "100644",
+      "path": "scripts/prove-mixed-storage-v8.mjs",
+      "sha256": "8e9a78f55ed0ac4facd29ea813896ea29ec9ceddbd91cea3d64ede59e326e674",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-paused-work.mjs",
+      "bytes": 11985,
+      "gitBlob": "ee0ace3d588876c0b3d708c6f95ddb4e0b096f52",
+      "mode": "100644",
+      "path": "scripts/prove-paused-work.mjs",
+      "sha256": "d6c1b007bd35ca98655a41ddf04db9a237d0b989569e5a64f9e51c73c6b1988f",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-station-build-display-identity.mjs",
+      "bytes": 8046,
+      "gitBlob": "887dac45ada9c15270d86b5ce0be81666bc1d2e7",
+      "mode": "100644",
+      "path": "scripts/prove-station-build-display-identity.mjs",
+      "sha256": "e1db1574ebdcb63026d14b9eba1e500e9b79ee961e5468526650e94eb5f266d5",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-station-profile-pixi.mjs",
+      "bytes": 2070,
+      "gitBlob": "15d87872e00620c2ee402ba5db1a821b4205c165",
+      "mode": "100644",
+      "path": "scripts/prove-station-profile-pixi.mjs",
+      "sha256": "d5bb428637c622ba20415fa760381d17f6948e7e5622d7cd5dd86afb59ece30a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-structure-hit-go.mjs",
+      "bytes": 13663,
+      "gitBlob": "cb491b0eae8502d081ea2c1aef11d110cac9a18c",
+      "mode": "100644",
+      "path": "scripts/prove-structure-hit-go.mjs",
+      "sha256": "8b7efa61aab65df4b8a104461e675821b3b66a802264495a1d9b2660d32a0878",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-tree-stump-display.mjs",
+      "bytes": 4923,
+      "gitBlob": "9aab28df74ccc00b5a3f7c075e7b9352169a9971",
+      "mode": "100644",
+      "path": "scripts/prove-tree-stump-display.mjs",
+      "sha256": "3138b29c5424e426112eba5d6d433f4dea7d7eeebb5639cd367e6fa162a463af",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-upstairs-bedroom.mjs",
+      "bytes": 32470,
+      "gitBlob": "766f549fc10749440e018a4ac0adca16afaaf284",
+      "mode": "100644",
+      "path": "scripts/prove-upstairs-bedroom.mjs",
+      "sha256": "3976247497f299aa6621dfd0a22d6f40abc69d44665939b70095d015eaf259af",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-work-panel.mjs",
+      "bytes": 16038,
+      "gitBlob": "0171151d79032b9eb5686408db0b7de113f0d12a",
+      "mode": "100644",
+      "path": "scripts/prove-work-panel.mjs",
+      "sha256": "996525aa5b3fcd73036461bc176661215ea3fafa3dded18718af25e363144184",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove-world-lab.mjs",
+      "bytes": 42804,
+      "gitBlob": "bb5271cece2d0f8049a5531ba981c8b31755e5ea",
+      "mode": "100644",
+      "path": "scripts/prove-world-lab.mjs",
+      "sha256": "1d52574748537f6267b4ab5c94cdcb85cd023a7344265e741a9fa0f04dae727b",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/scripts/prove.mjs",
+      "bytes": 10648,
+      "gitBlob": "b382ca9e763df90e7930460f209ffae0cb4aff61",
+      "mode": "100644",
+      "path": "scripts/prove.mjs",
+      "sha256": "b4ce3c95d6cd8db7691f61f657f2ce27945ea41c5051ac92c475b4a2d76e895f",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/activity.ts",
+      "bytes": 24830,
+      "gitBlob": "d54b006e72f5858ef7caece03236e439928b203e",
+      "mode": "100644",
+      "path": "src/activity.ts",
+      "sha256": "18f790919803186d90724b31531e8dd2a07d335722e644bff459792aa6ef9c18",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/actors.ts",
+      "bytes": 1375,
+      "gitBlob": "48f94d14fc8e070b2fdf97ddcc5e865da69af5fa",
+      "mode": "100644",
+      "path": "src/actors.ts",
+      "sha256": "8166ba88ba9056d1394e096667f08691edd6e6423de4feff6bfb42c8cab67327",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/art.js",
+      "bytes": 8949,
+      "gitBlob": "60e2b85dfbcabec9687ef58964edbc76abdc8eb0",
+      "mode": "100644",
+      "path": "src/art.js",
+      "sha256": "2db6286f2efd33f5e0b5bc27c7400c509a38ecbe7a28ec265b5e6f995efc98e7",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/art/figures.js",
+      "bytes": 23057,
+      "gitBlob": "a23778d1698281614fedfc0e46f83c009a27a340",
+      "mode": "100644",
+      "path": "src/art/figures.js",
+      "sha256": "1fb2bc079c1717c997aeedf3a1b95cbdbd2eb6a3a14c2a7656d6eb761f8d7786",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/art/food.js",
+      "bytes": 1427,
+      "gitBlob": "88241d5d793155e0579c6f56a0a8ce5b30301eac",
+      "mode": "100644",
+      "path": "src/art/food.js",
+      "sha256": "0dddf4a2fff74481426b2fa8bf3e99cb34f60557e524534cb83cf63bd76fb3c6",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/clearing-state.test.js",
+      "bytes": 1542,
+      "gitBlob": "b04609d5e1983346fed73b003570de165d8befaa",
+      "mode": "100644",
+      "path": "src/clearing-state.test.js",
+      "sha256": "bd1ba90a29fc2f993fb5ff51fc34cc2695bb27f890e0aabf735c8580faa0ee31",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/clearing-state.ts",
+      "bytes": 105560,
+      "gitBlob": "bb3aac5d4a0bfaffdb9f5009c373103679dd1b92",
+      "mode": "100644",
+      "path": "src/clearing-state.ts",
+      "sha256": "a8c80c2be3d9d2e2ebf0ba69e23eac07bdc3f501a2394a677e5b3a6655e834ba",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/clearing.test.js",
+      "bytes": 66800,
+      "gitBlob": "5a7a4a429af43dee6587bdf6b664957af8f4a083",
+      "mode": "100644",
+      "path": "src/clearing.test.js",
+      "sha256": "847ae5c8eb0f55f7a6bcf9a42290d748b4e402d4b7f1d6a19ef54953552336fb",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/clearing.ts",
+      "bytes": 4432,
+      "gitBlob": "6a9e6d0a7d618c9adf12a4a2f1d04d42277678d2",
+      "mode": "100644",
+      "path": "src/clearing.ts",
+      "sha256": "02dcd84964ae78b53be31b7de1692911a24c3b1c5978e789aefe934695899aba",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/command-schema.test.js",
+      "bytes": 2330,
+      "gitBlob": "a823267f43aaf74e13a3490678e179f8873fbc82",
+      "mode": "100644",
+      "path": "src/command-schema.test.js",
+      "sha256": "9c34a1a838ee44f47862a38b45508cc38edb866fe56bba8a224b02757710347f",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/command-schema.ts",
+      "bytes": 2794,
+      "gitBlob": "dedf85260e5fc35778be80c0b9c72ef05f710c78",
+      "mode": "100644",
+      "path": "src/command-schema.ts",
+      "sha256": "4168a2f8ce7a0f58bb3a33bcee1e50792f8b514440473891c0e315da8ad6bdda",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/construction.js",
+      "bytes": 23568,
+      "gitBlob": "f583d23352c59631ec6442439ca71f684e8f7771",
+      "mode": "100644",
+      "path": "src/construction.js",
+      "sha256": "98468e78c2aaf22718f247b9425de250de63cad36139e2053925cc1f04e1a9db",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/colony/PROVENANCE.md",
+      "bytes": 2474,
+      "gitBlob": "bc523fba4697bb5a9963aba6bce40a69d8f1e2a1",
+      "mode": "100644",
+      "path": "src/engine/colony/PROVENANCE.md",
+      "sha256": "191641390d8d811d5eb28f63b8edc069ca2047385d603c99747aca65b5f0673c",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/colony/colony.mjs",
+      "bytes": 53385,
+      "gitBlob": "5d4cd62774d176db5be34a531cc6872ab66e5736",
+      "mode": "100644",
+      "path": "src/engine/colony/colony.mjs",
+      "sha256": "b766aed9dbf46b7a85b3740a96a69daf78a5dd582df76eb040dcc450e75ac378",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/colony/colony.wasm",
+      "bytes": 27333,
+      "gitBlob": "1322677e255e7742d3d57c731e5234beecd1e719",
+      "mode": "100644",
+      "path": "src/engine/colony/colony.wasm",
+      "sha256": "33d78e3451179d1e17d283837066a819d94ec0bba239dda4c6ce19edb7fcc0e9",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/colony/loader.ts",
+      "bytes": 1590,
+      "gitBlob": "e3f1ab29186b7902cc1249b018797f634236af79",
+      "mode": "100644",
+      "path": "src/engine/colony/loader.ts",
+      "sha256": "8f49ebb4cab8ca073bf38c7ead8db4932b1dcbf8a3905b80b9b63a973d5474db",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/closure.mjs",
+      "bytes": 7365,
+      "gitBlob": "0a126d6e3ab2fbcabb81883491e7b9445d7d7b56",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/closure.mjs",
+      "sha256": "9d827dee24353659e230211ecd7fb27d05892e9d93ad0b9dbb1767e09d7453f8",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/faces.mjs",
+      "bytes": 2909,
+      "gitBlob": "94f062e2c260fc3fc17ae379ed43cf9e3c378a29",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/faces.mjs",
+      "sha256": "4b09613926f9853ba489f71fe4b230999c08baa2caf51107918a7604aef0fe2f",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/geometry.mjs",
+      "bytes": 12193,
+      "gitBlob": "20a742a1a711ac182a2e2d2657be76af16584a34",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/geometry.mjs",
+      "sha256": "3f5a6cc2c60e440301414db176642a37a2fa0ec3fa0a4c7777328e8437270d4a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/guess.mjs",
+      "bytes": 1512,
+      "gitBlob": "ff17b2747f0a51ca56c7182ac73fb15d66384cbe",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/guess.mjs",
+      "sha256": "2304403c1dbe0c50decc9a92be20ea49f118d3f6655b6983ae97b330061f360b",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/index.js",
+      "bytes": 390,
+      "gitBlob": "fbe1249263e497264228303ba0180f09eb773f3c",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/index.js",
+      "sha256": "073103cf6b437fc329c0f3cfdb3516c8e5ab1236213c43b9b89ded0d10078a94",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/linear.mjs",
+      "bytes": 3911,
+      "gitBlob": "81cfb02447129e613d8edd2e83652b2130250cdd",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/linear.mjs",
+      "sha256": "f2253f103a25dfb2c2090811fd0f6f7f9a95b6fadc57d2bcad42581b526bd625",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/newton.mjs",
+      "bytes": 2210,
+      "gitBlob": "52c241e5a4c54a758643faca128ba107add5cd1a",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/newton.mjs",
+      "sha256": "ccd41c5306e9fff7fa97c137e613effcedf2066038a5fdc87b82ed6cc5f54f07",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/pit.mjs",
+      "bytes": 2942,
+      "gitBlob": "a091b529952dde4ca4165b5b9e76d5afa78be89f",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/pit.mjs",
+      "sha256": "76f5c8d7bed29f20b9b17d121e0cce2de9a428fdb6186ac8b605a150350a63fa",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/provenance.json",
+      "bytes": 3064,
+      "gitBlob": "8a35fca591dd21d3eb39d73f2e5f5b32be5e64e8",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/provenance.json",
+      "sha256": "9850b2a9ee731a6006cf67ef9ecd44273f2019633148601827e1634d70378296",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/residual.mjs",
+      "bytes": 2315,
+      "gitBlob": "00549ec3c30101d30e03d83658d4ce370068ede6",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/residual.mjs",
+      "sha256": "8111caba1b15c769b927cbab729ab5af0c6d5234570b046e5b1cc5630b40bacf",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/soil.mjs",
+      "bytes": 3190,
+      "gitBlob": "93d8c206ec7b5de1c02721362a123cc28d9cf1ce",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/soil.mjs",
+      "sha256": "2c25e3d71de5fd5514ecedc81abf8efdbf07e39d94e851430c47c93b1682abd1",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/state.mjs",
+      "bytes": 4297,
+      "gitBlob": "179fd51e9e12a2b133c4edccef60e545ee208024",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/state.mjs",
+      "sha256": "27cddf9026ba34e7a2d2bc00baffb62e5acebc5980cbc2a9bcb90913631232f0",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/vertical-face.mjs",
+      "bytes": 1719,
+      "gitBlob": "ab63495a3e71cea7bfbd5f295e9646043335d822",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/vertical-face.mjs",
+      "sha256": "87e4255fddd8e653b3c390058053a34d26e9be20ff58ebded6945d6b8c994809",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/environment/soil/volume.mjs",
+      "bytes": 7663,
+      "gitBlob": "ab4d7e4999fcea4c6daaf1602e8139a1e300b45f",
+      "mode": "100644",
+      "path": "src/engine/environment/soil/volume.mjs",
+      "sha256": "6a4dc181cd3c2f19212930cc53b8b6a640e9f56d61a33b9267c58741d1b3193f",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/README.md",
+      "bytes": 3046,
+      "gitBlob": "5c82e74d0578148093b4fbe2a0da0cdcc1c7ce0a",
+      "mode": "100644",
+      "path": "src/engine/materials/README.md",
+      "sha256": "9e1bc60582a7dbfe89a3b3e548bf05c6a08755ba7574bf61c24b6189b182eeea",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/definitions.ts",
+      "bytes": 2687,
+      "gitBlob": "603f69bf3ea81c411befdfa4e1c0d1d993563fce",
+      "mode": "100644",
+      "path": "src/engine/materials/definitions.ts",
+      "sha256": "941b31d6c503a0e169ffc90c62f1c01d97dbd64e4d686eb01f7d41c0bae549be",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/held-use.ts",
+      "bytes": 13320,
+      "gitBlob": "7e92b4e4610604c85ae01441684a02fa6ee7bd48",
+      "mode": "100644",
+      "path": "src/engine/materials/held-use.ts",
+      "sha256": "49afec6a409b38cb92aa9f4a33329846fdd9c85dff2153a42f899d9551618aa8",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/index.ts",
+      "bytes": 3143,
+      "gitBlob": "f54cf617e3af56718faad536353ddedeb7a34bdf",
+      "mode": "100644",
+      "path": "src/engine/materials/index.ts",
+      "sha256": "7c27c135a2cf9173e44f50893b40a7277e79252f6f24daa584dfa9712c6112be",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/materials.test.js",
+      "bytes": 14402,
+      "gitBlob": "d640793a932f080dcb444ca6303bb9320fccd1b1",
+      "mode": "100644",
+      "path": "src/engine/materials/materials.test.js",
+      "sha256": "affa42e287a062f1c4b3fe110bb6f5f4f3e351506e2ea479c7ad9301933cbf83",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/owner.ts",
+      "bytes": 27098,
+      "gitBlob": "b4278ac1e0e3a6251e99da0697aa6beb0a5f7794",
+      "mode": "100644",
+      "path": "src/engine/materials/owner.ts",
+      "sha256": "3e7b725b3dc0f58b5352b44d3dbd169feb27232c413f557ee302db9809011993",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/queries.ts",
+      "bytes": 17705,
+      "gitBlob": "3b80a9acbf4118d36e53d2bb6d9c483b7ddbc1a6",
+      "mode": "100644",
+      "path": "src/engine/materials/queries.ts",
+      "sha256": "c369c720c8b8f4a86e6c7974dcd4ab1a4f4716b26fa877344be51ddc418a976b",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/recovery.ts",
+      "bytes": 4323,
+      "gitBlob": "97f8ef846bf500aa3669853abf8212a91bba5d74",
+      "mode": "100644",
+      "path": "src/engine/materials/recovery.ts",
+      "sha256": "401085755721b12e7420d57b71f2cb8622f274e04a5f936c22d6bf546fa9697b",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/relations.ts",
+      "bytes": 13320,
+      "gitBlob": "38643c1ca04d69243d3aff7fb9e13c1c130c3969",
+      "mode": "100644",
+      "path": "src/engine/materials/relations.ts",
+      "sha256": "4757fd9856b3e933a10b9a694b0ca67a5b13ca3c8d80f01012cbf44d54d34963",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/schema.ts",
+      "bytes": 4932,
+      "gitBlob": "64695a3486da4f3ea1f5b524c99cfa319e1f5474",
+      "mode": "100644",
+      "path": "src/engine/materials/schema.ts",
+      "sha256": "a5963fda3a255e78e12d68109a4e3d940b1da603ba5cc87703e277792524186e",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/settlement.ts",
+      "bytes": 18249,
+      "gitBlob": "c455f62c36c94d048e75f5c1aad3cc39ec2e2085",
+      "mode": "100644",
+      "path": "src/engine/materials/settlement.ts",
+      "sha256": "1d69a5a80beee516a3f98bd759cc15e14b987baf68e3acbfaa1b200d1c37bbc3",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/materials/types.ts",
+      "bytes": 7107,
+      "gitBlob": "ae35aba729157c3e20844851c8866360d6f96fa7",
+      "mode": "100644",
+      "path": "src/engine/materials/types.ts",
+      "sha256": "12dd9fa20b282202385eea114691f647351048119b7d05533d7da4b52bf26e72",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/region/README.md",
+      "bytes": 5379,
+      "gitBlob": "3fdb001a959540157dba397f3f50537d80ac2ee7",
+      "mode": "100644",
+      "path": "src/engine/region/README.md",
+      "sha256": "66d154cea7698b041c6a3e67642fbb8bf611700b0e353c9c06aa82a56b13b850",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/region/codec.ts",
+      "bytes": 2419,
+      "gitBlob": "396b772b3cd499f9e099bcff99462bf035ca40f2",
+      "mode": "100644",
+      "path": "src/engine/region/codec.ts",
+      "sha256": "17119b557fcda6c689feba3feebe81c11f5b04806e748802f09c8197a97c96e1",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/region/index.ts",
+      "bytes": 11879,
+      "gitBlob": "9a5c3b2eb243f49af4fa5450d83056d8ed0f3691",
+      "mode": "100644",
+      "path": "src/engine/region/index.ts",
+      "sha256": "9981e57eb070ac25ec194a59b7d967d7674b150688d2abedbcc3a9db2e30acfa",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/region/region.test.js",
+      "bytes": 8403,
+      "gitBlob": "e9dda8e5cf33e2527f4441e906d2a969491ca6bf",
+      "mode": "100644",
+      "path": "src/engine/region/region.test.js",
+      "sha256": "38904eff40d244821dfba10c2f37c8b92c45bd54c9e55d230042fcc0a4b1fa52",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/work/lifecycle.test.js",
+      "bytes": 2096,
+      "gitBlob": "cacd61483feb2e31cb7b306434ff7b8019a727be",
+      "mode": "100644",
+      "path": "src/engine/work/lifecycle.test.js",
+      "sha256": "bbbf3be5c4532c5dcb7deddccc9c3b9a8c575e22d3ace4287f94a8b8097eb103",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/work/lifecycle.ts",
+      "bytes": 3016,
+      "gitBlob": "c53f6874dae6505f327b2461e703a3081584d796",
+      "mode": "100644",
+      "path": "src/engine/work/lifecycle.ts",
+      "sha256": "4536158e909a4e74fe735b4aebff0e6dabdfad2fa12798854256e0ddccb53af9",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/world/README.md",
+      "bytes": 4541,
+      "gitBlob": "07a5af89687a34e489255cab42f630d60ad42598",
+      "mode": "100644",
+      "path": "src/engine/world/README.md",
+      "sha256": "a68636c863ecb02fc563853368e1dcb8f4289c859e918882ae47bbfb8e004756",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/world/data-contract.mjs",
+      "bytes": 3892,
+      "gitBlob": "9f753d333421c30226338be09c88412121a2da74",
+      "mode": "100644",
+      "path": "src/engine/world/data-contract.mjs",
+      "sha256": "415ef0730149ea790adb4a330fd8ac83571b7966d0c215ced0bb145a819d4601",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/world/index.js",
+      "bytes": 142,
+      "gitBlob": "67383ef1be5a7e795ef6662b56e17c9308f0fb02",
+      "mode": "100644",
+      "path": "src/engine/world/index.js",
+      "sha256": "90147f0c4a967c0d6c01a40ab5073920c26c746f61dfe97f315013901fe712f3",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/world/lattice-hash.mjs",
+      "bytes": 1447,
+      "gitBlob": "5447a092ac3e17ee899336f4b9c9ffca336b0be1",
+      "mode": "100644",
+      "path": "src/engine/world/lattice-hash.mjs",
+      "sha256": "ccaa0e206c01a81d5483068003de8faf0a2f9af1e7cfad807ac3ed37add71cfc",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/world/voxel-contract.mjs",
+      "bytes": 7909,
+      "gitBlob": "0b77ca50d8697da07d3b2fa5f8af28d46c217f2f",
+      "mode": "100644",
+      "path": "src/engine/world/voxel-contract.mjs",
+      "sha256": "399a5ec2e2be628ee6b772aa56df1e8ad4f4ad2524bfd2dad1b5e7290fe25c59",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/world/voxel-store.test.js",
+      "bytes": 8301,
+      "gitBlob": "55fab04783f48ec52eb4486af41a5084a3282520",
+      "mode": "100644",
+      "path": "src/engine/world/voxel-store.test.js",
+      "sha256": "20233136b9c35dc4ab295523a58e29c9a71c84f9c601335097b73ef570bd7ee4",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/world/voxel-world.mjs",
+      "bytes": 7745,
+      "gitBlob": "65ccdb2f3b2c7655b9c85f40c934826689559cf3",
+      "mode": "100644",
+      "path": "src/engine/world/voxel-world.mjs",
+      "sha256": "10b427f352f523edc69a91deb06ee05c1ea1216a060da37348c1655f6b1315a4",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/engine/world/world.test.js",
+      "bytes": 7033,
+      "gitBlob": "5ec04a37653668a6205958d4d272b74ab272190d",
+      "mode": "100644",
+      "path": "src/engine/world/world.test.js",
+      "sha256": "d98614b360e796f9f3cc2eafd979f8e5095bccec9fa5a8f53bb785b6df74504a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/finite-sources.ts",
+      "bytes": 30719,
+      "gitBlob": "5e7dc22a1ad2caf87ad1b7e7c598d51f5e07ee11",
+      "mode": "100644",
+      "path": "src/finite-sources.ts",
+      "sha256": "e81e2bc6cae545e85f1627d21b5d36f4c73776648c7b32aa7e345efcfb739bd1",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/fixtures/clearing-v14.json",
+      "bytes": 5816,
+      "gitBlob": "e15e8d6a1fd6f4240584c0de2ef4b484f95e98bd",
+      "mode": "100644",
+      "path": "src/fixtures/clearing-v14.json",
+      "sha256": "206a6a5780a22b9ecc3d3d76a71cd9038608dfb90f3e80f4c9d2bfe761ab4836",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/fixtures/generated-seepage.mjs",
+      "bytes": 2851,
+      "gitBlob": "468c3aea31d3f2939044ae863fee74266e8d66ea",
+      "mode": "100644",
+      "path": "src/fixtures/generated-seepage.mjs",
+      "sha256": "35cbb47826dd06ecded557056917a73d8083ed36e063b52196e2e42a45dd288a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/fixtures/seepage-v1-excavated.json",
+      "bytes": 13589,
+      "gitBlob": "15ec36f6e29b96fb58e03063f9e00fcca9652873",
+      "mode": "100644",
+      "path": "src/fixtures/seepage-v1-excavated.json",
+      "sha256": "5a52233d897a0fbbdfaf958410ae60d6c275d5c1a1f6e6cb2593d46bfc208286",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/fixtures/seepage-v1-final-save.json",
+      "bytes": 10143,
+      "gitBlob": "ed69f0d7cebadbfdf5ab0b7c126b50252bfd8f2c",
+      "mode": "100644",
+      "path": "src/fixtures/seepage-v1-final-save.json",
+      "sha256": "c3dbf0ab400589af75e8e95123d5d1b7f3df7e5c46b5364c53ce24066b3ac349",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/hud.jsx",
+      "bytes": 83548,
+      "gitBlob": "e509d8ca502307c7d49c2f9ba2031860e4d3988d",
+      "mode": "100644",
+      "path": "src/hud.jsx",
+      "sha256": "789ead7b1d12f75691b2320aed1d6424f438b2495f6815ec57af97ac75f867da",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/item-containers.ts",
+      "bytes": 1254,
+      "gitBlob": "a3582e2e381cf55cac04568db1548501b0fbfc0d",
+      "mode": "100644",
+      "path": "src/item-containers.ts",
+      "sha256": "fbd5f4e62f9c609b8fcc9642bfb9cfd29e0953fd4b2e9fd366c6a7720f93229b",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/jobs.ts",
+      "bytes": 44839,
+      "gitBlob": "450ecb45a72e68081bc1fdaa903b79cfce716e38",
+      "mode": "100644",
+      "path": "src/jobs.ts",
+      "sha256": "cace3ee7133c7b28428866df4579feb23c17264035aeb0323086d1b42f6d0195",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/materials.test.js",
+      "bytes": 37977,
+      "gitBlob": "c71b514c30589ec7f38731568ac816d8661963da",
+      "mode": "100644",
+      "path": "src/materials.test.js",
+      "sha256": "edc6a290ac832b90705740c0576e6a1ff01572493cf87bf813c02e14385a3440",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/materials.ts",
+      "bytes": 5723,
+      "gitBlob": "b3751f521e3121dba316ba2bce40204a0810e7ef",
+      "mode": "100644",
+      "path": "src/materials.ts",
+      "sha256": "3c5e841af106e71a69d975176dfd56607a47da8b4a108bf1cf7e3520755065af",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/model.ts",
+      "bytes": 12342,
+      "gitBlob": "d35aea2148b021dca8570e52151b9d815ce215e0",
+      "mode": "100644",
+      "path": "src/model.ts",
+      "sha256": "168511bd7148bdf5a4ff21820b875bceb4245e616abe3b4d35e9ea3d6b53606a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/needs.test.js",
+      "bytes": 13968,
+      "gitBlob": "cffe75762b35db11324aad219dc2b669f5f2f82a",
+      "mode": "100644",
+      "path": "src/needs.test.js",
+      "sha256": "c00974ef78f3e2a07942c04bc835782a3e9923c99402788515c5387daced77ba",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/needs.ts",
+      "bytes": 9950,
+      "gitBlob": "3f732132c93369ad161b441ee594cefe9b4b6f53",
+      "mode": "100644",
+      "path": "src/needs.ts",
+      "sha256": "c64a247420b53f07ffa04113b870a4aae4d866657b788e4eac36a0639d2b7417",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/orders.ts",
+      "bytes": 17665,
+      "gitBlob": "b86ae10657266e1b3b8146390c613defbb33819f",
+      "mode": "100644",
+      "path": "src/orders.ts",
+      "sha256": "24c49774c2b824d46a5f1e79abb42b156ac0efb2ded32ff067170db0958fa543",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/persistence.test.js",
+      "bytes": 56385,
+      "gitBlob": "c90b19aad959fb26af618b8d62dbcb5a9638c411",
+      "mode": "100644",
+      "path": "src/persistence.test.js",
+      "sha256": "4961c146264159f9b8ebdd5bc9d953106378ad9c432839fc00a0e90b5b9eec79",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/persistence.ts",
+      "bytes": 2946,
+      "gitBlob": "afbf74d947739962c1c19a81c293c9666f850a04",
+      "mode": "100644",
+      "path": "src/persistence.ts",
+      "sha256": "ff6c4320ce058e9b3600b64859b8169b228777933b3bc689de2439473d468f2a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/routine.ts",
+      "bytes": 1851,
+      "gitBlob": "c03984a08e37f1bfc2f18efb8cdf766947dbc6e7",
+      "mode": "100644",
+      "path": "src/routine.ts",
+      "sha256": "b0649e224adf83fc6e4a84c4ae0b724afb85e8ee186da431c4a207054dfd5f52",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/station-profile-pixi.test-entry.js",
+      "bytes": 2090,
+      "gitBlob": "f7881a29223263d547b85a7cdf12d787be83cf64",
+      "mode": "100644",
+      "path": "src/station-profile-pixi.test-entry.js",
+      "sha256": "318a0115cb100be9080708a92d89e3f454dafcd1ef0adf9d3cd08841f35e1981",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/style.css",
+      "bytes": 12341,
+      "gitBlob": "949a6503d1766e312d3f1fa262f02daac0ee3927",
+      "mode": "100644",
+      "path": "src/style.css",
+      "sha256": "7fc30d54b3d3e0e5a81e0477f1d59150e13ca22b5d46e31efa151dcd7cb91d59",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/view.js",
+      "bytes": 28835,
+      "gitBlob": "bbbbf376407c497b2fb030ab146e69323dce5f17",
+      "mode": "100644",
+      "path": "src/view.js",
+      "sha256": "722ecd609b9bdce92f79efb32a3c8a8ec5f1535596ce275d2e3e2f58012a526c",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/water-delivery.ts",
+      "bytes": 5204,
+      "gitBlob": "7a37ce718f115433314fe50a623146054269e8ee",
+      "mode": "100644",
+      "path": "src/water-delivery.ts",
+      "sha256": "54a279aa13cd3e59e6df33aa832f2dfa585e879264b7abe12f8033f5dd90501c",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-lab/terrain.js",
+      "bytes": 13967,
+      "gitBlob": "e76ed4bff014f833e1ccde99630a1bb395d4c074",
+      "mode": "100644",
+      "path": "src/world-lab/terrain.js",
+      "sha256": "434502c759a0a42847cf6e010b8bb6d303eb59e81f1b036c1239386e6dead1fa",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/excavation-region.ts",
+      "bytes": 4990,
+      "gitBlob": "0e12f70ce9b8daa106c8ebe7c5a183b896045116",
+      "mode": "100644",
+      "path": "src/world-presets/excavation-region.ts",
+      "sha256": "72cf7e2d1c6a9e6681ca9915f02d7ad63ba217bb83622bcf0c5899fa7abaf87f",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/features.mjs",
+      "bytes": 7990,
+      "gitBlob": "66ccdc2fff701b709fcfc49b861e9d6069756c64",
+      "mode": "100644",
+      "path": "src/world-presets/features.mjs",
+      "sha256": "ca713b027b519653129dacb56a08f880375870bc83582cc3e06e08402ffd251d",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/fixtures/height-caves-v2.json",
+      "bytes": 5174,
+      "gitBlob": "be8218be3e820b2cd34a0088ddd7052f5bac1899",
+      "mode": "100644",
+      "path": "src/world-presets/fixtures/height-caves-v2.json",
+      "sha256": "c12a17a59753e78fa33fa341fabfa7be4dfe943d9b6f417b04880f80505c6afb",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/goblin-region.test.js",
+      "bytes": 3630,
+      "gitBlob": "d581aa6f4e6f7de8c0fd9ea714bd68d6600f846e",
+      "mode": "100644",
+      "path": "src/world-presets/goblin-region.test.js",
+      "sha256": "7481f155a9e79ca22b9be136c15198004b4766d5a18098cd97a719964587692e",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/goblin-region.ts",
+      "bytes": 3219,
+      "gitBlob": "43944c6184be216340a09f633accb31281ec9e4e",
+      "mode": "100644",
+      "path": "src/world-presets/goblin-region.ts",
+      "sha256": "6edebd98324e6884fef0fdba86c1fb4a019d7222f209470d93d1612fa665a81e",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/height-caves.mjs",
+      "bytes": 6383,
+      "gitBlob": "94be32efdd2b3a9809589a373d72ac088fc1112b",
+      "mode": "100644",
+      "path": "src/world-presets/height-caves.mjs",
+      "sha256": "45d5918a360d5410bf5fe96d576d691b6450606028abe203fa6147b598e1658e",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/height.js",
+      "bytes": 10467,
+      "gitBlob": "d79a12e3731db595e2cc0a784d3189aa105197e2",
+      "mode": "100644",
+      "path": "src/world-presets/height.js",
+      "sha256": "0e66c0fe237dcb191762a9b39785989b43ea9f4711ba18f12d68a79b9d57dece",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/seepage/excavation.mjs",
+      "bytes": 15632,
+      "gitBlob": "db0b2628a709e186e5336fa6b237d437a9149713",
+      "mode": "100644",
+      "path": "src/world-presets/seepage/excavation.mjs",
+      "sha256": "cab2a391a84e27b3d81402ef50457b48bf6244379b88888f261254f0bbce5067",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/seepage/seepage.test.js",
+      "bytes": 4184,
+      "gitBlob": "b510ce3fbcabd06c700919a56bb5d933a5e3c6d2",
+      "mode": "100644",
+      "path": "src/world-presets/seepage/seepage.test.js",
+      "sha256": "755bc7e977206ed3cce3e0b19d657266f3cd2d48f413eacd624b7c22e8f6638a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/src/world-presets/seepage/world-binding.mjs",
+      "bytes": 4462,
+      "gitBlob": "6862a7128c3f49e9d4aa959dfd12679506c818c7",
+      "mode": "100644",
+      "path": "src/world-presets/seepage/world-binding.mjs",
+      "sha256": "3e18cd48a3f0bdfbcb76aaf6b7a7ffe0dd7e50d1fe19d36e77d1ad0418c2ed09",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor-interaction-case.mjs",
+      "bytes": 6112,
+      "gitBlob": "c249dafe14c48ff056b9d0367cdc7e1222d6f982",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor-interaction-case.mjs",
+      "sha256": "cc6beb781892f5f498f9441a3ee0db428a1e26b4cdfe1911db50eca56f956026",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor-proof.mjs",
+      "bytes": 10677,
+      "gitBlob": "25e6594a9e2fd0e9206b815c098504895f656a34",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor-proof.mjs",
+      "sha256": "77d36397d1dc0cbd9cbe73016431ba12cd4d8d577e568f2abbf6830d3247897e",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor.config.mjs",
+      "bytes": 3978,
+      "gitBlob": "88d2e999f5704432c5d79e514cb63dc7a1e281f3",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor.config.mjs",
+      "sha256": "089f10ddde81761231826a38552c7e4afaff97746ba50c77f59d774e00caca87",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor/README.md",
+      "bytes": 6596,
+      "gitBlob": "fad185a1f0c3ce4aa178465573388a7279da2ccb",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor/README.md",
+      "sha256": "4765f8645ef79c76fbede4a688f391535510791fdb8bb6f6078dbc0dc7bd1945",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor/frame.js",
+      "bytes": 4971,
+      "gitBlob": "8eafc704638c00d13f166dc0d123fc4f06c16714",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor/frame.js",
+      "sha256": "dcbd2625a70aed0642673e1a5219eeeaaed99aa11e61cfa35279c6b8f18988e8",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor/project-admission.js",
+      "bytes": 2977,
+      "gitBlob": "8f5e8388530875edb1d8ac0972f5ea7539e6bb22",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor/project-admission.js",
+      "sha256": "12aa14a4b02dd49de718e0ff85a2d13af507957998b484424879c6607c8f88cf",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor/project-application.js",
+      "bytes": 2199,
+      "gitBlob": "46085a1583ba86d80d44ff3455d2c523a6b114fa",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor/project-application.js",
+      "sha256": "842d9cc132fca83d0583b50481017b59be6abb217ba5a1e27b3002762ae2dba3",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor/scene-resources.js",
+      "bytes": 1929,
+      "gitBlob": "1a1729ce6461e4b010272b13f67c7551a2f4d9d2",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor/scene-resources.js",
+      "sha256": "706d29ceb538816761da8f4ab5781536e012ac9f222e0f910a23a43117b1dcb5",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor/session.js",
+      "bytes": 2758,
+      "gitBlob": "a66e3752377f80b677594c3989bb9ec8f8beab2c",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor/session.js",
+      "sha256": "d5734c95212c4779cfbba6ab694a759f7dc9f6a65629640207ba8d814eae8104",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/asset-mcp/editor/upstream-patches.mjs",
+      "bytes": 5002,
+      "gitBlob": "1559c5c662e27a5ca85494c6d9cee7a46a22fbce",
+      "mode": "100644",
+      "path": "tools/asset-mcp/editor/upstream-patches.mjs",
+      "sha256": "1955b6d277a167c1e6f06fa9a2a2aa2b92866b40f82b1b028caef0c23bdb7c94",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/README.md",
+      "bytes": 1393,
+      "gitBlob": "fd31c991b355f4e3259e1b986ec803f35fdbaa82",
+      "mode": "100644",
+      "path": "tools/engine-do/README.md",
+      "sha256": "1ecf61959c72248853e9c62059163d8d2ec6a44e3ab47be918e52063547918ee",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/WATCHDOG.md",
+      "bytes": 9765,
+      "gitBlob": "16e2fbc7961946bf90263bce971854ead45e756b",
+      "mode": "100644",
+      "path": "tools/engine-do/WATCHDOG.md",
+      "sha256": "3abc31aba5b72ba02e5ad8b01ea17a99c97e46b8851abdf6a063adc58b73cbfc",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/goblin-FIXTURE.md",
+      "bytes": 2908,
+      "gitBlob": "0baffe4605fa37c989ad34f8f3f9e2d158a94902",
+      "mode": "100644",
+      "path": "tools/engine-do/goblin-FIXTURE.md",
+      "sha256": "aacecac3252ceade6ea8553bd35155f0c2c1152e7d4f64ef2db6083a2b1c0e2c",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/goblin-env.d.ts",
+      "bytes": 588117,
+      "gitBlob": "65e78281d7836ddc77c3257303265583b48d2498",
+      "mode": "100644",
+      "path": "tools/engine-do/goblin-env.d.ts",
+      "sha256": "1ee78f464aff657019580522e2730beea1288a478b34a6bf591a522d850dc7e6",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/goblin-proof.mjs",
+      "bytes": 10018,
+      "gitBlob": "2801e1ebae5dc13b5e4a28bc4e29d8d5dacc363a",
+      "mode": "100644",
+      "path": "tools/engine-do/goblin-proof.mjs",
+      "sha256": "941578f198b4451392e4aea81baa966fde3c128b69f684aef6967f8da720b5ee",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/goblin-wasm.d.ts",
+      "bytes": 85,
+      "gitBlob": "e2d935d4f2928a2249762cc2ec249403b7abeb85",
+      "mode": "100644",
+      "path": "tools/engine-do/goblin-wasm.d.ts",
+      "sha256": "f8b7e18a05e6273cb64ee37530c4882e65adc4cae89dbb908b23b770ba1bc4e0",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/goblin-worker.ts",
+      "bytes": 4734,
+      "gitBlob": "43bfc938ee2c0a3e16a92f85f49093f148122783",
+      "mode": "100644",
+      "path": "tools/engine-do/goblin-worker.ts",
+      "sha256": "0929a8681946c07576dcda3ac6d6951fa738bd1237b265a0c90903f08dec7eee",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/goblin.tsconfig.json",
+      "bytes": 314,
+      "gitBlob": "7f60c3e5d7b8b657b90b212d6edaef00477f8cc1",
+      "mode": "100644",
+      "path": "tools/engine-do/goblin.tsconfig.json",
+      "sha256": "3251af870f87d4bb219f71cdce57bfdaf041fc85b93366faff0f2303668c5aba",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/goblin.wrangler.json",
+      "bytes": 283,
+      "gitBlob": "38390b82a5229faa4962219be51f237463d560b8",
+      "mode": "100644",
+      "path": "tools/engine-do/goblin.wrangler.json",
+      "sha256": "25fc16bd118f9c07462e5382b42b3a82d1587902b9187d5daa31b755b869962a",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/package-lock.json",
+      "bytes": 4339,
+      "gitBlob": "d95eb8c709f3942585b091bcd654053764c19031",
+      "mode": "100644",
+      "path": "tools/engine-do/package-lock.json",
+      "sha256": "8fdf54289db6eb3643c1199aa9930d72bb319ca2b823c436cef58f7807996a27",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/package.json",
+      "bytes": 307,
+      "gitBlob": "dbd3877b2c1364c84506621b8281426bd255191b",
+      "mode": "100644",
+      "path": "tools/engine-do/package.json",
+      "sha256": "3307e631af900af4fb9c028f12093e60fb9e770129e7fd15a639cc23643adce8",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/proof.mjs",
+      "bytes": 9211,
+      "gitBlob": "efb862bde7db3d5233049e8069d586bb47d5041e",
+      "mode": "100644",
+      "path": "tools/engine-do/proof.mjs",
+      "sha256": "e5de3a20bdeae8dbb4635d6c717820edf6c97c9b31e8b9db90ea972f25ed5171",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/vendor/fungi.computer-cairn-0.0.0.tgz",
+      "bytes": 17495,
+      "gitBlob": "73219dff930c5335cbf223fa92974696e0128138",
+      "mode": "100644",
+      "path": "tools/engine-do/vendor/fungi.computer-cairn-0.0.0.tgz",
+      "sha256": "803c6e3a95290443ba0dcd22e73d3be95795e0dc356df82f0f8ceba554581f45",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/vendor/fungi.computer-watchdog-0.0.0.tgz",
+      "bytes": 14624,
+      "gitBlob": "70b95e3dff43951abfb2298805ee448000331e40",
+      "mode": "100644",
+      "path": "tools/engine-do/vendor/fungi.computer-watchdog-0.0.0.tgz",
+      "sha256": "00ca3f33f7eac8742555fec180bc5788afe414fc3f0ea5a6afa953282cde626e",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/watchdog-env.d.ts",
+      "bytes": 588129,
+      "gitBlob": "abc6e9f1cc7859736dbefe4c8150af648069325b",
+      "mode": "100644",
+      "path": "tools/engine-do/watchdog-env.d.ts",
+      "sha256": "e1d5d8e1a4dd8cd712af58a3bf7f9b8fca462edf4a151b965c0a5c728b24b8cd",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/watchdog-proof.mjs",
+      "bytes": 11333,
+      "gitBlob": "9389c84010993551a70b472c2302334919aa6c07",
+      "mode": "100644",
+      "path": "tools/engine-do/watchdog-proof.mjs",
+      "sha256": "19d8dd3f72b9e513b2338eafd09f22cf1301ce969562a87acd83e8e7d4f0a219",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/watchdog-worker.ts",
+      "bytes": 12826,
+      "gitBlob": "c92b55d93872b0b9e43df6109d8389aa57652104",
+      "mode": "100644",
+      "path": "tools/engine-do/watchdog-worker.ts",
+      "sha256": "6eefc2710cf982592fa39d1fd4e0355f067b71c63d9693d16222a7c9d27f4b68",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/watchdog.tsconfig.json",
+      "bytes": 330,
+      "gitBlob": "f267bf4c8370fe7e93172dcdc32950ebb3d75bdb",
+      "mode": "100644",
+      "path": "tools/engine-do/watchdog.tsconfig.json",
+      "sha256": "b9e3dbcf7c341a06399ca71231d0dda2dd9df04b89573c5dfa7bd05d67cd8fdf",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/watchdog.wrangler.json",
+      "bytes": 291,
+      "gitBlob": "ca1135be6026634017b382d5dde45fa5fee8cbb8",
+      "mode": "100644",
+      "path": "tools/engine-do/watchdog.wrangler.json",
+      "sha256": "57cdce93f0ad7ea6461950cf9f75f9e8637ab10b6d626f82c3c2f0ebb2d288bf",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/worker.ts",
+      "bytes": 4248,
+      "gitBlob": "1e7afa373dd294a1476318f4f575a4a9d0a4a7ef",
+      "mode": "100644",
+      "path": "tools/engine-do/worker.ts",
+      "sha256": "f34abfa44c874e2dd46d7564960a510bc2441d8b2cbed47b19155fec6622b88b",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/root-legacy/tools/engine-do/wrangler.json",
+      "bytes": 276,
+      "gitBlob": "9ca04735c9856c63deb15114ec193089430a532a",
+      "mode": "100644",
+      "path": "tools/engine-do/wrangler.json",
+      "sha256": "db684456ff8c5e867579dfce35ff75f835bba9fc88bfe34b895284b73075c109",
+      "tip": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/client-terrain-regions-20260921/engine/src/runtime/terrain-region-exposure.js",
+      "bytes": 2300,
+      "gitBlob": "4b8bb6cf9675564ccd33aabe29369ef65d4ca913",
+      "mode": "100644",
+      "path": "engine/src/runtime/terrain-region-exposure.js",
+      "sha256": "794e960a6df2ba5c764f55f2f5d415eb2b6461fad1aeebedb5a41dff68f43346",
+      "tip": "d49e5b4c28edeb27bbdf4dc4feb330ededfddc67",
+      "worktree": "/home/levi/src/hive-worktrees/client-terrain-regions-20260921"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/do-record-baseline-20260923/tools/public-engine-host/framework-driver-proof.mjs",
+      "bytes": 8794,
+      "gitBlob": "69c56e6358932f111cb9f941d94d4d0c3588dcea",
+      "mode": "100644",
+      "path": "tools/public-engine-host/framework-driver-proof.mjs",
+      "sha256": "04e161eb3e710f0002f239f4b226cd0f16fdc734abe3da958828f44c5751a994",
+      "tip": "7f3fbb47fa7f719f4610d8943b70c29cee49cf34",
+      "worktree": "/home/levi/src/hive-worktrees/do-record-baseline-20260923"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/native-job-task-core-current/engine/kernel/src/job.rs",
+      "bytes": 9359,
+      "gitBlob": "27d4d2c1a562ac8195fa7c671947f0eadce502e6",
+      "mode": "100644",
+      "path": "engine/kernel/src/job.rs",
+      "sha256": "3849991ba4efcace703ba68ccf89c334e7c6c30cb37e77e06cf79e93dd1ce399",
+      "tip": "f1096d488eba43cd38c74f0f8de8ac8a52382a1c",
+      "worktree": "/home/levi/src/hive-worktrees/native-job-task-core-current"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/native-job-task-core-current/engine/kernel/src/world.rs",
+      "bytes": 452631,
+      "gitBlob": "286d850e259e5736abad858b3b0799c29baed723",
+      "mode": "100644",
+      "path": "engine/kernel/src/world.rs",
+      "sha256": "fe9ad390da595b50e92773b2e9a0691514c34980a5e260514e736dfa6d3b9734",
+      "tip": "f1096d488eba43cd38c74f0f8de8ac8a52382a1c",
+      "worktree": "/home/levi/src/hive-worktrees/native-job-task-core-current"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/spatial-consumers-20260920/engine/src/client/asset-draw-geometry.js",
+      "bytes": 2504,
+      "gitBlob": "7f4e479f4a025eb075455761cfecb113b93ad43d",
+      "mode": "100644",
+      "path": "engine/src/client/asset-draw-geometry.js",
+      "sha256": "ddff29b28e6ac0fd51492350360afd787b5b0b2b635ec828ea4708019f6e69dd",
+      "tip": "13a328029a1d1df901833efcc81489539c48d9dc",
+      "worktree": "/home/levi/src/hive-worktrees/spatial-consumers-20260920"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/spatial-consumers-20260920/engine/src/client/spatial-scene-owner.js",
+      "bytes": 5509,
+      "gitBlob": "ea1551eb91e0280e1235705908345e067b316f75",
+      "mode": "100644",
+      "path": "engine/src/client/spatial-scene-owner.js",
+      "sha256": "9a6cb5eda91dfe9ab2f235ea000fa7e3236b0cf71e24193a81310c8abe91ec31",
+      "tip": "13a328029a1d1df901833efcc81489539c48d9dc",
+      "worktree": "/home/levi/src/hive-worktrees/spatial-consumers-20260920"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/spatial-consumers-20260920/engine/src/client/subject-draw-records.js",
+      "bytes": 7034,
+      "gitBlob": "0c364ad1fd2eb6f99a817400b26baa73cb93dac8",
+      "mode": "100644",
+      "path": "engine/src/client/subject-draw-records.js",
+      "sha256": "ba18f6b2cfc0c801226936c6af2571e01e5554b0e7429bfd7344197a92572ad9",
+      "tip": "13a328029a1d1df901833efcc81489539c48d9dc",
+      "worktree": "/home/levi/src/hive-worktrees/spatial-consumers-20260920"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/spatial-consumers-20260920/engine/src/client/surface-art-projection.js",
+      "bytes": 3782,
+      "gitBlob": "401fc8df892f87bbf85d2372949568be024ed81d",
+      "mode": "100644",
+      "path": "engine/src/client/surface-art-projection.js",
+      "sha256": "d18543e4f3240198c58e33495e42e63620eed607dfbf15cbdf4d3ef05143be29",
+      "tip": "13a328029a1d1df901833efcc81489539c48d9dc",
+      "worktree": "/home/levi/src/hive-worktrees/spatial-consumers-20260920"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/source/spatial-consumers-20260920/engine/src/games/colony-performance-config.ts",
+      "bytes": 1897,
+      "gitBlob": "f6d870d13cc343f0765e0cd707080ca2abbeaea9",
+      "mode": "100644",
+      "path": "engine/src/games/colony-performance-config.ts",
+      "sha256": "91b50997af83bbe2029850824a15053f3bacc355882e748cbc2350cc04a66095",
+      "tip": "13a328029a1d1df901833efcc81489539c48d9dc",
+      "worktree": "/home/levi/src/hive-worktrees/spatial-consumers-20260920"
+    }
+  ],
+  "unmergedIndexStages": [
+    {
+      "archivePath": "recovery/2026-09-23/index-stages/root-legacy/stage-1/engine/kernel/src/lib.rs",
+      "gitBlob": "28d6122f5399468e5f2a25d86c6e0a5f74020951",
+      "path": "engine/kernel/src/lib.rs",
+      "stage": 1,
+      "worktree": "/home/levi/src/hive"
+    },
+    {
+      "archivePath": "recovery/2026-09-23/index-stages/root-legacy/stage-3/engine/kernel/src/lib.rs",
+      "gitBlob": "c45a9e4553f9ba6a9e13e60bd51e77e0ae537cf9",
+      "path": "engine/kernel/src/lib.rs",
+      "stage": 3,
+      "worktree": "/home/levi/src/hive"
+    }
+  ],
+  "worktrees": [
+    {
+      "branch": "refs/heads/feat/goblin-bed-and-breakfast-mvp",
+      "head": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9",
+      "path": "/home/levi/src/hive"
+    },
+    {
+      "branch": "refs/heads/lane/receipt-retention",
+      "head": "f7e2b94b69b9e09738cd429e761cadcb555e0b98",
+      "path": "/home/levi/src/hive-receipt-retention"
+    },
+    {
+      "branch": "refs/heads/engine/actor-display-staging-20260922",
+      "head": "3c8b43ac4c05c17e1062bee8a9507e1b53361662",
+      "path": "/home/levi/src/hive-worktrees/actor-display-staging-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/actor-retention-20260921",
+      "head": "8803712e508d38e9ca60ae7140a5e4adef4ce4df",
+      "path": "/home/levi/src/hive-worktrees/actor-retention-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/actual-face-picking-20260921",
+      "head": "8215f7e8d5f535e870d66babdc9dfc50262e7e79",
+      "path": "/home/levi/src/hive-worktrees/actual-face-picking-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/air-capture-locality-20260923",
+      "head": "813dd24e474309ab669497920c3655d72bfa6750",
+      "path": "/home/levi/src/hive-worktrees/air-capture-locality-20260923"
+    },
+    {
+      "branch": "refs/heads/fix/air-records-20260923",
+      "head": "c3eb94984b260a4306452a6f8eb96097a59fe8e5",
+      "path": "/home/levi/src/hive-worktrees/air-records-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/assignment-bridge-cleanup-20260916",
+      "head": "983670932ef3b859d7a62e859d398a1e90393f81",
+      "path": "/home/levi/src/hive-worktrees/assignment-bridge-cleanup"
+    },
+    {
+      "branch": "refs/heads/engine/baked-depth-export-20260917",
+      "head": "6b45999054e062391093ea0bf80661af12854ee3",
+      "path": "/home/levi/src/hive-worktrees/baked-depth-export-20260917"
+    },
+    {
+      "branch": "refs/heads/engine/bounded-navigation-20260923",
+      "head": "37487cfee1b7342364ef162456f5dd83bd9d8546",
+      "path": "/home/levi/src/hive-worktrees/bounded-navigation-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/camera-hosted-proof-20260920",
+      "head": "39bf7e912178ea631fe58a1408e39d7096109043",
+      "path": "/home/levi/src/hive-worktrees/camera-hosted-proof-20260920"
+    },
+    {
+      "branch": "refs/heads/engine/camera-terrain-surfaces-20260921",
+      "head": "4a61fc6dd9548f9e1a81ea66876ada184b38cb32",
+      "path": "/home/levi/src/hive-worktrees/camera-terrain-surfaces-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/canonical-record-churn-20260923",
+      "head": "b710f20774a13a730a11f22db781948f3bd94a6d",
+      "path": "/home/levi/src/hive-worktrees/canonical-record-churn-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/clearing-edge-integration-20260914",
+      "head": "3f884ff43e088d4b7b3a3e2978215810d8c8a68b",
+      "path": "/home/levi/src/hive-worktrees/clearing-edge-integration"
+    },
+    {
+      "branch": "refs/heads/engine/client-startup-overlap-20260922",
+      "head": "fe1fa71447cd7925a0679ffbc9f5640bab3230cf",
+      "path": "/home/levi/src/hive-worktrees/client-startup-overlap-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/client-terrain-regions-20260921",
+      "head": "d49e5b4c28edeb27bbdf4dc4feb330ededfddc67",
+      "path": "/home/levi/src/hive-worktrees/client-terrain-regions-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/coplanar-membership-order-20260921",
+      "head": "a21e152a6beb615cd53c51df31b60eb3659343f6",
+      "path": "/home/levi/src/hive-worktrees/coplanar-membership-order-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/cut-layer-staging-20260922",
+      "head": "7fa61ce6e57d7ec5296051d89e3b0944f81e1e35",
+      "path": "/home/levi/src/hive-worktrees/cut-layer-staging-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/cut-terrain-join-20260916",
+      "head": "48cb9153cccdcc78ff320aed9aa88970eb9937c7",
+      "path": "/home/levi/src/hive-worktrees/cut-terrain-join"
+    },
+    {
+      "branch": "refs/heads/engine/cut-terrain-r1-20260916",
+      "head": "11b78e61c2904fbf49fc8bfaef975fbac83a1895",
+      "path": "/home/levi/src/hive-worktrees/cut-terrain-r1"
+    },
+    {
+      "branch": "refs/heads/engine/cut-terrain-r2-20260916",
+      "head": "ab58fefdec4faeca6521bc3b98b9826cc1a03e19",
+      "path": "/home/levi/src/hive-worktrees/cut-terrain-r2"
+    },
+    {
+      "branch": "refs/heads/engine/disposable-candidate-fast-path-20260923",
+      "head": "3f3312c65a1c1e99282ad834d8082cca104d4554",
+      "path": "/home/levi/src/hive-worktrees/disposable-candidate-fast-path-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/do-terminal-fault-20260923",
+      "head": "66a023db065683f4fead127b59dc8d61dbba5eed",
+      "path": "/home/levi/src/hive-worktrees/do-framework-driver-20260923"
+    },
+    {
+      "head": "7f3fbb47fa7f719f4610d8943b70c29cee49cf34",
+      "path": "/home/levi/src/hive-worktrees/do-record-baseline-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/do-wake-publication-20260923",
+      "head": "503cb31dcae230bc88cb96f3adae50fcc781e63c",
+      "path": "/home/levi/src/hive-worktrees/do-wake-publication-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/draw-record-extraction-20260917",
+      "head": "984a361123235bbe32491b78d38e81e8200d2d83",
+      "path": "/home/levi/src/hive-worktrees/draw-record-extraction"
+    },
+    {
+      "branch": "refs/heads/engine/event-driven-scheduler-audit-20260923",
+      "head": "8ba4ac3b58fb641c0684989a0fbf26863d45b23d",
+      "path": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/framework-controller-reuse-20260923",
+      "head": "eb811ccfe3ac553c7ff3c45c9f7f5f82821f1456",
+      "path": "/home/levi/src/hive-worktrees/framework-controller-reuse-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/framework-host-lease-20260923",
+      "head": "dc207c21962f62038305a66bfe96e94bdf7d6b05",
+      "path": "/home/levi/src/hive-worktrees/framework-host-lease-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/framework-pack-reuse-20260923",
+      "head": "7378fccb65f99c55177442f2d0069658f1288770",
+      "path": "/home/levi/src/hive-worktrees/framework-pack-reuse-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/framework-reuse-witness-20260923",
+      "head": "1ce7aaa868f2fb85b5ddd43b228429eeb453136f",
+      "path": "/home/levi/src/hive-worktrees/framework-reuse-witness-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/framework-visual-projection-20260923",
+      "head": "de0aa815b60cc95ebc8febfbe3975902a953f6c0",
+      "path": "/home/levi/src/hive-worktrees/framework-visual-projection-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/framework-workload-proof-20260923",
+      "head": "fc69775f6f9ee2f0b376351e38e3aae3f89ace4c",
+      "path": "/home/levi/src/hive-worktrees/framework-workload-proof-20260923"
+    },
+    {
+      "branch": "refs/heads/framework-workload-v2-20260923",
+      "head": "28cd75e3d2b4fee64d5288c93513052f6f884e91",
+      "path": "/home/levi/src/hive-worktrees/framework-workload-v2-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/gas-performance-r3-20260916",
+      "head": "d38a9973c4c16bdac3c11227401c481e6dc658b7",
+      "path": "/home/levi/src/hive-worktrees/gas-performance-r3"
+    },
+    {
+      "branch": "refs/heads/engine/ground-item-presentation-20260916",
+      "head": "0f65a992c059cfe76124726558de133d76db48b8",
+      "path": "/home/levi/src/hive-worktrees/ground-item-presentation"
+    },
+    {
+      "branch": "refs/heads/engine/host-cadence-owner-20260923",
+      "head": "ec4013547d5f9654adc14e2d5b76e57fa9fa96fa",
+      "path": "/home/levi/src/hive-worktrees/host-cadence-owner-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/immutable-order-signatures-20260921",
+      "head": "0d46adfbb073b9f89a3af6bedc311d28f35e225b",
+      "path": "/home/levi/src/hive-worktrees/immutable-order-signatures-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/lawful-floor-stockpile-20260915",
+      "head": "407d169d14146b34b7a99a5a49fceea1f2079875",
+      "path": "/home/levi/src/hive-worktrees/lawful-floor-stockpile"
+    },
+    {
+      "branch": "refs/heads/engine/living-terrain-integration-20260917",
+      "head": "4184ab859aae4b492a85821b68ed1c4f08864cb4",
+      "path": "/home/levi/src/hive-worktrees/living-terrain-integration"
+    },
+    {
+      "branch": "refs/heads/engine/mixed-fixture-real-art-20260917",
+      "head": "ea729a89ae37ee9555e2c85cf4980d108c5c6beb",
+      "path": "/home/levi/src/hive-worktrees/mixed-fixture-real-art"
+    },
+    {
+      "branch": "refs/heads/engine/native-job-task-core-current-20260915",
+      "head": "f1096d488eba43cd38c74f0f8de8ac8a52382a1c",
+      "path": "/home/levi/src/hive-worktrees/native-job-task-core-current"
+    },
+    {
+      "branch": "refs/heads/engine/navigation-productivity-20260923",
+      "head": "8014934497a240c59d7271f353978c758fa6822f",
+      "path": "/home/levi/src/hive-worktrees/navigation-productivity-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/prepared-terrain-culling-20260921",
+      "head": "2683edde0bc455870c603a31e84880fd65180407",
+      "path": "/home/levi/src/hive-worktrees/prepared-terrain-culling-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/principal-scope-tests-20260916",
+      "head": "8f0e6794420bfc4751b97f5e4d24b79350b8755b",
+      "path": "/home/levi/src/hive-worktrees/principal-scope-tests"
+    },
+    {
+      "branch": "refs/heads/engine/production-voxel-cutover-20260917",
+      "head": "bcc1b0ba4c1e53eedc0bd5fe79a55e470a436c1f",
+      "path": "/home/levi/src/hive-worktrees/production-voxel-cutover"
+    },
+    {
+      "branch": "refs/heads/engine/publication-cost-owner-20260923",
+      "head": "196cd7f4cfb4358b5f76a6f05ffce91cca41f8c4",
+      "path": "/home/levi/src/hive-worktrees/publication-cost-owner-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/publication-owner-20260923",
+      "head": "3f18b65cdad7f0a2a88f9af60b3bf37faf13e7e0",
+      "path": "/home/levi/src/hive-worktrees/publication-owner-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/real-render-fixture-20260917",
+      "head": "482585a1404a5182f1c81387a65b2a9c7aa3b2d3",
+      "path": "/home/levi/src/hive-worktrees/real-render-fixture"
+    },
+    {
+      "branch": "refs/heads/engine/record-encoding-owner-20260923",
+      "head": "c6b0c84e4e2dc52d1b35cfab0b27953e2951603a",
+      "path": "/home/levi/src/hive-worktrees/record-encoding-owner-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/record-residual-locality-20260923",
+      "head": "653968226c723b0f79ca581a59bdc7b48b592062",
+      "path": "/home/levi/src/hive-worktrees/record-residual-locality-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/region-performance-diagnostics-20260921",
+      "head": "8bb18609ca103e65d6b9704e7daa7530dee9efeb",
+      "path": "/home/levi/src/hive-worktrees/region-performance-diagnostics-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/region-record-cursor-20260923",
+      "head": "5dff7005b99acd197b19db5d77ff9cd7c7db7c09",
+      "path": "/home/levi/src/hive-worktrees/region-record-cursor-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/replay-consumer-adoption-20260923",
+      "head": "37d950f12398155cc8c421f844827dba82cf9da5",
+      "path": "/home/levi/src/hive-worktrees/replay-consumer-adoption-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/retained-assignment-20260923",
+      "head": "d98ce130026824beeecfea9760d72dc5404b2e45",
+      "path": "/home/levi/src/hive-worktrees/retained-assignment-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/retained-voxel-stream-20260917",
+      "head": "f7f23468340da1da4386aaa6f5010693556ef3f9",
+      "path": "/home/levi/src/hive-worktrees/retained-voxel-stream"
+    },
+    {
+      "branch": "refs/heads/engine/reuse-witness-owner-20260923",
+      "head": "8171052c986609347cd6d22a6588aa2dd043d0e8",
+      "path": "/home/levi/src/hive-worktrees/reuse-witness-owner-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/server-record-capture-20260923",
+      "head": "078d96fc61d1d066a5bcc89c927a0f032171d82c",
+      "path": "/home/levi/src/hive-worktrees/server-record-capture-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/spatial-art-integration-20260920",
+      "head": "abb6328554ade0dd593012ebe410e4f0ae42494d",
+      "path": "/home/levi/src/hive-worktrees/spatial-art-integration-20260920"
+    },
+    {
+      "branch": "refs/heads/engine/spatial-consumers-20260920",
+      "head": "13a328029a1d1df901833efcc81489539c48d9dc",
+      "path": "/home/levi/src/hive-worktrees/spatial-consumers-20260920"
+    },
+    {
+      "branch": "refs/heads/engine/spatial-owner-integration-20260920",
+      "head": "5ea78f671fd043bb1ab834c4c065b11c6ec7e15f",
+      "path": "/home/levi/src/hive-worktrees/spatial-owner-integration-20260920"
+    },
+    {
+      "branch": "refs/heads/engine/stable-record-owner-20260923",
+      "head": "dda9ad208c4828423b33887dd69d3f5312c820b8",
+      "path": "/home/levi/src/hive-worktrees/stable-record-owner-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/state-accounting-owner-20260923",
+      "head": "b1b6180b6fdd78d71ee8cc8363cf8ec7eb9c6011",
+      "path": "/home/levi/src/hive-worktrees/state-accounting-owner-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/structural-order-core-20260922",
+      "head": "612537c90ce94bca383ba334c4c95d0ddf941191",
+      "path": "/home/levi/src/hive-worktrees/structural-order-core-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/sustained-productivity-20260923",
+      "head": "730a1e8f9872b753c8f76161c8fa729d8bb41ad9",
+      "path": "/home/levi/src/hive-worktrees/sustained-productivity-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-alpha-trim-20260921",
+      "head": "4a9e2f1d3be39f2e6efd37b9d41cb3e003fbd1ca",
+      "path": "/home/levi/src/hive-worktrees/terrain-alpha-trim-20260921"
+    },
+    {
+      "branch": "refs/heads/art/terrain-cover-20260917",
+      "head": "1621fcfa23501cbdc0bff9bd30caf7f1ace9ce0f",
+      "path": "/home/levi/src/hive-worktrees/terrain-cover-art"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-loading-proof-20260920",
+      "head": "c829f3fa22a5041d504ef2bcfb7d0de373169032",
+      "path": "/home/levi/src/hive-worktrees/terrain-loading-proof-20260920"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-material-batch768-20260921",
+      "head": "bf8de50f87fafeb636d5f748ad2606dde0ae1dd4",
+      "path": "/home/levi/src/hive-worktrees/terrain-material-batch768-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-material-residency-20260922",
+      "head": "e8bd1c3d22a9b9482afa9de1ab989e710f2660ce",
+      "path": "/home/levi/src/hive-worktrees/terrain-material-residency-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-mesh-pool-20260921",
+      "head": "5a4f1e0630a71f11226ad4801c6d2ea6fed89741",
+      "path": "/home/levi/src/hive-worktrees/terrain-mesh-pool-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-mesh-staging-20260922",
+      "head": "7df34fd17f2e1f07747f34225eea2f775f983b56",
+      "path": "/home/levi/src/hive-worktrees/terrain-mesh-staging-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-picture-retention-20260922",
+      "head": "906d3cee105e52ac87585bbc5de39722b2a2e559",
+      "path": "/home/levi/src/hive-worktrees/terrain-picture-retention-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-region-flow-20260921",
+      "head": "38b2811ac07aaa7760ac75a2a993153a6a57abda",
+      "path": "/home/levi/src/hive-worktrees/terrain-region-flow-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-region-runtime-20260921",
+      "head": "94c9ca7a3c033215e1ba676fb7fb4b3c700f5d2f",
+      "path": "/home/levi/src/hive-worktrees/terrain-region-runtime-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-region-wire-tests-20260921",
+      "head": "11534762bbacc66685b2113b4987c46effb63294",
+      "path": "/home/levi/src/hive-worktrees/terrain-region-wire-tests-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/terrain-retention-20260919",
+      "head": "09d5ed631ee8b79e97575897e0c2d6b4f82787d6",
+      "path": "/home/levi/src/hive-worktrees/terrain-retention-20260919"
+    },
+    {
+      "branch": "refs/heads/engine/three-depth-study-20260920",
+      "head": "9c24f0b5fb18875817dcac766e909ae436c534c9",
+      "path": "/home/levi/src/hive-worktrees/three-depth-study-20260920"
+    },
+    {
+      "branch": "refs/heads/engine/upright-study-fixtures-20260921",
+      "head": "7702f52b1ca964d7b9b6716a84949c9290f8e9d5",
+      "path": "/home/levi/src/hive-worktrees/upright-study-fixtures-20260921"
+    },
+    {
+      "branch": "refs/heads/engine/voxel-draw-compiler-20260917",
+      "head": "73a7ea4ebb3ee10b4d24dacbfaaff2fddcbf2420",
+      "path": "/home/levi/src/hive-worktrees/voxel-draw-compiler"
+    },
+    {
+      "branch": "refs/heads/engine/voxel-stream-visual-proof-20260917",
+      "head": "8cb5de89f08d79e32139a912044829732a16e8e2",
+      "path": "/home/levi/src/hive-worktrees/voxel-stream-visual-proof"
+    },
+    {
+      "branch": "refs/heads/fix/water-delivery-recovery-20260923",
+      "head": "d0bd7526eb2adc567baae0630375730ddac27e2a",
+      "path": "/home/levi/src/hive-worktrees/water-delivery-recovery-20260923"
+    },
+    {
+      "branch": "refs/heads/fix/water-recovery-20260923",
+      "head": "7174030f81ba77d37c2c63ec0a88b76d52c5e345",
+      "path": "/home/levi/src/hive-worktrees/water-recovery-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/workload-gate-owner-20260923",
+      "head": "b10e197fc9bd857b2e6ff8c52f2c23abd3b6f6e6",
+      "path": "/home/levi/src/hive-worktrees/workload-gate-owner-20260923"
+    },
+    {
+      "branch": "refs/heads/engine/world-view-browser-proof-20260922",
+      "head": "8f89bd3b5502403422540d2f3c24a8a141e27dbd",
+      "path": "/home/levi/src/hive-worktrees/world-view-browser-proof-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/world-view-geometry-20260922",
+      "head": "171a346caf3806fd5b7bf858edcd9a8eff2959e0",
+      "path": "/home/levi/src/hive-worktrees/world-view-geometry-20260922"
+    },
+    {
+      "branch": "refs/heads/engine/world-view-repair-20260922",
+      "head": "0499db85e806774a7ca109999e315b96b58b60a5",
+      "path": "/home/levi/src/hive-worktrees/world-view-repair-20260922"
+    }
+  ]
+}
