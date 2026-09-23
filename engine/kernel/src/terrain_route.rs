@@ -160,6 +160,23 @@ pub fn search_any_with_blocked_and_stairs_and_crossings(
         .ok_or_else(|| SEARCH_PENDING.into())
 }
 
+/// Intersect supported edge envelopes with the bounded topology journal.
+/// Ordered column ranges avoid a path-length times changed-column cross product.
+/// An impossible saved edge is conservatively sent through full validation.
+pub(crate) fn intersects_columns(path: &[Cell], columns: &[[i64; 2]]) -> bool {
+    let columns = columns.iter().map(|[x, z]| (*x, *z)).collect::<BTreeSet<_>>();
+    if path.first().is_some_and(|cell| columns.contains(&(cell.x, cell.z))) { return true; }
+    path.windows(2).any(|pair| {
+        let min_x = pair[0].x.min(pair[1].x);
+        let max_x = pair[0].x.max(pair[1].x);
+        let min_z = pair[0].z.min(pair[1].z);
+        let max_z = pair[0].z.max(pair[1].z);
+        // Cardinal edges have width one; StairEdge.run is an admitted u8.
+        if i128::from(max_x) - i128::from(min_x) > i128::from(u8::MAX) { return true; }
+        (min_x..=max_x).any(|x| columns.range((x, min_z)..=(x, max_z)).next().is_some())
+    })
+}
+
 pub(crate) const SEARCH_EXPANSIONS: usize = 4096;
 pub(crate) const SEARCH_PENDING: &str = "terrain route exceeds local search budget";
 const MAX_SEARCH_NODES: usize = 32_768;
@@ -225,6 +242,10 @@ impl SearchBank {
     fn mark_changed(&mut self, id: String) {
         self.change_clock = self.change_clock.checked_add(1).expect("route search journal exhausted");
         self.changed.insert(id, self.change_clock);
+    }
+    pub(crate) fn cancel_actor(&mut self, actor: &str) {
+        let cancelled = self.entries.iter().filter(|(_, request)| request.actor == actor).map(|(id, _)| id.clone()).collect::<Vec<_>>();
+        for id in cancelled { self.entries.remove(&id); self.mark_changed(id); }
     }
     pub(crate) fn acknowledge(&mut self, captured: &BTreeMap<String, u64>) {
         self.changed.retain(|id, generation| captured.get(id) != Some(generation));
@@ -330,7 +351,9 @@ impl RouteSearch {
     }
     pub(crate) fn validate(&self, spacing: [f64; 3]) -> Result<(), &'static str> {
         if self.nodes.is_empty() || self.nodes.len() > MAX_SEARCH_NODES || self.goals.is_empty() || self.goals.len() > 32
-            || self.nodes.first() != Some(&(self.start, 0, None)) || self.frontier.len() > self.nodes.len() {
+            || self.nodes.first() != Some(&(self.start, 0, None)) || self.frontier.is_empty() || self.frontier.len() > self.nodes.len()
+            || self.goals.iter().any(|(_, index)| *index >= 32)
+            || self.goals.windows(2).any(|pair| pair[0].0 >= pair[1].0) {
             return Err("invalid retained route search bounds");
         }
         let mut seen = BTreeSet::new();

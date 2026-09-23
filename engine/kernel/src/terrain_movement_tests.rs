@@ -154,7 +154,13 @@ fn terrain_kernel_route_preparation_does_not_install_work() {
     let prepared = kernel.route_for(actor,pose,&target).unwrap();
     assert!(!prepared.points.is_empty());
     assert!(prepared.terrain.is_some());
-    assert_eq!(kernel.snapshot_entities_json().unwrap(),before);
+    let mut before: serde_json::Value = serde_json::from_str(&before).unwrap();
+    let mut after: serde_json::Value = serde_json::from_str(&kernel.snapshot_entities_json().unwrap()).unwrap();
+    // Preparation may advance durable computation, but cannot install physical
+    // work, claims, movement or intent before its caller accepts the witness.
+    before["planner"].as_object_mut().unwrap().remove("routeSearches");
+    after["planner"].as_object_mut().unwrap().remove("routeSearches");
+    assert_eq!(after, before);
     assert!(!kernel.terrain_routes.contains_key(&actor));
 }
 
@@ -284,4 +290,91 @@ fn terrain_kernel_mid_segment_return_join_uses_waypoint_cursor() {
     assert!(path.len() >= 4, "return retarget must retain the revisited support history");
     assert!(path.iter().enumerate().any(|(index, cell)| path[..index].contains(cell)),
         "the joined route should retain its revisited support history");
+}
+
+#[test]
+fn exhausted_move_is_accepted_and_resumes_after_recovery_without_resending() {
+    let (mut kernel, target) = climbing_world();
+    kernel.planner.route_searches.occurrence = Some(kernel.revision + 1);
+    kernel.planner.route_searches.spent = crate::terrain_route::SEARCH_EXPANSIONS;
+    let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
+        "delta": 0.0, "writes": [], "actions": [{"scope":{"kind":"host"},"request":{
+            "kind":"move","entity":"walker","destination":target
+        }}]
+    }).to_string()).unwrap()).unwrap();
+    assert_eq!(response["results"][0]["accepted"], true);
+    let actor = kernel.entity("walker").unwrap();
+    assert!(kernel.terrain_routes[&actor].pending);
+    assert!(kernel.ecs.get::<Destination>(actor).is_some());
+    let position = *kernel.ecs.get::<Position>(actor).unwrap();
+    let mut recovered = Kernel::new();
+    recovered.restore_records(&kernel.save_records().unwrap()).unwrap();
+    recovered.advance_json(r#"{"delta":0.0,"writes":[],"actions":[]}"#).unwrap();
+    let actor = recovered.entity("walker").unwrap();
+    assert!(!recovered.terrain_routes[&actor].pending);
+    assert_eq!(*recovered.ecs.get::<Position>(actor).unwrap(), position);
+    for _ in 0..20 { recovered.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap(); }
+    let reached = recovered.ecs.get::<Position>(actor).unwrap();
+    assert_eq!((reached.x, reached.y, reached.z), (target.x, target.y, target.z));
+    assert!(recovered.ecs.get::<Destination>(actor).is_none());
+}
+
+#[test]
+fn topology_intersection_is_charged_before_geometry_validation() {
+    let (mut kernel, target) = climbing_world();
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
+        "kind":"move","entity":"walker","destination":target
+    }}]}).to_string()).unwrap();
+    let actor = kernel.entity("walker").unwrap();
+    let world = &mut kernel.environment.as_mut().unwrap().world;
+    let distant = world.surface_cells(&[(7, 7)]).unwrap()[0].as_ref().unwrap().cell;
+    let material = world.material(distant).unwrap();
+    let crate::terrain_water::ExcavationResult::Prepared(change) = world.prepare_excavation(distant, material, 0).unwrap() else { panic!("distant excavation must prepare") };
+    world.apply_excavation(change).unwrap();
+    let revision = world.terrain_revision();
+    let prior = kernel.terrain_routes[&actor].revision;
+    kernel.invalidate_terrain_routes_bounded(0).unwrap();
+    assert_eq!(kernel.terrain_routes[&actor].revision, prior, "even a disjoint intersection scan needs allowance");
+    kernel.invalidate_terrain_routes_bounded(1).unwrap();
+    assert_eq!(kernel.terrain_routes[&actor].revision, Some(revision));
+    assert!(!kernel.terrain_routes[&actor].waiting);
+
+    let endpoint = *kernel.terrain_routes[&actor].path.last().unwrap();
+    let world = &mut kernel.environment.as_mut().unwrap().world;
+    let material = world.material(endpoint).unwrap();
+    let crate::terrain_water::ExcavationResult::Prepared(change) = world.prepare_excavation(endpoint, material, 0).unwrap() else { panic!("route endpoint excavation must prepare") };
+    world.apply_excavation(change).unwrap();
+    kernel.invalidate_terrain_routes_bounded(0).unwrap();
+    assert_eq!(kernel.terrain_routes[&actor].revision, Some(revision), "intersecting route must await an actual validation slice");
+}
+
+#[test]
+fn topology_revalidation_checks_only_the_admitted_number_of_routes() {
+    let (mut kernel, target) = climbing_world();
+    let walker = kernel.entity("walker").unwrap();
+    let position = *kernel.ecs.get::<Position>(walker).unwrap();
+    for n in 0..11 {
+        let id = format!("bounded-{n:02}");
+        let entity = kernel.ecs.spawn((ExternalId(id.clone()), position, Body { speed: 1.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 })).id();
+        kernel.ids.insert(id, entity);
+        let route = kernel.route_for(entity, position, &target).unwrap();
+        kernel.ecs.entity_mut(entity).insert(Destination { x: target.x, y: target.y, z: target.z, facing: 0.0, frame: None });
+        kernel.install_route(entity, route);
+        kernel.terrain_routes.get_mut(&entity).unwrap().revision = None;
+    }
+    kernel.invalidate_terrain_routes_bounded(3).unwrap();
+    assert_eq!(kernel.terrain_routes.values().filter(|state| state.revision.is_some()).count(), 3);
+    kernel.refresh_state_weight();
+    let mut recovered = Kernel::new();
+    recovered.restore_records(&kernel.save_records().unwrap()).unwrap();
+    assert_eq!(recovered.terrain_routes.values().filter(|state| state.revision.is_some()).count(), 3,
+        "restoring witnesses must not advance the route-review sweep");
+    recovered.invalidate_terrain_routes_bounded(3).unwrap();
+    kernel.invalidate_terrain_routes_bounded(3).unwrap();
+    assert_eq!(recovered.snapshot_entities_json().unwrap(), kernel.snapshot_entities_json().unwrap());
+    assert_eq!(kernel.terrain_routes.values().filter(|state| state.revision.is_some()).count(), 6);
+    for n in 0..6 {
+        let entity = kernel.entity(&format!("bounded-{n:02}")).unwrap();
+        assert!(kernel.terrain_routes[&entity].revision.is_some(), "stable external IDs own validation order");
+    }
 }
