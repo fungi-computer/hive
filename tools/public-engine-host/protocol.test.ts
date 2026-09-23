@@ -113,7 +113,9 @@ test("performance routes admit only finite presets and existing authenticated op
   assert.equal(identities.size, 28, "presets retain distinct durable pack identities");
   for (const operation of ["observe", "command", "connect", "socket/abc-123", "placement"])
     assert.equal(packFromPath(`/v1/colony-framework-proof-256-100-v1/${operation}`), "colony-framework-proof-256-100-v1");
-  for (const pack of ["colony-performance-63-4", "colony-performance-64-3", "colony-performance-064-4", "colony-performance-64-04", "colony-performance-512-201", "colony-performance-64-4-extra", "colony-framework-proof-256-100-v2"])
+  for (const operation of ["observe", "command", "connect", "socket/abc-123", "placement"])
+    assert.equal(packFromPath(`/v1/colony-framework-proof-256-100-v2/${operation}`), "colony-framework-proof-256-100-v2");
+  for (const pack of ["colony-performance-63-4", "colony-performance-64-3", "colony-performance-064-4", "colony-performance-64-04", "colony-performance-512-201", "colony-performance-64-4-extra", "colony-framework-proof-256-100-v3"])
     assert.equal(packFromPath(`/v1/${pack}/observe`), null);
   for (const operation of ["step", "join", "debug", "terrain", "terrain/extra", "socket/", "socket/a/b"])
     assert.equal(packFromPath(`/v1/colony-performance-64-4/${operation}`), null);

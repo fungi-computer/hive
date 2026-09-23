@@ -12,8 +12,8 @@ import { terrainWireForRevision } from "../../engine/src/runtime/terrain-wire";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
 import { colonyServerPack } from "../../engine/src/games/colony";
-import { createColonyFrameworkProofPack, createColonyPerformancePack } from "../../engine/src/games/colony-performance";
-import { colonyFrameworkProofGameId, parseColonyPerformanceGameId } from "../../engine/src/games/colony-performance-config";
+import { createColonyFrameworkProofPack, createColonyFrameworkProofV2Pack, createColonyPerformancePack } from "../../engine/src/games/colony-performance";
+import { colonyFrameworkProofGameId, colonyFrameworkProofV2GameId, parseColonyPerformanceGameId } from "../../engine/src/games/colony-performance-config";
 import { formationsPack } from "../../engine/src/games/formations";
 import { piratesPack } from "../../engine/src/games/pirates";
 import { survivalPack } from "../../engine/src/games/survival";
@@ -101,6 +101,7 @@ const RECORD_PAGE_SIZE = 40;
 
 function packFor(pack: PublicPack) {
   if (pack === colonyFrameworkProofGameId) return createColonyFrameworkProofPack();
+  if (pack === colonyFrameworkProofV2GameId) return createColonyFrameworkProofV2Pack();
   const preset = parseColonyPerformanceGameId(pack);
   if (preset) return createColonyPerformancePack(preset.size, preset.workers);
   switch (pack) {
@@ -308,7 +309,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     tokenHash: string,
   ): Promise<void> {
     const game = packFor(pack);
-    this.proofLedger = pack === colonyFrameworkProofGameId
+    this.proofLedger = pack === colonyFrameworkProofGameId || pack === colonyFrameworkProofV2GameId
       ? createFrameworkCostLedger(this.hostEnv.IMPLEMENTATION_HASH) : undefined;
     if (pack === "colony") this.owner.transactionSync(() => {
       this.owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_public_participants (
@@ -326,7 +327,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       implementationHash: this.hostEnv.IMPLEMENTATION_HASH,
       ownerPrincipal: playerPrincipal,
       hostPrincipal,
-      clockControllerPrincipals: parseColonyPerformanceGameId(pack) || pack === colonyFrameworkProofGameId ? [playerPrincipal] : [],
+      clockControllerPrincipals: parseColonyPerformanceGameId(pack) || pack === colonyFrameworkProofGameId || pack === colonyFrameworkProofV2GameId ? [playerPrincipal] : [],
       seed: 17,
       scopeForPrincipal: (principal) => {
         if (principal === hostPrincipal) return { kind: "host" };
