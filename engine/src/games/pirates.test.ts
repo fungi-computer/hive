@@ -12,7 +12,8 @@ import {
 } from "./pirates";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
-import { MaterialLot, Position } from "../sdk/common";
+import { MaterialLot } from "../sdk/common";
+import { WorkParticipation } from "../sdk/work-control";
 import { query } from "../sdk/authoring";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -85,33 +86,55 @@ test("pirate crew route stays on the ship frame and rejects mixed-frame movement
   }
 });
 
-test("pirate cargo stays finite through delivery and save reload", () => {
-  const port = wasmKernelPort(new WasmKernel());
-  const restoredPort = wasmKernelPort(new WasmKernel());
-  try {
-    const session = new GameSession({ port, pack: piratesPack });
-    session.start();
-    session.command("loadCargo", { entities: [crewOneId, crewTwoId] });
-    for (let tick = 0; tick < 100; tick++) session.step(0.1);
-    const lots = session
-      .query(query(MaterialLot))
-      .map((row) => row.get(MaterialLot));
-    assert.equal(
-      lots.reduce((sum, lot) => sum + lot.quantity, 0),
-      7,
-    );
-    assert.ok(lots.some((lot) => lot.container === holdId));
-    const saved = session.save();
-    const restored = new GameSession({ port: restoredPort, pack: piratesPack });
-    restored.restore(saved);
-    assert.deepEqual(restored.save(), saved);
-    assert.equal(restored.query(query(Position)).length, 6);
-  } finally {
-    port.dispose();
-    restoredPort.dispose();
+test("pirate cargo uses shared hauling through translated/rotated frames and in-flight recovery", () => {
+  for (const facing of [0, 1, 2, 3]) {
+    const port = wasmKernelPort(new WasmKernel());
+    const restoredPort = wasmKernelPort(new WasmKernel());
+    try {
+      let session = new GameSession({ port, pack: piratesPack });
+      session.start();
+      session.command("move", { entities: [shipId], destination: { x: 5, y: 0, z: -2, frame: null } });
+      for (let tick = 0; tick < 50; tick++) session.step(0.1);
+      session.command("turnShip", { facing }); session.step(0);
+      session.command("loadCargo", { entities: [crewOneId, crewTwoId] });
+      let recoveredInFlight = false;
+      for (let tick = 0; tick < 160; tick++) {
+        session.step(0.1);
+        const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
+        assert.equal(lots.reduce((sum, lot) => sum + lot.quantity, 0), 7);
+        if (!recoveredInFlight && lots.some(lot => lot.container === crewOneId || lot.container === crewTwoId)) {
+          const saved = session.save();
+          session = new GameSession({ port: restoredPort, pack: piratesPack });
+          session.restore(saved);
+          assert.deepEqual(session.save(), saved);
+          recoveredInFlight = true;
+        }
+        if (lots.filter(lot => lot.container === holdId).reduce((sum, lot) => sum + lot.quantity, 0) === 2) break;
+      }
+      assert(recoveredInFlight, `heading ${facing} never picked up cargo`);
+      const cargo = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
+      assert.equal(cargo.filter(lot => lot.container === holdId).reduce((sum, lot) => sum + lot.quantity, 0), 2);
+      assert.equal(cargo.reduce((sum, lot) => sum + lot.quantity, 0), 7);
+      session.restore(session.save());
+      for (let tick = 0; tick < 20; tick++) session.step(0.1);
+      assert.equal(session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).container === holdId).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 2, "terminal completion cannot repeat after recovery");
+    } finally { port.dispose(); restoredPort.dispose(); }
   }
 });
 
+test("Pirates commands require the owning player party, including authored work participation", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  const session = new GameSession({ port, pack: piratesPack });
+  try {
+    session.start();
+    for (const [name, input] of [
+      ["loadCargo", { entities: [crewOneId] }],
+      ["turnShip", { facing: 2 }],
+      ["move", { entities: [shipId], destination: { x: 2, y: 0, z: 0, frame: null } }],
+    ] as const) assert.throws(() => session.command(name, input, { kind: "player", player: "outsider" }), /party control/);
+    assert(session.query(query(WorkParticipation)).every(row => !row.get(WorkParticipation).automatic));
+  } finally { port.dispose(); }
+});
 
 test("pirate facing controls rotate the supported crew through all four headings", () => {
   const port = wasmKernelPort(new WasmKernel());

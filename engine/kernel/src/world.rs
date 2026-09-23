@@ -26,6 +26,8 @@ mod access_roles;
 mod structure_contact;
 #[path = "interaction_contact.rs"]
 mod interaction_contact;
+#[path = "surface_contacts.rs"]
+mod surface_contacts;
 #[cfg(test)]
 #[path = "aperture_tests.rs"]
 mod aperture_tests;
@@ -4066,6 +4068,9 @@ impl Kernel {
         let container_frame = if self.ecs.get::<Position>(container).is_none() && self.ecs.get::<ConstructionSite>(container).is_some() { None } else { self.contact_frame(container).map_err(TransferContactError::from)? };
         if required_frame.is_some() && container_frame != required_frame { return Err(TransferContactError::UnavailableFrame); }
         let frame = required_frame.or(container_frame);
+        if let Some(frame) = frame.as_deref() {
+            return self.supported_transfer_contacts(container, frame);
+        }
         let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
         let terrain_points = |center: crate::generation::Cell| -> Result<Vec<[f64; 3]>> {
             let mut points = Vec::new();
@@ -4893,11 +4898,10 @@ impl Kernel {
         self.advance_staged_processes(batch.delta)?;
         self.advance_resource_work(batch.delta)?;
         self.advance_job_transform_work(batch.delta)?;
-        // Headless record tests may exercise durable commands before an
-        // environment is attached. Automatic route planning has no lawful
-        // geometry owner in that state, so leave the planner dormant until
-        // load_environment installs one.
-        if self.environment.is_some() {
+        // Terrain and authored support surfaces are both lawful geometry
+        // owners. The physical index contains each validated surface frame;
+        // detached record fixtures with neither geometry remain dormant.
+        if self.environment.is_some() || self.blocked_by_frame.keys().any(Option::is_some) {
             self.advance_native_work_planner(self.revision)?;
         }
         self.cleanup_empty_ground_stock();

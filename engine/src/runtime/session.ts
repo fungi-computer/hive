@@ -7,7 +7,7 @@ import {
   checkedCueSnapshot,
   type CueSnapshot,
 } from "./presentation-cues";
-import { isReservedComponent } from "../contracts";
+import { isNativeComponentSchema, isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
 import { readKernelEntities, type KernelRecordSnapshot, type KernelRecordCaptureResult } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
@@ -1259,7 +1259,6 @@ export class GameSession {
       throw new Error("snapshot world does not match session");
     const schema = (items: { id: string; version: number; fields: object }[]) =>
       items
-        .filter((item) => !isReservedComponent(item.id))
         .map((item) =>
           JSON.stringify([
             item.id,
@@ -1269,7 +1268,12 @@ export class GameSession {
         )
         .sort()
         .join("\n");
-    if (schema(canonical.scene.components) !== schema(definition.components))
+    // Native registration supplies optional built-ins to every world. Their
+    // presence is not a game dependency; declared versions still match exactly.
+    const declaredSchemas = new Set(definition.components.map((item: { id: string }) => item.id));
+    const attachedSchemas = canonical.scene.components.filter((item) =>
+      !isNativeComponentSchema(item.id) || declaredSchemas.has(item.id));
+    if (schema(attachedSchemas) !== schema(definition.components))
       throw new Error("snapshot component versions do not match");
     const expected = this.pack.systems
       .map(

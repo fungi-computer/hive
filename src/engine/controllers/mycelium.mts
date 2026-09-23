@@ -21,7 +21,7 @@ export function createRegionControllerModule<
   /** Consumer-owned receipt result schema, also bounding discoverable output. */
   result: z.ZodType<MyceliumJsonValue>;
   /** Consumer-owned knowledge projection; no raw state/events default exists. */
-  observe(principal: string): Observation;
+  observe(principal: string): Observation | Promise<Observation>;
   dispatch(
     principal: string,
     input: {
@@ -30,7 +30,7 @@ export function createRegionControllerModule<
       expectedRevision: number;
       command: Command;
     },
-  ): RegionReceipt;
+  ): RegionReceipt | Promise<RegionReceipt>;
 }) {
   const principal = identity.parse(options.principal);
   const observe = options.observe;
@@ -72,7 +72,8 @@ export function createRegionControllerModule<
         }),
         output: receiptSchema,
         execute: async (input, context) => {
-          // No await between cancellation admission and the synchronous owner.
+          // Admit before invoking the owner. Remote owners may return a Promise;
+          // cancellation cannot undo an already committed remote command.
           context.signal.throwIfAborted();
           return dispatch(principal, input);
         },

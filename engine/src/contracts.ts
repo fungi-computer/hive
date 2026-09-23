@@ -55,6 +55,14 @@ export const RESERVED_COMPONENTS = [
 export const isReservedComponent = (id: string): boolean =>
   (RESERVED_COMPONENTS as readonly string[]).includes(id);
 
+/** Native registration and mutation authority are distinct. These schemas are
+ * installed by the kernel even when a pack does not use them. Some accept
+ * scoped authored policy/intent, so they must not become reserved writes. */
+export const isNativeComponentSchema = (id: string): boolean =>
+  isReservedComponent(id) || id === "hive.work-participation" ||
+  id === "hive.deconstruction-order" || id === "hive.staged-process";
+
+
 export interface Vec3 {
   readonly x: number;
   readonly y: number;

@@ -11,10 +11,12 @@ import {
   encodeDefinition,
   move,
   SupplyAllocation,
+  Traversal,
 } from "../sdk/common";
-import { Party, PartyMember, OwnedByParty } from "../sdk/party";
+import { Party, PartyMember, OwnedBy, OwnedByParty } from "../sdk/party";
+import { StorageProvider } from "../sdk/stockpile";
 import { WorkExecution, WorkParticipation, WorkPolicy, WorkSchedule } from "../sdk/work-control";
-import type { EntityId, GamePack, ReadContext } from "../contracts";
+import type { EntityId, GamePack, GameCommandContext } from "../contracts";
 
 export const PirateCrew = component<{ controlled: boolean }>("pirates.crew", {
   version: 1,
@@ -50,6 +52,7 @@ const piratesInitial = [
       "hive.surface": { minX: -3, maxX: 3, minZ: -2, maxZ: 2, height: 1 },
       "hive.visual": { sprite: "pirate.ship", label: "Timber ship" },
       "pirates.ship": { controlled: true },
+      "hive.owned-by-party": { party: piratePartyId },
     },
   },
   ...[
@@ -60,6 +63,7 @@ const piratesInitial = [
     components: {
       "hive.position": { x, y: 1, z, facing: 0 },
       "hive.body": { speed: 1 },
+      "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.container": { capacity: 2 },
       "hive.support": { entity: shipFrame },
       "hive.visual": { sprite: "pirate.crew", label },
@@ -73,6 +77,7 @@ const piratesInitial = [
     components: {
       "hive.position": { x: 2, y: 1, z: 0, facing: 0 },
       "hive.container": { capacity: 8 },
+      "hive.storage-provider": {},
       "hive.owned-by-party": { party: piratePartyId },
       "hive.support": { entity: shipFrame },
       "hive.visual": { sprite: "pirate.chest", label: "Cargo chest" },
@@ -92,6 +97,7 @@ const piratesInitial = [
     components: {
       "hive.position": { x: 1, y: 1, z: 1, facing: 0 },
       "hive.container": { capacity: 8 },
+      "hive.storage-provider": {},
       "hive.owned-by-party": { party: piratePartyId },
       "hive.support": { entity: shipFrame },
       "hive.visual": { sprite: "pirate.hold", label: "Deck hold" },
@@ -146,8 +152,11 @@ const pirateComponents = [
   Party,
   PartyMember,
   OwnedByParty,
+  OwnedBy,
   SupplyAllocation,
+  Traversal,
   WorkParticipation,
+  StorageProvider,
   WorkPolicy,
   WorkExecution,
   WorkSchedule,
@@ -177,16 +186,26 @@ function selectedEntities(input: z.infer<typeof selectionInput>): EntityId[] {
     throw new Error("selection must contain distinct entities");
   return selected;
 }
+/** Content control never grants another principal this party's bodies. */
+function requirePirateParty(context: Pick<GameCommandContext, "query" | "scope">): void {
+  const scope = context.scope;
+  if (scope.kind !== "player" || !context.query(query(Party, OwnedBy)).some(row =>
+    row.id === piratePartyId && row.get(OwnedBy).player === scope.player)) {
+    throw new Error("pirate party control required");
+  }
+}
 function controlledCrew(
-  context: Pick<ReadContext, "query">,
+  context: Pick<GameCommandContext, "query" | "scope">,
   selected: readonly EntityId[],
 ) {
+  requirePirateParty(context);
+  const members = new Set(context.query(query(PartyMember)).filter(row => row.get(PartyMember).party === piratePartyId).map(row => row.id));
   const crewRows = context.query(query(PirateCrew));
   if (
     selected.some(
       (id) =>
         !crewRows.some(
-          (row) => row.id === id && row.get(PirateCrew).controlled,
+          (row) => row.id === id && row.get(PirateCrew).controlled && members.has(id),
         ),
     )
   )
@@ -202,7 +221,7 @@ function controlledCrew(
 
 export const piratesPack: GamePack = {
   id: "pirates",
-  version: 2,
+  version: 3,
   localScope: { kind: "player", player: "pirate-player" },
   components: pirateComponents,
   systems: [],
@@ -210,9 +229,10 @@ export const piratesPack: GamePack = {
     move: command({
       title: "Move crew or ship", category: "Navigation", description: "Move selected crew or the controlled ship to a destination.",
       input: moveInput,
-      reads: [PirateCrew, PirateShip, Support],
+      reads: [PirateCrew, PirateShip, Support, Party, OwnedBy, PartyMember],
       writes: [],
       run(context, input) {
+        requirePirateParty(context);
         const parsed = input;
         const selected = selectedEntities({ entities: parsed.entities });
         const crewRows = context.query(query(PirateCrew));
@@ -257,9 +277,10 @@ export const piratesPack: GamePack = {
       title: "Turn ship", category: "Navigation", description: "Turn the controlled ship toward a cardinal heading.",
       subjects: () => [shipId],
       input: turnInput,
-      reads: [PirateShip, Position],
+      reads: [PirateShip, Position, Party, OwnedBy],
       writes: [],
       run(context, input) {
+        requirePirateParty(context);
         const { facing } = input;
         if (!context.query(query(PirateShip)).some((row) => row.id === shipId && row.get(PirateShip).controlled))
           throw new Error("ship capability is unavailable");
@@ -280,7 +301,7 @@ export const piratesPack: GamePack = {
       title: "Load cargo", category: "Cargo", description: "Enable cargo delivery for selected crew.",
       subjects: () => [crewOneId, crewTwoId],
       input: selectionInput,
-      reads: [PirateCrew, Support],
+      reads: [PirateCrew, Support, Party, OwnedBy, PartyMember],
       writes: [WorkParticipation],
       run(context, input) {
         const selected = selectedEntities(input);
@@ -302,7 +323,11 @@ export const piratesPack: GamePack = {
       const lots = context
         .query(query(MaterialLot))
         .map((row) => row.get(MaterialLot));
+      const pending = context.query(query(SupplyAllocation)).filter(row => row.get(SupplyAllocation).state === "reserved").length;
+      const complete = ["bread", "wood"].every(kind => lots.some(lot => lot.container === holdId && lot.kind === kind && lot.quantity >= 1));
       return [
+        { id: "cargo-pending", label: "Pending cargo deliveries", value: pending },
+        { id: "cargo-result", label: "Cargo order", value: complete ? "complete" : "pending" },
         {
           id: "hold-cargo",
           label: "Supplies delivered to hold",

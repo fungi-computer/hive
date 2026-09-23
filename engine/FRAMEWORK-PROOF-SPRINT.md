@@ -158,16 +158,21 @@ hosted occurrence and productive-throughput evidence. If a measured gate fails,
 name the dominant owner and repeat that gate after a bounded correction; do not
 announce an unsupported maximum map or worker count.
 
-Through the real public browser and DO entrypoints, install one small external
-pack using public engine definitions for an actor behavior, supported buildable,
-recipe/material operation and an existing baked art asset, plus scoped
-command/observation; no Goblin import or content-name branch in transport. Show
-the same declared physical operation in Colony and the second pack, once per
-attachment, with current-format recovery. Then run one
-maintained Shiitake integration using existing Botanical execution capabilities:
-one scoped observation, accepted command, durable terminal result and retry,
-with an unauthorized action rejected. Model execution stays outside physical
-ticks. This is the minimum reuse witness, not a new workshop or second game.
+Current user correction (September 23): refine existing Pirates and Survival
+consumers; do not invent another pack to satisfy this witness. Through the real
+public browser runtime and DO entrypoint, prove Pirates' declared cargo hauling
+uses the same material custody, supply allocation, navigation and transfer owners
+as Colony, including current-format recovery during and after delivery. Pirates
+uses existing baked art and public definitions; no Goblin import or content-name
+branch in transport or native planning. Supported buildable/recipe authoring is a
+separate capability claim and must not be invented as unrelated Pirate content.
+
+Run the maintained scoped Pirates controller with Botanical's actual Mycelium
+execute capability and Code Mode sandbox (the capability integration Shiitake
+consumes): scoped observation, accepted command, durable terminal result and
+identical retry after restart, with unauthorized actions rejected. Clearly
+separate this execution-capability witness from a full Shiitake model/session
+run and from hosted parity. Model execution stays outside physical ticks.
 
 ## Exit and explicit nonclaims
 
