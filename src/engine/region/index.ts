@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createReceiptOwner } from "./receipts.ts";
 import { decode, encode, type Json } from "./codec.ts";
 import { RECORD_FORMAT_VERSION, applyRecords, checkedChange, checkedInitial, createRecordReader, existingRecordSize, readRecordPage, recordSize } from "./records.ts";
 
@@ -63,6 +64,7 @@ export type RegionReceipt = {
   region: string;
   principal: string;
   commandId: string;
+  replayEpoch?: number;
   status: "applied" | "rejected";
   revision: number;
   result: Json;
@@ -70,7 +72,7 @@ export type RegionReceipt = {
 const identity = z.string().min(1).max(160);
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const inputSchema = z
-  .object({ id: identity, expectedRevision: integer.optional(), command: z.unknown() })
+  .object({ id: identity, replayEpoch: integer.optional(), expectedRevision: integer.optional(), command: z.unknown() })
   .strict();
 const occurrenceSchema = z
   .object({ sequence: integer, request: inputSchema })
@@ -165,6 +167,7 @@ export function openRegion<State, Command>(options: {
     ? identity.parse(options.clock.principal)
     : null;
   const policy = encode(limits, 4096);
+  const receipts = createReceiptOwner(owner, limits.receipts, limits.resultBytes);
   const stateWire = (state: unknown) =>
     encode(program.parseState(state), limits.stateBytes);
   const stateFrom = (wire: string) =>
@@ -292,6 +295,7 @@ export function openRegion<State, Command>(options: {
       const unsupported = owner.sql.exec<{ n: number }>("SELECT COUNT(*) AS n FROM hive_region_records WHERE format_version<>?", RECORD_FORMAT_VERSION).toArray()[0]?.n ?? 0;
       if (unsupported) throw new Error("region-storage-format");
     }
+    receipts.initialize(hasRegion);
     owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_region (
       singleton INTEGER PRIMARY KEY CHECK(singleton=1), region_id TEXT NOT NULL,
       program_id TEXT NOT NULL, limits_json TEXT NOT NULL,
@@ -300,9 +304,6 @@ export function openRegion<State, Command>(options: {
       event_sequence INTEGER NOT NULL, state_bytes INTEGER NOT NULL,
       receipt_bytes INTEGER NOT NULL, event_bytes INTEGER NOT NULL,
       record_count INTEGER NOT NULL, record_bytes INTEGER NOT NULL);
-      CREATE TABLE IF NOT EXISTS hive_region_receipts (
-      principal TEXT NOT NULL, command_id TEXT NOT NULL, input_json TEXT NOT NULL,
-      receipt_json TEXT NOT NULL, PRIMARY KEY(principal,command_id));
       CREATE TABLE IF NOT EXISTS hive_region_events (
       sequence INTEGER PRIMARY KEY, event_json TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS hive_region_records (
@@ -362,6 +363,7 @@ export function openRegion<State, Command>(options: {
     ).toArray()[0];
     if (!recordMeta || recordMeta.count !== current.record_count || recordMeta.bytes !== current.record_bytes)
       throw new Error("region-storage-metadata");
+    receipts.validate(current.receipt_count, current.receipt_bytes);
     stateFrom(current.state_json);
     if (
       current.receipt_count > limits.receipts ||
@@ -380,13 +382,14 @@ export function openRegion<State, Command>(options: {
 
   function saveReceipt(
     principal: string,
+    epoch: number,
     id: string,
     input: string,
     receipt: RegionReceipt,
   ) {
     const wire = encode(receipt, limits.resultBytes);
     const addedBytes =
-      bytes(principal) + bytes(id) + bytes(input) + bytes(wire);
+      receipts.size(principal, id, input, wire);
     const current = row();
     const clock = clockRow(current.revision);
     if (
@@ -399,18 +402,7 @@ export function openRegion<State, Command>(options: {
       limits.storageBytes
     )
       throw new Error("region-storage-budget");
-    owner.sql.exec(
-      "INSERT INTO hive_region_receipts VALUES (?,?,?,?)",
-      principal,
-      id,
-      input,
-      wire,
-    );
-    owner.sql.exec(
-      "UPDATE hive_region SET receipt_count = receipt_count + 1, receipt_bytes = receipt_bytes + ? WHERE singleton=1",
-      addedBytes,
-    );
-    return JSON.parse(wire) as RegionReceipt;
+    return receipts.save(principal, epoch, id, input, receipt, addedBytes);
   }
   function parseRequest(raw: unknown) {
     const input = inputSchema.parse(
@@ -425,7 +417,7 @@ export function openRegion<State, Command>(options: {
     principal: string,
     parsed: ReturnType<typeof parseRequest>,
     mode:
-      | { readonly kind: "receipt" }
+      | { readonly kind: "receipt"; readonly epoch: number }
       | { readonly kind: "clock"; readonly sequence: number },
   ): RegionReceipt {
     const { input, command, canonical } = parsed;
@@ -443,6 +435,7 @@ export function openRegion<State, Command>(options: {
       region,
       principal,
       commandId: input.id,
+      ...(mode.kind === "receipt" ? { replayEpoch: mode.epoch } : {}),
       revision: current.revision,
     };
     let receipt: RegionReceipt;
@@ -552,31 +545,19 @@ export function openRegion<State, Command>(options: {
       );
       return JSON.parse(receiptWire) as RegionReceipt;
     }
-    return saveReceipt(principal, input.id, canonical, receipt);
+    if (mode.kind !== "receipt") throw new Error("region-receipt-mode");
+    return saveReceipt(principal, mode.epoch, input.id, canonical, receipt);
   }
   function dispatch(principalInput: string, raw: unknown): RegionReceipt {
     const principal = identity.parse(principalInput);
     const parsed = parseRequest(raw);
+    const epoch = integer.parse(parsed.input.replayEpoch);
     return owner.transactionSync(() => {
-      const current = row();
-      const prior = owner.sql
-        .exec<{ input_json: string; receipt_json: string }>(
-          "SELECT input_json,receipt_json FROM hive_region_receipts WHERE principal=? AND command_id=?",
-          principal,
-          parsed.input.id,
-        )
-        .toArray()[0];
-      if (prior) {
-        if (prior.input_json !== parsed.canonical)
-          throw new Error("region-command-conflict");
-        return decode(
-          prior.receipt_json,
-          limits.resultBytes,
-        ) as unknown as RegionReceipt;
-      }
-      if (current.receipt_count >= limits.receipts)
-        throw new Error("region-receipt-capacity");
-      return commitParsed(current, principal, parsed, { kind: "receipt" });
+      row();
+      const prior = receipts.replay(principal, epoch, parsed.input.id, parsed.canonical);
+      if (prior) return prior;
+      receipts.makeRoom();
+      return commitParsed(row(), principal, parsed, { kind: "receipt", epoch });
     });
   }
   function dispatchOccurrence(
@@ -618,6 +599,7 @@ export function openRegion<State, Command>(options: {
   return Object.freeze({
     dispatch,
     dispatchOccurrence,
+    readReplayWindow: () => receipts.window(),
     /** Trusted host checkpoint, not an unfiltered player/agent observation API. */
     readCommitted() {
       const current = row();

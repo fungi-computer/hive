@@ -75,6 +75,7 @@ test("public command body is strict and bounded before Region admission", async 
     method: "POST",
     body: JSON.stringify({
       id: "command-1",
+      replayEpoch: 0,
       expectedRevision: 0,
       command: { kind: "command", name: "takeFood" },
     }),
@@ -84,6 +85,7 @@ test("public command body is strict and bounded before Region admission", async 
     method: "POST",
     body: JSON.stringify({
       id: "x",
+      replayEpoch: 0,
       expectedRevision: 0,
       command: {},
       extra: true,
@@ -94,6 +96,7 @@ test("public command body is strict and bounded before Region admission", async 
     method: "POST",
     body: JSON.stringify({
       id: "x",
+      replayEpoch: 0,
       expectedRevision: 0,
       command: "x".repeat(9000),
     }),

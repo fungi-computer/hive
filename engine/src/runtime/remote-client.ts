@@ -56,6 +56,7 @@ export interface RemoteRuntimeOptions {
 
 type ObservationWire = {
   readonly revision: number;
+  readonly replayEpoch: number;
   readonly terrainBaseline: boolean;
   readonly whistleChanged: boolean;
   readonly observation: {
@@ -305,6 +306,7 @@ async function requestJson(
 }
 function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | undefined, cachedWhistle: { readonly agent: readonly WhistleAgentProjection[]; readonly targets: readonly WhistleContextualTarget[] } | undefined): ObservationWire {
   if (!isRecord(value) || !safeNonnegativeInteger(value.revision)) throw new Error("invalid remote observation revision");
+  if (!safeNonnegativeInteger(value.replayEpoch)) throw new Error("invalid remote replay epoch");
   const observation = value.observation;
   if (!isRecord(observation)) throw new Error("missing remote observation");
   const facts = observation.facts;
@@ -334,6 +336,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
     throw new Error("invalid remote observation");
   return {
     revision: value.revision,
+    replayEpoch: value.replayEpoch,
     terrainBaseline: isRecord(observation.terrain) && Array.isArray(observation.terrain.surfaces),
     whistleChanged: whistleAgent !== undefined || whistleTargets !== undefined,
     observation: {
@@ -414,6 +417,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let started = false;
   let readyEmitted = false;
   let revision: number | undefined;
+  let replayEpoch: number | undefined;
   let lastPaused: boolean | undefined;
   let lastSequence: number | undefined;
   let lastTime: number | undefined;
@@ -475,6 +479,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const acceptObservation = (candidate: ObservationWire): boolean => {
     // A reconnect can replay the same committed revision. Install its complete
     // baseline before stale-frame filtering, while still suppressing duplicate UI frames.
+    replayEpoch = Math.max(replayEpoch ?? 0, candidate.replayEpoch);
     const currentRevision = revision;
     const currentSequence = lastSequence;
     const currentTime = lastTime;
@@ -553,7 +558,9 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (value.type === "error") { emit({ type: "error", message: typeof value.error === "string" ? value.error : "remote socket error" }); return; }
       if (value.type !== "observation") return;
       try {
-        const accepted = acceptObservation(parseObservation(value, cachedTerrain, cachedWhistle));
+        const candidate = parseObservation(value, cachedTerrain, cachedWhistle);
+        const accepted = acceptObservation(candidate);
+        connectedSocket.send(JSON.stringify({ type: "observation-ack", revision: candidate.revision, replayEpoch: candidate.replayEpoch }));
         if (accepted && !blocked && pending.length > 0 && !pumpRunning) schedulePump();
       } catch (error) {
         emit({ type: "error", message: error instanceof Error ? error.message : String(error) });
@@ -618,13 +625,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   };
   const pump = async () => {
     if (disposed || blocked || pumpRunning || pending.length === 0) return;
-    if (revision === undefined) return;
+    if (revision === undefined || replayEpoch === undefined) return;
     pumpRunning = true;
     const item = pending[0];
     try {
       if (!item.body) {
         item.id = safeId(options.createCommandId);
-        item.body = JSON.stringify({ id: item.id, command: item.command });
+        item.body = JSON.stringify({ id: item.id, replayEpoch, command: item.command });
       }
       while (!disposed && !blocked) {
         try {
@@ -652,7 +659,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           }
           if (!response.ok) throw new Error(`remote command failed (${response.status})`);
           const receipt = responseData.value as Record<string, unknown>;
-          if (receipt.commandId !== item.id) throw new Error("remote receipt command id mismatch");
+          if (receipt.commandId !== item.id || receipt.replayEpoch !== JSON.parse(item.body!).replayEpoch) throw new Error("remote receipt command id mismatch");
           if (receipt.status === "rejected") {
             pending.shift();
             const reason = rejectionReasonSchema.safeParse(receipt.result);
