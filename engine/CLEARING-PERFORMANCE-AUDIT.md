@@ -29,7 +29,9 @@ below describe an older source revision and must not be used as current capacity
    The kernel and game systems should expose the next authoritative deadline
    (work review, elapsed process, needs, cat, environment), and accepted commands
    should wake it. Idle quiescence must preserve durable command identity and
-   time-dependent game rules.
+   time-dependent game rules. The planner's native due-time index now answers
+   its next review tick without scanning every task; the host wake contract is
+   still outstanding.
 4. **Separate publication from simulation revision.** Observation, inventory and
    Whistle projections rebuild on broad revision changes, and publication builds
    a payload before checking for authenticated recipients. Give each projection

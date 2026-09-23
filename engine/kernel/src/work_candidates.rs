@@ -176,6 +176,8 @@ pub struct NativeIndexes {
     pub tasks_by_pool: BTreeMap<String, Vec<TaskCandidate>>,
     worker_party_by_id: BTreeMap<String, String>,
     task_pool_by_id: BTreeMap<String, String>,
+    task_due_by_id: BTreeMap<String, u64>,
+    tasks_due_at: BTreeMap<u64, BTreeSet<String>>,
     rebuilds: u64,
 }
 
@@ -187,10 +189,11 @@ impl NativeIndexes {
     pub(crate) fn rebuild_count(&self) -> u64 { self.rebuilds }
 
     pub(crate) fn has_due_task(&self, tick: u64) -> bool {
-        self.tasks_by_pool
-            .values()
-            .flatten()
-            .any(|task| task.due_tick <= tick)
+        self.next_due_tick().is_some_and(|due| due <= tick)
+    }
+
+    pub(crate) fn next_due_tick(&self) -> Option<u64> {
+        self.tasks_due_at.first_key_value().map(|(due, _)| *due)
     }
 
     fn remove_id(&mut self, id: &str) {
@@ -201,6 +204,10 @@ impl NativeIndexes {
         if let Some(pool) = self.task_pool_by_id.remove(id) {
             if let Some(values) = self.tasks_by_pool.get_mut(&pool) { values.retain(|candidate| candidate.id != id); }
             if self.tasks_by_pool.get(&pool).is_some_and(Vec::is_empty) { self.tasks_by_pool.remove(&pool); }
+            let due = self.task_due_by_id.remove(id).expect("indexed task has due tick");
+            let tasks = self.tasks_due_at.get_mut(&due).expect("indexed due tick exists");
+            tasks.remove(id);
+            if tasks.is_empty() { self.tasks_due_at.remove(&due); }
         }
     }
 
@@ -241,6 +248,8 @@ impl NativeIndexes {
             && let Some(schedule) = world.get::<WorkSchedule>(entity)
         {
             self.task_pool_by_id.insert(id.to_owned(), policy.pool.clone());
+            self.task_due_by_id.insert(id.to_owned(), schedule.next_review_tick);
+            self.tasks_due_at.entry(schedule.next_review_tick).or_default().insert(id.to_owned());
             self.tasks_by_pool.entry(policy.pool.clone()).or_default().push(TaskCandidate {
                 id: id.to_owned(), party: policy.pool.clone(), priority: policy.priority,
                 last_considered: schedule.last_considered, due_tick: schedule.next_review_tick,
@@ -257,6 +266,7 @@ impl NativeIndexes {
     pub fn rebuild(&mut self, relations: &RelationIndex, world: &World, ids: &BTreeMap<String, Entity>) {
         self.workers_by_party.clear(); self.tasks_by_pool.clear();
         self.worker_party_by_id.clear(); self.task_pool_by_id.clear();
+        self.task_due_by_id.clear(); self.tasks_due_at.clear();
         self.rebuilds = self.rebuilds.saturating_add(1);
         for (id, entity) in ids {
             if let Some(party) = relations.target("hive.party-member", id)
@@ -271,6 +281,8 @@ impl NativeIndexes {
                 && let Some(schedule) = world.get::<WorkSchedule>(*entity)
             {
                 self.task_pool_by_id.insert(id.clone(), policy.pool.clone());
+                self.task_due_by_id.insert(id.clone(), schedule.next_review_tick);
+                self.tasks_due_at.entry(schedule.next_review_tick).or_default().insert(id.clone());
                 self.tasks_by_pool.entry(policy.pool.clone()).or_default().push(TaskCandidate { id: id.clone(), party: policy.pool.clone(), priority: policy.priority, last_considered: schedule.last_considered, due_tick: schedule.next_review_tick });
             }
         }
@@ -500,5 +512,31 @@ mod index_refresh_tests {
         indexes.refresh_entity(&relations, &world, "task", Some(entity));
         assert_eq!(indexes.rebuilds, before);
         assert_eq!(due_tasks_from_index(&indexes, "p", 0, 10)[0].priority, 9);
+    }
+
+    #[test]
+    fn due_index_tracks_accepted_schedule_edits_and_removal() {
+        let mut world = World::new();
+        let first = world.spawn((WorkPolicy { pool: "p".into(), priority: 1, enabled: true }, WorkSchedule { next_review_tick: 3, last_considered: 0 })).id();
+        let second = world.spawn((WorkPolicy { pool: "p".into(), priority: 1, enabled: true }, WorkSchedule { next_review_tick: 5, last_considered: 0 })).id();
+        let mut ids = BTreeMap::from([("first".to_owned(), first), ("second".to_owned(), second)]);
+        let relations = RelationIndex::default();
+        let mut indexes = NativeIndexes::default();
+        indexes.rebuild(&relations, &world, &ids);
+        assert_eq!(indexes.next_due_tick(), Some(3));
+        assert!(!indexes.has_due_task(2));
+        assert!(indexes.has_due_task(3));
+
+        world.entity_mut(first).insert(WorkSchedule { next_review_tick: 8, last_considered: 3 });
+        indexes.refresh_entity(&relations, &world, "first", Some(first));
+        assert_eq!(indexes.next_due_tick(), Some(5));
+        ids.remove("second");
+        indexes.refresh_entity(&relations, &world, "second", None);
+        assert_eq!(indexes.next_due_tick(), Some(8));
+        world.entity_mut(first).insert(WorkPolicy { pool: "p".into(), priority: 1, enabled: false });
+        indexes.refresh_entity(&relations, &world, "first", Some(first));
+        assert_eq!(indexes.next_due_tick(), None);
+        indexes.rebuild(&relations, &world, &ids);
+        assert_eq!(indexes.next_due_tick(), None);
     }
 }
