@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "hive-asset-mcp" generated at 2026-09-09T06:06:22.330Z.

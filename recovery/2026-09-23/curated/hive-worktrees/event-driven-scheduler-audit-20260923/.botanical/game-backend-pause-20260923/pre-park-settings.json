@@ -1,0 +1,35 @@
+{
+  "result": {
+    "placement": {},
+    "compatibility_date": "2026-09-04",
+    "compatibility_flags": [],
+    "usage_model": "standard",
+    "tags": [],
+    "tail_consumers": [],
+    "logpush": false,
+    "annotations": {
+      "workers/triggered_by": "version_upload"
+    },
+    "bindings": [
+      {
+        "name": "IMPLEMENTATION_HASH",
+        "text": "1e99a504e8232c46dde0d078362e149df40ae7c412833c89dd42e49515431d10",
+        "type": "plain_text"
+      },
+      {
+        "name": "PUBLIC_ORIGIN",
+        "text": "https://clearing-80e39fd9-fungi-goblin-bnb.levi-fe0.workers.dev",
+        "type": "plain_text"
+      },
+      {
+        "class_name": "PublicEngineRegion",
+        "name": "REGIONS",
+        "namespace_id": "9415ea848e754a088a18cddce94effb2",
+        "type": "durable_object_namespace"
+      }
+    ]
+  },
+  "success": true,
+  "errors": [],
+  "messages": []
+}

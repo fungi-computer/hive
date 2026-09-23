@@ -1,0 +1,17 @@
+# Pixi depth-sidecar feasibility — primary-source read
+
+**Conclusion:** installed Pixi 8.19.0 can depth-test fragments from a custom draw inside the existing Pixi renderer, so a second live renderer is not intrinsically required. This is not a small optional `Sprite` feature. It changes the asset and display-material pipeline for every participant that must mutually occlude. The oracle justifies investigating that cost for sleepy-bed and stair-rail crossings; it does not justify adoption. Trees remain compatible with ordinary ordering in the measured case.
+
+## Concrete API path
+
+- Three 0.185.1 has `WebGLRenderTarget` and `DepthTexture` (`three/src/textures/DepthTexture.js:11`). However, `WebGLRenderer.readRenderTargetPixels` reads `renderTarget.textures[textureIndex]`, validates a readable color format/type, and reads the selected color attachment (`WebGLRenderer.js:3071-3120`). Three and Pixi own separate WebGL contexts, so Three's GPU depth texture cannot simply become a Pixi texture. A portable sidecar would need a bake pass such as `MeshDepthMaterial` with `RGBADepthPacking`, then color readback/canvas upload.
+- Pixi `Shader` accepts texture sources and samplers as resources; `Mesh` accepts custom shader and `State` (`pixi.js/lib/scene/mesh/shared/Mesh.mjs:25-38`). The fragment program can sample color plus packed depth, discard transparent pixels, and write fragment depth. `State.depthTest`/`depthMask` are public (`shared/state/State.d.ts:44-54`), and Pixi's GL state system maps them to `DEPTH_TEST`/`gl.depthMask`.
+- Pixi `RenderTarget` exposes `depth`/`depthStencilTexture` and owns/resizes/destroys an ensured depth attachment (`shared/renderTarget/RenderTarget.d.ts:17-22,72-78`). The main canvas currently requests Pixi WebGL and Pixi prefers WebGL2 but falls back to WebGL1; a fragment-depth implementation must define that fallback and ensure/clear the screen depth buffer each frame.
+
+## Consequences
+
+Any custom shader makes `Mesh.batched` false; enabling depth state also rejects batching (`Mesh.mjs:90-99`). `MeshPipe` then breaks the current batch and issues an individual encoded draw. Converting animated actors and relevant props from ordinary `Sprite`s therefore adds draw calls, paired color/depth texture residency, shader/program ownership, and explicit destruction. The sidecar must share color crop, nearest sampling, anchor, pose/facing, and alpha coverage. More substantially, baked camera depth alone is asset-local: the shader needs one canonical world-to-depth mapping incorporating each sprite's interpolated world position and level. Blended outlines/shadows still need an explicit non-depth presentation rule. Current alpha-mask picking can remain color-owned, but `Mesh` substitution must preserve its display/picking contract.
+
+The existing bake copies one color canvas, disposes source geometry immediately, and disposes the Three renderer after all assets (`src/art.js:26-41,129`). Adding a packed pass before that disposal is bounded; carrying paired metadata/textures through art selection, animation, construction and teardown is the wider rewrite.
+
+**Lower-cost alternate:** bake the bed or stair into a bounded set of authored near/far render parts under one site/selection owner, then place actors between parts using the existing Pixi sprite batch and scalar ordering. This directly fits the two proven interleavings but needs per-facing art boundaries and cannot become a general arbitrary-geometry guarantee. Compare both only on the named oracle poses before choosing a production direction.

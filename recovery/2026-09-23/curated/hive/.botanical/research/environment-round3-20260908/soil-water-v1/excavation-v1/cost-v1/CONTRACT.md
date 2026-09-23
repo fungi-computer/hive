@@ -1,0 +1,9 @@
+# Attribute the accepted excavation cost before optimizing
+
+2026-09-09. Read-only measurement caller. The accepted world, soil, pit primitive, adapter, fixture and prior evidence remain unchanged. This is one fixed invocation, not a larger-domain or population benchmark and not a repeat of the five-group physical suite.
+
+Use the exact accepted nine-column fixture, one actual excavation and the same600s/dt6 initial state. Measure one wall/CPU observation for each public phase: fixture construction, adapter initialization from supplied canonical inputs, excavation, bare soil-owner construction and advance, combined adapter advance, read, encode, fresh adapter construction and decode. A direct public world restore and its actual region/contact/vent read pass provide bounded attribution to the existing geometry owner, with exposed world counters. No copied material sampler, cache change or timing hook is installed inside the owners.
+
+Each phase executes once. Bare and combined advances start from the same unchanged post-edit state and are compared with the accepted full state/receipt/work result. The fixed order is reported: later calls may benefit from JIT/runtime warmup, while the world API creates its ordinary fresh private caches. Timing differences are observations, not a controlled subtraction establishing exact overhead. Validation and JSON/report writes occur outside the individual phase clocks. No forced GC, artificial cache flush, CPU profiling or parameter sweep.
+
+Source hashes must match the accepted33-source inventory before measurement. Record source/result pins, per-phase wall and user/system CPU, accepted solver counters, actual public world counters, save/output sizes and end process memory scope. Private adapter world counters are not exposed; do not invent them from the number of voxels. Preserve first failure and partial timings. One ordinary proof wrapper with30s inner timeout; no rerun.

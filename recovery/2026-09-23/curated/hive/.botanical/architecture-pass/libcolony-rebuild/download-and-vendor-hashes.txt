@@ -1,0 +1,3 @@
+2f31c9b940595268842c30eb02a5249227b4c3c93467c5f19d23d438b75c5fd6  public/vendor/libcolony/colony.js
+08a46ee9b5c6135ae165bdd4f5983a8ce28ad70d6da63cac0a53e79067077ef1  public/vendor/libcolony/colony.wasm
+5dd94e557b720800a60387ec078bf3b3a527cbd916ad74a696fe399f1544474f  .botanical/architecture-pass/libcolony-rebuild/emsdk-3.1.46.tar.gz

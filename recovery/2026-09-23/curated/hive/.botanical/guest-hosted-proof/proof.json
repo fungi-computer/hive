@@ -1,0 +1,106 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "served": [
+    {
+      "id": "guest-1",
+      "name": "Mallow",
+      "order": 1
+    },
+    {
+      "id": "guest-2",
+      "name": "Fern",
+      "order": 2
+    }
+  ],
+  "completed": {
+    "tick": 863,
+    "paused": false,
+    "keeper": {
+      "x": 6,
+      "z": 3,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "carrying": false,
+      "task": "deliver",
+      "guestId": "guest-2",
+      "from": {
+        "x": 6,
+        "z": 2
+      }
+    },
+    "guest": null,
+    "feed": {
+      "seed": 42,
+      "sequence": 2,
+      "nextAt": 709,
+      "last": {
+        "id": "guest-2",
+        "name": "Fern",
+        "tick": 447,
+        "order": "Mushroom soup"
+      }
+    },
+    "commands": [
+      {
+        "tick": 147,
+        "kind": "prepare"
+      },
+      {
+        "tick": 264,
+        "kind": "deliver"
+      },
+      {
+        "tick": 546,
+        "kind": "prepare"
+      },
+      {
+        "tick": 681,
+        "kind": "deliver"
+      }
+    ],
+    "assignment": null,
+    "prepared": 2,
+    "served": 2,
+    "satisfied": 2,
+    "departed": 2,
+    "celebration": {
+      "tick": 772,
+      "name": "Fern"
+    },
+    "notice": "Fern leaves happy. The table is free again."
+  },
+  "reset": {
+    "tick": 4,
+    "paused": false,
+    "keeper": {
+      "x": 3,
+      "z": 4,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "carrying": false
+    },
+    "guest": null,
+    "feed": {
+      "seed": 42,
+      "sequence": 0,
+      "nextAt": 50,
+      "last": null
+    },
+    "commands": [],
+    "assignment": null,
+    "prepared": 0,
+    "served": 0,
+    "satisfied": 0,
+    "departed": 0,
+    "celebration": null,
+    "notice": "Click Pip, then the hearth to prepare a warm welcome."
+  },
+  "errors": [],
+  "failed": []
+}

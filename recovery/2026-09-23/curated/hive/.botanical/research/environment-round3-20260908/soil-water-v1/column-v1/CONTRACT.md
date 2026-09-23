@@ -1,0 +1,58 @@
+# Fixed porous column with finite boundary water — source contract
+
+2026-09-08. New ignored numerical reference. **First source shape only: no numerical run before Game CTO source/caller review.** No production soil, digging, gas or surface solver integration. The prior DECISION-REVIEW remains the physical decision and checked-source record.
+
+## Physical state and supported definition
+
+Rigid pores, constant-density water `rho=1000 kg/m³`, isothermal, prescribed atmospheric pore-air pressure, no trapped gas, evaporation, elastic storage, hysteresis or soil deformation. One homogeneous vertical column, fixed area and uniform cell height. Positive elevation is upward. Each soil cell owns only water mass; geometric liquid volume is `M/rho`, pore capacity is `rho*phi*V`. There is no `Ss*h` stock and no conductivity or moisture floor.
+
+The initial **synthetic reference definition**, not a calibrated soil, retains the round-two counterexample's SI coefficients: thetaR=.05, phi=.45, alpha=2 m^-1, n=2, m=.5, Ks=1e-4 m/s, Mualem ell=.5. It uses Ks as the declared conductivity matching point. Supported heads are [-4,8] metres; theta(-4) is a supported-domain boundary, not added water. One definition object owns retention, conductivity and their derivatives. A future layered column must explicitly carry one validated definition ID per cell and the same series-resistance face law; it is not silently supported by this homogeneous interface.
+
+The formulas come from the personally inspected [USDA Rosetta hydraulic functions](https://www.ars.usda.gov/pacific-west-area/riverside-ca/agricultural-water-efficiency-and-salinity-research-unit/docs/model/rosetta-hydraulic-functions/) and maintained [USGS SUTRA functions](https://water.usgs.gov/nrp/gwsoftware/sour/special/unsat/unsat.htm). The numeric coefficients are a declared synthetic SI fixture, **not** a claim of reproducing a published soil dataset or the unread original van Genuchten PDF.
+
+## One flux owner and boundary graph
+
+Nodes are top pond face, soil cell centres, optional lower standpipe face. Soil-centre z=ground-(i+.5)*dz. The standpipe's zero-volume base is at the bottom face. Its free-surface head is therefore its water depth above that base; positive bottom water can drive upward seepage. Sealed bottom has no extra node or transfer.
+
+Boundary storage is `M_b(h)=rho*A_b*max(h,0)`. This means wet head equals actual depth, while dry head<=0 and water mass=0. At the top this is the finite-pond complementarity relation `d>=0, d-h>=0, d*(d-h)=0`; the optional finite standpipe uses the same relation. No rainfall/external reservoir exists in this first packet.
+
+For each oriented downward face, once per evaluation:
+
+```
+H=h+z
+G=A/(d_left/K(h_left)+d_right/K(h_right))   m²/s
+Q=G*(H_left-H_right)                     m³/s
+R_i=M_i(h_new)-M_i(old)+rho*dt*sum(outward Q_i)  kg
+```
+
+Interior resistance uses dz/2 on each side. At either soil/boundary half-cell interface, use dz/4 at the trace and dz/4 at the cell centre with the same soil conductivity law. The boundary trace's evaluation of K is a quadrature choice, **not** an extra porous cell or water stock. At saturation these resistances sum to the exact full column length/Ks/A. Interface quadrature/front accuracy needs mesh refinement.
+
+## Nonlinear method and conservative acceptance
+
+Backward Euler solves the actual mixed storage difference. Bounded damped Newton uses the analytic tridiagonal Jacobian: differentiate storage, retention conductivity and both harmonic-resistance endpoint coefficients. Nothing physical is frozen in that Jacobian. At the nondifferentiable h=0 boundary branch, choose the wet derivative; saturated soil uses zero storage derivative and zero right-branch K derivative. No artificial L/Ss enters the mass residual. A line search reduces the actual max mass residual while staying in the declared head envelope. Named convergence/closure failures may halve dt; invalid initial state/identity/bounds are fatal.
+
+Every attempted step rebuilds its initial head guess from canonical masses and boundary stocks. Unsaturated heads come from retention inversion. Saturated heads are a deterministic interpolation/extrapolation of nearby unsaturated total-head or wet-boundary anchors, constrained to h>=0 **only as an initial guess**. Dry boundary guess copies adjacent total head, or0 when a physical wet anchor is available. An entirely saturated, boundary-dry, sealed/unanchored column is rejected. No arbitrary positive-pressure initializer exists; no old head cache is saved or required for restart.
+
+After convergence, storage functions give bounded target masses. If their compensated total already equals the old total, no elimination or bookkeeping anchor is needed. Otherwise one mobile stock is eliminated by total conservation in deterministic node order (strictly wet top boundary, then strictly unsaturated soil, then strictly wet lower boundary). Newly wet or newly desaturated accepted branches are eligible; the old phase does not veto them. This is a coupled conservation equation, not a saturation clamp. Its correction must stay below the declared nonlinear tolerance, stay strictly inside the chosen branch and permit a finite inverse. Recompute its head. Reconstruct each downward face transfer cumulatively from endpoint mass differences; this is the **only accepted face ledger**. Recheck constitutive storage, reconstructed-vs-Darcy transfers, finite-pond complementarity, all capacities and total/paired-ledger floating residuals afterward. Reject without mutation if any fails. Report correction magnitude and residuals; do not claim exact real-arithmetic conservation.
+
+Accepted-step heads are diagnostics of that backward-Euler step. A newly saturated cell may have filled a prior deficit, so those heads are not advertised as a separately reconstructible zero-divergence field from endpoint M alone. Next-step guesses and aligned reload use the same deterministic rebuild. Saves contain only version/definition/geometry identity, stocks, initial total and accepted clock/step count.
+
+## Fixed work and error budgets
+
+Owner admission: 2..64 soil cells; column length .1..8m, area .01..4m², reservoir area .01..8m²; head envelope above. Requests: interval0..7200s, dtMax in [1e-6,120]s, <=4096 accepted steps, <=12 timestep halvings, <=64 Newton iterations per attempt, <=18 line-search trials per iteration, <=250000 residual evaluations across one advance. All rejected attempts/work are local; a request that exhausts any budget returns no partial state. No numerical run may exceed the shared host's ordinary guarded proof.
+
+The caller may lower `maxEvaluations` within1..250000 as a real request work budget; it is exercised for rejection. Failed advances may attach explicitly uncommitted local state/receipt/work diagnostics to the thrown error, never a continuation result. The qualification runner writes source bytes/pins before any group and first-failure group/completed evidence/error afterward, so a failed physical packet remains inspectable without repeating it.
+
+Numerical tolerances (absolute kg unless named): solve1e-10; accepted local/face residual2e-9; total/paired residual2e-11 plus64*machine-epsilon*total stock; closure correction<=2e-9; head/branch checks use actual inequalities (no over-capacity tolerance). Flux mismatch is measured as `rho*dt*(Q_reconstructed-Q_Darcy)` kg and separately m³/s. These thresholds are targets to qualify, not claimed results.
+
+## Fixed first qualification ladder (caller before execution)
+
+1. Retention/derivative/units/strict envelope and inverse; hydrostatic exact rest with a water table inside a1m,8-cell column and a matching finite lower standpipe; ponded rest. No artificial positive initial pore pressure.
+2. Saturated1m column, A=1m², two finite reservoirs A_top=A_bottom=1m². Top depth .2 and bottom depth1.1 give downward transfer; top .1 and bottom1.2 give upward transfer. Both remain saturated. Derive independently `Rhyd=L/(Ks*A)`, `DeltaH(t)=DeltaH0*exp[-t*(1/A_top+1/A_bottom)/Rhyd]`; compare dt60/30/15 over600s. Also compare exact backward-Euler discrete multiplier `(1+dt*(1/A_top+1/A_bottom)/Rhyd)^(-steps)` and invariant cell masses. These separate runs show both signs, not spontaneous temporal reversal of an autonomous two-reservoir difference.
+3. Sealed1m column initially uniform h=-.5m with finite top pond .001m; run to300s at8/16/32 cells and dt2/1/.5, plus32 cells/dt.25. Require actual pond exhaustion, nonnegative bounds, mass and receipt closure. An independent **explicit finite-volume mass stepping** reference runs32 cells at dt<=.025 and .0125, capped at65536 steps each; it never calls the BE residual, Jacobian, pressure solve or conservation elimination. It is narrowly strictly unsaturated: reduce explicit dt to at most10% of the remaining moisture/capacity margin under the current net flux, handle actual pond depletion as one paired finite-donor event, and reject unsupported saturation or dt<1e-8 (except the positive final clock remainder). This is a bounded fixture reference, not a general explicit saturated solver. Require its two time profiles to differ by mean |delta theta|<1e-5; fine BE versus the finer explicit result must improve over coarse BE and be<.002. Joint8->16 and16->32 mesh/time errors must decrease with the latter<.01. These thresholds measure approximation; no published2D benchmark reproduction is claimed. If the reference cannot meet its cap/scope/threshold, report that gate honestly rather than relabeling self-refinement as independent validation.
+4. Two8-cell/60s/dt1 finite lower-boundary transitions: saturated soil plus top pond .001m and initially dry lower standpipe must wet the lower boundary and exhaust the top; uniform unsaturated h=-.5 with top dry and lower depth .001m must exhaust the lower donor. Record actual final quantities and last signed lower transfer/head, including failure if either event does not occur; do not assume an endpoint or rerun with a convenient new time. These distinguish newly mobile branches from always-wet reservoir oracles.
+5. Exact aligned save/reload with fresh owner, rejected identity/shape/overcapacity/dry envelope/unanchored/budget/time requests and unchanged input; local receipt reconstruction and deterministic owner isolation from mutated definition inputs. Unknown geometry/initial/work fields are rejected, so a caller cannot silently pass unused layers, initial pressure or fake work limits.
+
+Pre-run fixture recut: .001m/300s replaces the initial .005m/1200s proposal **before any numerical run**. Its1kg input is smaller than one32-cell soil cell's initial pore deficit, permitting a narrowly unsaturated independent explicit reference rather than pretending it has a saturated pressure solve. The300s horizon and fixed step sizes retain actual wet-to-dry surface switching and later redistribution within bounded work. This reasoning is not evidence that the case will pass; failure artifacts are required. The constitutive group also checks the full analytic residual Jacobian by bounded central differences away from h=0, and solves a known tridiagonal system with an actual adjacent-row pivot.
+
+Front/profile refinement is not guaranteed by conservation. Numerical thresholds for fixture comparisons must be in the caller before the first run. This packet is not a reproduction of the papers'2D benchmarks, a calibrated biome, a3D aquifer or an excavation join. Digging later must explicitly transfer conserved pore water to newly open free-water geometry and establish connected pressure/flow; generated material labels cannot fill a pit from nowhere.

@@ -1,0 +1,19 @@
+
+> hive@0.0.0 test
+> node --test src/clearing.test.js
+
+✔ only authorized work runs; a waiting blueprint resumes through real colony hauling and building (388.101947ms)
+✔ canceling queued, working and carrying orders keeps every wood and permits a fresh order (349.511087ms)
+✔ reserved walls block work routes; opening a canceled blueprint makes the order eligible again (377.278521ms)
+✔ a player-built room needs delivered wood, a doorway, covered bed cells and an actual sleep visit (1261.77419ms)
+✔ pause freezes active cargo and every subsystem; reset restores the seeded clearing (44.002933ms)
+✔ fixed-tick command replay preserves resources, cancellation and order priority across render cadences (622.862996ms)
+✔ the night schedule obeys dawn and disabling it releases its work order (3055.898082ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6299.661796

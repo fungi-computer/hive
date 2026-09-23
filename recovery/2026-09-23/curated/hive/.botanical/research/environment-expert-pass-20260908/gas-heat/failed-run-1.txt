@@ -1,0 +1,9 @@
+2026-09-08 ignored-only experiment, run-u1684.scope
+Invocation de1a4e0a338e410f9d661f9c4779e60b; native session 64915.
+Retained/polled through completion: exit 1.
+Traceback: experiment.py main(), assertion
+  states["throughflow"]["smoke_out"] > .0001
+failed. The initial run did not print states before that assertion, so its
+actual export value is unavailable. This is failed evidence, not a successful
+ventilation demonstration. Next run adds before-assertion output without
+changing the method, parameters or threshold.

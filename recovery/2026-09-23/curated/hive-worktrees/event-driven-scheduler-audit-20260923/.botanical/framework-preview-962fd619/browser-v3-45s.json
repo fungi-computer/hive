@@ -1,0 +1,105 @@
+{
+  "url": "https://framework-962fd619-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony-performance.html?workload=framework-v3&diagnostics=draw",
+  "samples": [
+    {
+      "sec": 5,
+      "sequence": 10,
+      "workers": 100,
+      "moving": 72,
+      "rate": 0.234000234000234,
+      "failed": 0,
+      "terrainReady": false
+    },
+    {
+      "sec": 10,
+      "sequence": 18,
+      "workers": 100,
+      "moving": 100,
+      "rate": 0.1865826353751455,
+      "failed": 0,
+      "terrainReady": true
+    },
+    {
+      "sec": 15,
+      "sequence": 57,
+      "workers": 100,
+      "moving": 83,
+      "rate": 0.39234851561220674,
+      "failed": 0,
+      "terrainReady": true
+    },
+    {
+      "sec": 20,
+      "sequence": 62,
+      "workers": 100,
+      "moving": 72,
+      "rate": 0.4009389732069864,
+      "failed": 0,
+      "terrainReady": true
+    },
+    {
+      "sec": 25,
+      "sequence": 62,
+      "workers": 100,
+      "moving": 72,
+      "rate": 0.4009389732069864,
+      "failed": 0,
+      "terrainReady": true
+    },
+    {
+      "sec": 30,
+      "sequence": 62,
+      "workers": 100,
+      "moving": 72,
+      "rate": 0.4009389732069864,
+      "failed": 0,
+      "terrainReady": true
+    },
+    {
+      "sec": 35,
+      "sequence": 62,
+      "workers": 100,
+      "moving": 72,
+      "rate": 0.4009389732069864,
+      "failed": 0,
+      "terrainReady": true
+    },
+    {
+      "sec": 40,
+      "sequence": 62,
+      "workers": 100,
+      "moving": 72,
+      "rate": 0.4009389732069864,
+      "failed": 0,
+      "terrainReady": true
+    },
+    {
+      "sec": 45,
+      "sequence": 62,
+      "workers": 100,
+      "moving": 72,
+      "rate": 0.4009389732069864,
+      "failed": 0,
+      "terrainReady": true
+    }
+  ],
+  "sockets": [
+    {
+      "url": "wss://hive-performance-engine-preview.levi-fe0.workers.dev/v1/colony-framework-proof-256-100-v3/socket/261c348020ddb2b5158f1e2ec1a3270f18a8d885c5741b35b9c07946e5453c08",
+      "closed": true
+    },
+    {
+      "url": "wss://hive-performance-engine-preview.levi-fe0.workers.dev/v1/colony-framework-proof-256-100-v3/socket/261c348020ddb2b5158f1e2ec1a3270f18a8d885c5741b35b9c07946e5453c08",
+      "closed": true
+    },
+    {
+      "url": "wss://hive-performance-engine-preview.levi-fe0.workers.dev/v1/colony-framework-proof-256-100-v3/socket/261c348020ddb2b5158f1e2ec1a3270f18a8d885c5741b35b9c07946e5453c08",
+      "closed": true
+    },
+    {
+      "url": "wss://hive-performance-engine-preview.levi-fe0.workers.dev/v1/colony-framework-proof-256-100-v3/socket/261c348020ddb2b5158f1e2ec1a3270f18a8d885c5741b35b9c07946e5453c08",
+      "closed": false
+    }
+  ],
+  "errors": []
+}

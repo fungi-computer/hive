@@ -1,0 +1,37 @@
+# RimWorld landforms and cavern ecology: bounded source extension
+
+Research only, 2026-09-08. Geological Landforms source is pinned to **e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421**. Author documentation for Biomes! Caverns is separately identified below; its older wiki values are examples, not verified current balance. No mod installation, execution, assets, or code port. The pinned repository declares CC-BY-NC-SA for its contents except separately licensed files; Hive should implement its own designs. [Pinned author README](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/README.md).
+
+## 1. Recognizable landforms come from deliberate shape plus variation
+
+The canyon XML connects a clamped linear field through left/right map-side orientation, takes their maximum, rotates the result by a seeded random angle, and adds six-octave Perlin noise before elevation output. Its selection requirements and scatterer output are separate graph nodes. This is a concrete example of composing a recognizable corridor with irregularity; merely increasing noise octaves would not express the same intent. A node's display name can be misleading: the node named “Add” at ID 8 actually serializes `OperationType=Max`. [Pinned canyon recipe](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/1.6/Landforms-v1/LandformCanyon.xml).
+
+**Hive proposal:** a landform definition selects a bounded shape operator and parameters; seeded detail modifies that shape. Landform choice should produce meaningful paths, shelter, exposure, planting room, and resource access. Do not copy map-edge assumptions into each streaming chunk: a chunk boundary is not a canyon boundary. Give a regional feature one canonical identity and evaluate its shape in world coordinates across intersecting chunks.
+
+## 2. Separate output fields are useful; they are not stacked terrain
+
+Elevation, fertility, and caves each expose an `IGridFunction<double>`; roofs expose an `IGridFunction<RoofDef>`. Each output node replaces an existing output of its own type on the landform. This gives graph authors distinct, typed outputs. [Elevation node](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/Sources/GeologicalLandforms/GraphEditor/Nodes/Output/NodeOutputElevation.cs), [fertility node](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/Sources/GeologicalLandforms/GraphEditor/Nodes/Output/NodeOutputFertility.cs), [caves node](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/Sources/GeologicalLandforms/GraphEditor/Nodes/Output/NodeOutputCaves.cs), [roof node](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/Sources/GeologicalLandforms/GraphEditor/Nodes/Output/NodeOutputRoofGrid.cs).
+
+The actual caller samples `(cell.x, cell.z)` into RimWorld map grids; cave output is admitted where the elevation grid exceeds its rock threshold. The roof caller assigns one RoofDef per map cell. These are planar generation channels, not evidence of arbitrary vertical voids, stacked playable floors, or streamed voxels. [Generation caller](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/Sources/GeologicalLandforms/World/TileMutatorWorker_Landform.cs#L62), [roof caller](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/Sources/GeologicalLandforms/Patches/Patch_RimWorld_GenStep_RocksFromGrid.cs#L38).
+
+**Hive proposal:** retain independent climate/soil/shape definitions, but derive diggable solid/void volume and walking surfaces explicitly. Roof cover, structural support, water connectivity, and the currently visible slice require different queries; a single “cave” flag cannot own them all.
+
+## 3. Biome transitions should affect local habitat, not just tint
+
+The author's addon description places multiple biomes in one local map when its world tile borders other biomes. In the pinned implementation, transition eligibility checks both biomes' permissions. The generation caller caches a per-cell biome field; transition postprocessing uses terrain-patch compatibility to adjust boundaries. This is more than interpolating colors. [Author addon description](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/README.md#add-ons), [transition implementation](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/Sources/GeologicalLandforms/BiomeTransition.cs#L29).
+
+**Hive proposal:** distinguish regional biome labels from local moisture, light, temperature, substrate, and species eligibility. A forest canyon and desert canyon can share geometry while differing in ecology. Later irrigation/desertification changes local state; generator labels must not overwrite those changes. This is a Hive simulation proposal, not a capability established by the addon.
+
+## 4. Caverns supplies an economy and habitat layer above shape
+
+The Caverns authors describe underground biomes with animals, plants/fungi, darkness crops, resources, and exclusive events, and explicitly depend on Geological Landforms. That separation makes the useful relationship clear: landform geometry creates opportunities and constraints; ecology/content gives inhabitants reasons to live there. [Author Workshop description](https://steamcommunity.com/sharedfiles/filedetails/?id=2969748433).
+
+The author wiki gives concrete roles: abyssal grapes keep well for expeditions; aquatic fungus is a cultivation resource; brightbells provide light; crystalcap supplies woody material; some rare fungi cannot be farmed. It separately records growth time, fertility/light/temperature requirements, lifespan, and skill requirements. These are documented designs, not evidence that every ecological interaction is simulated. [Author plants wiki](https://github.com/biomes-team/BiomesCaverns/wiki/Plants).
+
+**Hive proposal:** reusable species/lifecycle definitions should compose habitat requirements, yields, hazards, and cultivation knowledge. Original subterranean food, light, medicine, and timber roles can support the existing horticulture, books, and expedition loop without a separate cave economy engine.
+
+## 5. Adopt composition and readable constraints; validate Hive's own topology
+
+The landforms author describes defensive canyons with restricted natural resources and growing space, and aims to preserve a walkable map edge for events. The recipe is designed around complete colony maps, with standard 250×250 maps recommended. [Author design limitations](https://github.com/m00nl1ght-dev/GeologicalLandforms/blob/e8035e2b2fdb46ceb92aa159e17e72fdc5dcc421/README.md).
+
+**Hive exit proposal:** first prove the same named canyon across several neighboring chunks, a real visible cave entrance, two vertically separated passages, and consistent excavation/support/fluid connectivity after reload. Establish any promised entrance/travel route with a connectivity check; noise alone does not guarantee it. Preview habitat and resource opportunities alongside geography. No voxel, streaming, runtime hydrology, or performance claim is inherited from these mods, and no new dependency is recommended.

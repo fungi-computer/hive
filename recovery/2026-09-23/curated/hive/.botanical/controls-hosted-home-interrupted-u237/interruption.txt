@@ -1,0 +1,33 @@
+Final accepted preview revision: 016b1a02b009e798165bd4ba11653093cf4ee1c6.
+Scope: run-u237.scope, invocation6111a18989e24e519d2f7111c356059b.
+Started2026-09-07 06:54:17 UTC. Ended06:57:12 UTC; exit143, no assertion stderr.
+Observed checkpoints01 through07. No proof.json or failure.json was emitted.
+The parent and this lane report no stop/kill action against this scope.
+User journal around06:57 has no timeout, stop, OOM, or kill entry for it.
+Kernel logs are not accessible to this user. Cause is therefore unresolved.
+Scope was collected: LoadState=not-found, ActiveState=inactive, SubState=dead.
+This interrupted run is not a pass. Preserved for diagnosis; no assertions changed.
+
+Concrete tool launch metadata:
+functions.exec, no pragma, await Promise.allSettled([home exec_command, study exec_command]).
+Home exec_command:
+  cmd: bash /home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh env CHROMIUM_PATH=/home/levi/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome LD_LIBRARY_PATH=/home/levi/src/Botanical-next/.botanical/playwright-libs/root/usr/lib/x86_64-linux-gnu npm run prove -- https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/ .botanical/controls-hosted-home
+  workdir: /home/levi/src/hive
+  yield_time_ms:1000
+  max_output_tokens:1000
+  No timeout, tty, or sandbox override argument.
+Returned chunk:d438ff, session_id:81673, wall_time_seconds:1.001149122.
+
+Completion poll:
+functions.exec pragma yield_time_ms1000, max_output_tokens1000.
+tools.write_stdin({session_id:81673,chars:"",yield_time_ms:45000,max_output_tokens:1000}).
+Returned chunk:9722b4, wall_time_seconds:0.05044125, exit_code:143, output:"".
+
+Cleanup source:
+scripts/prove.mjs finally runs context.close() followed by browser.close().
+Its catch saves failure screenshot/JSON and rethrows; it does not kill processes.
+No shell parent/finally trap or generic kill command surrounded this launch.
+The only explicit scope stop by this lane was earlier run-u227.scope, at the parent's favicon hold.
+The run-proof.sh source read before launch sets RuntimeMaxSec=10min,
+TimeoutStopSec=5s, KillMode=control-group, --scope and --collect.
+Those are source settings; no historical settings are inferred from a collected unit's defaults.

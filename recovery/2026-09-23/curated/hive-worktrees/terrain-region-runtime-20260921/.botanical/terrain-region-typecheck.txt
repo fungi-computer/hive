@@ -1,0 +1,512 @@
+engine/src/games/colony-area-work.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/games/colony-area-work.test.ts(2,45): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/colony-area-work.test.ts(3,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-brewing.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/games/colony-brewing.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/colony-brewing.test.ts(3,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-brewing.test.ts(57,65): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(65,47): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-brewing.test.ts(65,66): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-brewing.test.ts(66,63): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-brewing.test.ts(66,63): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/games/colony-brewing.test.ts(67,43): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-brewing.test.ts(67,43): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/games/colony-brewing.test.ts(70,47): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(74,67): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(82,76): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(89,51): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(99,37): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(108,73): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(142,31): error TS18048: 'keg' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(152,34): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-brewing.test.ts(160,65): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony-building.test.ts(1,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-building.test.ts(2,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/games/colony-building.test.ts(8,46): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.test.ts(42,46): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.test.ts(64,49): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.test.ts(69,42): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.test.ts(83,43): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.test.ts(86,42): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.test.ts(94,47): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; floorOperations: (cells: readonly unknown[]) => { kind: "build"; }[]; physicalContacts: (cells: readonly unknown[]) => { solid: boolean; sealedTop: boolean; outside: boolean; }[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.test.ts(114,44): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.test.ts(126,19): error TS18048: 'colonyBuildCommand.localPresentation' is possibly 'undefined'.
+engine/src/games/colony-building.test.ts(135,44): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; query: () => never[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; query: () => never[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-building.ts(26,60): error TS2304: Cannot find name 'CardinalOrientation'.
+engine/src/games/colony-cat.test.ts(1,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-cat.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-construction.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/games/colony-construction.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/colony-construction.test.ts(3,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-construction.test.ts(81,38): error TS2345: Argument of type '{ readonly x: number; readonly y: number; readonly z: number; } | null' is not assignable to parameter of type 'Readonly<{ x: number; y: number; z: number; }>'.
+  Type 'null' is not assignable to type 'Readonly<{ x: number; y: number; z: number; }>'.
+engine/src/games/colony-construction.test.ts(132,105): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(133,92): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(134,76): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(135,74): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(138,103): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(139,76): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(149,30): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(150,47): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(153,45): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(155,44): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(157,74): error TS18048: 'site' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(191,45): error TS2345: Argument of type 'readonly [readonly [1, -1], readonly [2, -1], readonly [1, 0], readonly [2, 0], readonly [5, -1], readonly [5, 0]]' is not assignable to parameter of type 'readonly [number, number][]'.
+  Type 'readonly [2, 0] | readonly [1, -1] | readonly [2, -1] | readonly [1, 0] | readonly [5, -1] | readonly [5, 0]' is not assignable to type '[number, number]'.
+    The type 'readonly [2, 0]' is 'readonly' and cannot be assigned to the mutable type '[number, number]'.
+engine/src/games/colony-construction.test.ts(236,51): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EntityId'.
+  Type 'string' is not assignable to type 'EntityId'.
+    Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-construction.test.ts(244,157): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EntityId'.
+  Type 'string' is not assignable to type 'EntityId'.
+    Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-construction.test.ts(250,49): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EntityId'.
+  Type 'string' is not assignable to type 'EntityId'.
+    Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-construction.test.ts(365,26): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(368,32): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(371,33): error TS18048: 'wall' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(382,30): error TS18048: 'wall' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(384,19): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(389,43): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(391,32): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(391,74): error TS18048: 'wall' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(394,30): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(394,72): error TS18048: 'wall' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(420,43): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(511,23): error TS18047: 'ground' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(520,47): error TS18047: 'digSurface' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(520,69): error TS18047: 'digSurface' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(521,63): error TS18047: 'digSurface' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(521,63): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/games/colony-construction.test.ts(522,43): error TS18047: 'digSurface' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(522,43): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/games/colony-construction.test.ts(526,23): error TS18047: 'plantSurface' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(527,50): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/games/colony-construction.test.ts(540,70): error TS18048: 'plantOrder' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(542,77): error TS18048: 'plantOrder' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(543,70): error TS18048: 'plantOrder' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(554,25): error TS18048: 'treePolicy' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(577,95): error TS18047: 'independentGround' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(588,58): error TS18047: 'independentGround' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(588,96): error TS18047: 'independentGround' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(591,43): error TS18048: 'upperDependent' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(592,30): error TS18048: 'upperDependent' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(595,73): error TS18048: 'supportWall' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(597,80): error TS18048: 'supportWall' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(598,80): error TS18048: 'upperDependent' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(603,50): error TS18048: 'supportWall' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(620,73): error TS18048: 'supportWall' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(623,80): error TS18048: 'upperDependent' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(629,80): error TS18048: 'independentFloor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(654,73): error TS18048: 'stair' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(656,80): error TS18048: 'stair' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(674,75): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(676,82): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(711,38): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-construction.test.ts(721,91): error TS18048: 'brewer' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(722,90): error TS18048: 'stair' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(723,128): error TS18048: 'row' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(726,80): error TS18048: 'stair' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(727,111): error TS18048: 'row' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(728,80): error TS18048: 'brewer' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(730,47): error TS18048: 'brewer' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(732,108): error TS18048: 'brewer' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(736,70): error TS18048: 'brewProcess' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(738,77): error TS18048: 'brewProcess' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(742,95): error TS18047: 'secondGround' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(746,58): error TS18047: 'secondGround' is possibly 'null'.
+engine/src/games/colony-construction.test.ts(753,73): error TS18048: 'secondFloor' is possibly 'undefined'.
+engine/src/games/colony-construction.test.ts(755,80): error TS18048: 'secondFloor' is possibly 'undefined'.
+engine/src/games/colony-dig-command.test.ts(1,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-dig-command.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-dig-command.test.ts(90,50): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => WorkAttempt[]; query: (spec: { components: readonly { id: string; }[]; }) => never; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly EntityId[]) => WorkAttempt[]; query: (spec: { ...; }) => never; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-dig-command.test.ts(99,55): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => WorkAttempt[]; query: (spec: { components: readonly { id: string; }[]; }) => never; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly EntityId[]) => WorkAttempt[]; query: (spec: { ...; }) => never; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-dig-command.test.ts(102,61): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => WorkAttempt[]; query: (spec: { components: readonly { id: string; }[]; }) => never; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly EntityId[]) => WorkAttempt[]; query: (spec: { ...; }) => never; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-dig-command.test.ts(116,56): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => WorkAttempt[]; query: (spec: { components: readonly { id: string; }[]; }) => never; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly EntityId[]) => WorkAttempt[]; query: (spec: { ...; }) => never; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-dig-command.test.ts(118,58): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => WorkAttempt[]; query: (spec: { components: readonly { id: string; }[]; }) => never; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly EntityId[]) => WorkAttempt[]; query: (spec: { ...; }) => never; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-dig-command.test.ts(128,54): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => WorkAttempt[]; query: (spec: { components: readonly { id: string; }[]; }) => never; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly EntityId[]) => WorkAttempt[]; query: (spec: { ...; }) => never; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-dig-command.test.ts(147,47): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => WorkAttempt[]; query: (spec: { components: readonly { id: string; }[]; }) => never; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly EntityId[]) => WorkAttempt[]; query: (spec: { ...; }) => never; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-dig-command.test.ts(157,47): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => WorkAttempt[]; query: (spec: { components: readonly { id: string; }[]; }) => never; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; physicalContacts: () => never; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; workAttempts: (tasks: readonly EntityId[]) => WorkAttempt[]; query: (spec: { ...; }) => never; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-excavation.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-excavation.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/colony-excavation.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-excavation.test.ts(27,45): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-excavation.test.ts(27,64): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-excavation.test.ts(31,38): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-excavation.test.ts(34,12): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-ground-items.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-ground-items.test.ts(2,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-ground-items.test.ts(3,41): error TS7016: Could not find a declaration file for module '../client/visual-bindings.js'. '/home/levi/src/hive-worktrees/terrain-region-runtime-20260921/engine/src/client/visual-bindings.js' implicitly has an 'any' type.
+engine/src/games/colony-mugwort-command.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-mugwort-command.test.ts(2,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-mugwort-command.test.ts(50,57): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-mugwort-command.test.ts(59,50): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-mugwort-command.test.ts(66,50): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-mugwort-command.test.ts(73,50): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-mugwort-command.test.ts(83,50): error TS2345: Argument of type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "player"; player: string; }; clock: { now: number; delta: number; tick: number; }; physicalContacts: () => never[]; terrainMaterials: () => number[]; terrainSurfaces: () => { cell: [number, number, number]; material: number; generatedTop: 13; }[]; query(spec: { ...; }): readonly { ...; }[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-party.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-party.test.ts(2,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-party.ts(23,3): error TS2322: Type 'Readonly<{ partySlot: "party"; peopleSlots: readonly ["person.0", "person.1"]; actors: readonly ({ slot: "person.0" | "person.1"; definition: string; surfaceColumn: readonly [number, number]; arguments: { "spawn-x": ActorArgument; ... 5 more ...; "owner-player": ActorArgument; }; } | { ...; } | { ...; } | { ...; })[...' is not assignable to type 'Readonly<{ readonly actors: readonly Readonly<{ readonly slot: string; readonly definition: string; readonly arguments: Readonly<Record<string, ActorArgument>>; readonly surfaceColumn?: readonly [...] | undefined; }>[]; readonly initialMaterials: readonly Readonly<...>[]; readonly partySlot: string; readonly peopleS...'.
+  Types of property 'actors' are incompatible.
+    Type 'readonly ({ slot: "person.0" | "person.1"; definition: string; surfaceColumn: readonly [number, number]; arguments: { "spawn-x": ActorArgument; "spawn-y": ActorArgument; "spawn-z": ActorArgument; sprite: ActorArgument; label: ActorArgument; party: ActorArgument; "owner-player": ActorArgument; }; } | { ...; } | { ......' is not assignable to type 'readonly Readonly<{ readonly slot: string; readonly definition: string; readonly arguments: Readonly<Record<string, ActorArgument>>; readonly surfaceColumn?: readonly [number, number] | undefined; }>[]'.
+      Type '{ slot: "person.0" | "person.1"; definition: string; surfaceColumn: readonly [number, number]; arguments: { "spawn-x": ActorArgument; "spawn-y": ActorArgument; "spawn-z": ActorArgument; sprite: ActorArgument; label: ActorArgument; party: ActorArgument; "owner-player": ActorArgument; }; } | { ...; } | { ...; } | { .....' is not assignable to type 'Readonly<{ readonly slot: string; readonly definition: string; readonly arguments: Readonly<Record<string, ActorArgument>>; readonly surfaceColumn?: readonly [number, number] | undefined; }>'.
+        Type '{ slot: string; definition: string; arguments: { "owner-player": ActorArgument; "spawn-x"?: undefined; "spawn-y"?: undefined; "spawn-z"?: undefined; capacity?: undefined; sprite?: undefined; label?: undefined; party?: undefined; home?: undefined; }; surfaceColumn?: undefined; }' is not assignable to type 'Readonly<{ readonly slot: string; readonly definition: string; readonly arguments: Readonly<Record<string, ActorArgument>>; readonly surfaceColumn?: readonly [number, number] | undefined; }>'.
+          Types of property 'arguments' are incompatible.
+            Type '{ "owner-player": ActorArgument; "spawn-x"?: undefined; "spawn-y"?: undefined; "spawn-z"?: undefined; capacity?: undefined; sprite?: undefined; label?: undefined; party?: undefined; home?: undefined; }' is not assignable to type 'Readonly<Record<string, ActorArgument>>'.
+              Property '"spawn-x"' is incompatible with index signature.
+                Type 'undefined' is not assignable to type 'ActorArgument'.
+engine/src/games/colony-performance.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-performance.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/colony-performance.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-performance.test.ts(88,17): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+engine/src/games/colony-performance.test.ts(90,17): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+engine/src/games/colony-player-party.ts(13,64): error TS2339: Property 'player' does not exist on type 'CommandScope'.
+  Property 'player' does not exist on type '{ readonly kind: "host"; }'.
+engine/src/games/colony-presentation.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-presentation.test.ts(2,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-presentation.test.ts(3,47): error TS2305: Module '"./colony.ts"' has no exported member 'treeWorkProgress'.
+engine/src/games/colony-stockpile.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-stockpile.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/colony-stockpile.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-stockpile.test.ts(23,23): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-stockpile.test.ts(60,67): error TS2345: Argument of type '{ scope: { kind: "host"; }; query: () => never[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is not assignable to parameter of type 'GameCommandContext'.
+  Type '{ scope: { kind: "host"; }; query: () => never[]; physicalContacts: () => never[]; terrainMaterials: () => never[]; terrainSurfaces: () => never[]; }' is missing the following properties from type 'Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts">': structureSurfaces, transferContacts
+engine/src/games/colony-stockpile.test.ts(71,23): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-stockpile.test.ts(91,23): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-terrain-consumer.test.ts(1,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-terrain-consumer.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-terrain-consumer.test.ts(37,20): error TS18048: 'atmosphere' is possibly 'undefined'.
+engine/src/games/colony-terrain-consumer.test.ts(42,20): error TS18048: 'atmosphere' is possibly 'undefined'.
+engine/src/games/colony-terrain-presentation.ts(18,14): error TS2322: Type 'Readonly<{ materials: readonly (Readonly<{ slot: 1; art: "earth"; }> | Readonly<{ slot: 2; art: "stone"; }>)[]; generatedCover({ cell: [x, , z], material, worldSeed }: { cell: [any, any, any]; material: any; worldSeed: any; }): Readonly<...> | null; }>' is not assignable to type 'TerrainPresentationDefinition'.
+  Types of property 'generatedCover' are incompatible.
+    Type '({ cell: [x, , z], material, worldSeed }: { cell: [any, any, any]; material: any; worldSeed: any; }) => Readonly<{ kind: string; condition: string; height: string; }> | null' is not assignable to type '(input: { readonly cell: readonly [number, number, number]; readonly material: number; readonly generatedTop: number; readonly worldSeed: string; readonly worldIdentity: string; }) => Readonly<{ ...; }> | null'.
+      Types of parameters '__0' and 'input' are incompatible.
+        Type '{ readonly cell: readonly [number, number, number]; readonly material: number; readonly generatedTop: number; readonly worldSeed: string; readonly worldIdentity: string; }' is not assignable to type '{ cell: [any, any, any]; material: any; worldSeed: any; }'.
+          Types of property 'cell' are incompatible.
+            The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[any, any, any]'.
+engine/src/games/colony-terrain-presentation.ts(23,27): error TS7031: Binding element 'x' implicitly has an 'any' type.
+engine/src/games/colony-terrain-presentation.ts(23,32): error TS7031: Binding element 'z' implicitly has an 'any' type.
+engine/src/games/colony-terrain-presentation.ts(23,36): error TS7031: Binding element 'material' implicitly has an 'any' type.
+engine/src/games/colony-terrain-presentation.ts(23,46): error TS7031: Binding element 'worldSeed' implicitly has an 'any' type.
+engine/src/games/colony-trees.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-trees.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/colony-trees.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-trees.test.ts(25,25): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-trees.test.ts(39,101): error TS2353: Object literal may only specify known properties, and 'party' does not exist in type '{ readonly kind: "player"; readonly player: string; }'.
+engine/src/games/colony-trees.test.ts(49,45): error TS2322: Type 'string' is not assignable to type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-trees.test.ts(73,40): error TS2322: Type 'string' is not assignable to type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-trees.test.ts(73,46): error TS2322: Type 'string' is not assignable to type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-trees.test.ts(77,32): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-trees.test.ts(84,40): error TS2322: Type 'string' is not assignable to type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-trees.test.ts(84,46): error TS2322: Type 'string' is not assignable to type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/colony-work.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/colony-work.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/colony-work.test.ts(4,42): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/colony-work.test.ts(13,93): error TS7006: Parameter 't' implicitly has an 'any' type.
+engine/src/games/colony-work.test.ts(29,47): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-work.test.ts(29,66): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-work.test.ts(30,63): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-work.test.ts(30,63): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/games/colony-work.test.ts(31,43): error TS18047: 'surface' is possibly 'null'.
+engine/src/games/colony-work.test.ts(31,43): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/games/colony-work.test.ts(72,47): error TS18048: 'station' is possibly 'undefined'.
+engine/src/games/colony.ts(819,41): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/formation-combat.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/formation-combat.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/formation-combat.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/formations-behavior.test.ts(1,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/formations-behavior.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/formations-behavior.test.ts(8,3): error TS2322: Type 'string' is not assignable to type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/formations-behavior.test.ts(9,3): error TS2322: Type '<V extends object>(definition: ComponentDefinition<V>) => { group: string; slot: number; value?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; } | { ...; } | { ...; }' is not assignable to type '<V extends object>(definition: ComponentDefinition<V>) => V'.
+  Type '{ group: string; slot: number; value?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; } | { value: number; group?: undefined; slot?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; } | { ...; }' is not assignable to type 'V'.
+    '{ group: string; slot: number; value?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; } | { value: number; group?: undefined; slot?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; } | { ...; }' is assignable to the constraint of type 'V', but 'V' could be instantiated with a different subtype of constraint 'object'.
+      Type '{ group: string; slot: number; value?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; }' is not assignable to type 'V'.
+        '{ group: string; slot: number; value?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; }' is assignable to the constraint of type 'V', but 'V' could be instantiated with a different subtype of constraint 'object'.
+engine/src/games/formations-behavior.test.ts(18,3): error TS2322: Type 'string' is not assignable to type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/formations-behavior.test.ts(19,3): error TS2322: Type '<V extends object>(definition: ComponentDefinition<V>) => { facing: number; retreatBelow: number; }' is not assignable to type '<V extends object>(definition: ComponentDefinition<V>) => V'.
+  Type '{ facing: number; retreatBelow: number; }' is not assignable to type 'V'.
+    '{ facing: number; retreatBelow: number; }' is assignable to the constraint of type 'V', but 'V' could be instantiated with a different subtype of constraint 'object'.
+engine/src/games/formations-behavior.test.ts(27,19): error TS2352: Conversion of type '{ clock: { now: number; delta: number; tick: number; }; outcomes: never[]; impacts: never[]; random: { next: () => number; }; query<T extends object>(spec: QuerySpec<T>): QueryRow<object>[]; action(request: ActionRequest): void; write<T extends object>(): void; createAuthoredEntity(): void; removeAuthoredEntity(): v...' to type 'WriteContext' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ clock: { now: number; delta: number; tick: number; }; outcomes: never[]; impacts: never[]; random: { next: () => number; }; query<T extends object>(spec: QuerySpec<T>): QueryRow<object>[]; action(request: ActionRequest): void; write<T extends object>(): void; createAuthoredEntity(): void; removeAuthoredEntity(): v...' is missing the following properties from type 'WriteContext': workMaterialFacts, workAttemptForWorker, processRequirements, floorOperations, and 14 more.
+engine/src/games/pirates.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/games/pirates.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/pirates.test.ts(3,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/games/survival-behavior.test.ts(1,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/games/survival-behavior.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/games/survival-behavior.test.ts(17,3): error TS2322: Type 'string' is not assignable to type 'EntityId'.
+  Type 'string' is not assignable to type '{ readonly __entityId: unique symbol; }'.
+engine/src/games/survival-behavior.test.ts(18,3): error TS2322: Type '<V extends object>(definition: ComponentDefinition<V>) => { controlled: boolean; hunger?: undefined; wellbeing?: undefined; recovery?: undefined; x?: undefined; y?: undefined; ... 6 more ...; lastZ?: undefined; } | ... 4 more ... | { ...; }' is not assignable to type '<V extends object>(definition: ComponentDefinition<V>) => V'.
+  Type '{ controlled: boolean; hunger?: undefined; wellbeing?: undefined; recovery?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; speed?: undefined; value?: undefined; lastX?: undefined; lastY?: undefined; lastZ?: undefined; } | ... 4 more ... | { ...; }' is not assignable to type 'V'.
+    '{ controlled: boolean; hunger?: undefined; wellbeing?: undefined; recovery?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; speed?: undefined; value?: undefined; lastX?: undefined; lastY?: undefined; lastZ?: undefined; } | ... 4 more ... | { ...; }' is assignable to the constraint of type 'V', but 'V' could be instantiated with a different subtype of constraint 'object'.
+      Type '{ controlled: boolean; hunger?: undefined; wellbeing?: undefined; recovery?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; speed?: undefined; value?: undefined; lastX?: undefined; lastY?: undefined; lastZ?: undefined; }' is not assignable to type 'V'.
+        '{ controlled: boolean; hunger?: undefined; wellbeing?: undefined; recovery?: undefined; x?: undefined; y?: undefined; z?: undefined; facing?: undefined; speed?: undefined; value?: undefined; lastX?: undefined; lastY?: undefined; lastZ?: undefined; }' is assignable to the constraint of type 'V', but 'V' could be instantiated with a different subtype of constraint 'object'.
+engine/src/games/survival-behavior.test.ts(27,19): error TS2352: Conversion of type '{ clock: { now: number; delta: number; tick: number; }; outcomes: never[]; impacts: never[]; random: { next: () => number; }; query<T extends object>(spec: QuerySpec<T>): QueryRow<object>[]; write<T extends object>(definition: ComponentDefinition<...>, entity: EntityId, value: T): void; action(): void; createAuthore...' to type 'WriteContext' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ clock: { now: number; delta: number; tick: number; }; outcomes: never[]; impacts: never[]; random: { next: () => number; }; query<T extends object>(spec: QuerySpec<T>): QueryRow<object>[]; write<T extends object>(definition: ComponentDefinition<...>, entity: EntityId, value: T): void; action(): void; createAuthore...' is missing the following properties from type 'WriteContext': workMaterialFacts, workAttemptForWorker, processRequirements, floorOperations, and 14 more.
+engine/src/presentation.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/presentation.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/actions.ts(78,36): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+engine/src/runtime/actions.ts(79,54): error TS18046: 'value.steps' is of type 'unknown'.
+engine/src/runtime/actions.ts(79,87): error TS7006: Parameter 'previous' implicitly has an 'any' type.
+engine/src/runtime/actions.ts(81,14): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+engine/src/runtime/actions.ts(218,99): error TS18046: 'action.portions' is of type 'unknown'.
+engine/src/runtime/actions.ts(218,123): error TS18046: 'action.portions' is of type 'unknown'.
+engine/src/runtime/atmosphere-observation.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/atmosphere-observation.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/authored-orders.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/authored-orders.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/authored-orders.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/browser-client.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/browser-client.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/browser-client.test.ts(38,16): error TS18048: 'reference' is possibly 'undefined'.
+engine/src/runtime/browser-client.test.ts(38,26): error TS2339: Property 'terrain' does not exist on type 'WorkerEventBase'.
+  Property 'terrain' does not exist on type '{ readonly type: "ready"; readonly game: string; }'.
+engine/src/runtime/browser-client.test.ts(38,44): error TS18048: 'first' is possibly 'undefined'.
+engine/src/runtime/browser-client.test.ts(38,50): error TS2339: Property 'terrain' does not exist on type 'WorkerEventBase'.
+  Property 'terrain' does not exist on type '{ readonly type: "ready"; readonly game: string; }'.
+engine/src/runtime/browser-client.test.ts(39,16): error TS18048: 'reference' is possibly 'undefined'.
+engine/src/runtime/browser-client.test.ts(39,26): error TS2339: Property 'terrain' does not exist on type 'WorkerEventBase'.
+  Property 'terrain' does not exist on type '{ readonly type: "ready"; readonly game: string; }'.
+engine/src/runtime/browser-client.test.ts(39,53): error TS18048: 'first' is possibly 'undefined'.
+engine/src/runtime/browser-client.test.ts(39,59): error TS2339: Property 'terrain' does not exist on type 'WorkerEventBase'.
+  Property 'terrain' does not exist on type '{ readonly type: "ready"; readonly game: string; }'.
+engine/src/runtime/browser-client.test.ts(40,19): error TS18048: 'reference' is possibly 'undefined'.
+engine/src/runtime/browser-client.test.ts(40,29): error TS2339: Property 'terrain' does not exist on type 'WorkerEventBase'.
+  Property 'terrain' does not exist on type '{ readonly type: "ready"; readonly game: string; }'.
+engine/src/runtime/browser-client.test.ts(40,44): error TS18048: 'first' is possibly 'undefined'.
+engine/src/runtime/browser-client.test.ts(40,50): error TS2339: Property 'terrain' does not exist on type 'WorkerEventBase'.
+  Property 'terrain' does not exist on type '{ readonly type: "ready"; readonly game: string; }'.
+engine/src/runtime/browser-client.test.ts(44,19): error TS18048: 'replacement' is possibly 'undefined'.
+engine/src/runtime/browser-client.test.ts(44,31): error TS2339: Property 'terrain' does not exist on type 'WorkerEventBase'.
+  Property 'terrain' does not exist on type '{ readonly type: "ready"; readonly game: string; }'.
+engine/src/runtime/browser-client.test.ts(44,49): error TS18048: 'first' is possibly 'undefined'.
+engine/src/runtime/browser-client.test.ts(44,55): error TS2339: Property 'terrain' does not exist on type 'WorkerEventBase'.
+  Property 'terrain' does not exist on type '{ readonly type: "ready"; readonly game: string; }'.
+engine/src/runtime/browser-client.test.ts(51,41): error TS2345: Argument of type '{ requestId: number; epoch: number; terrainRevision: number; chunks: readonly [readonly [0, 0, 0]]; }' is not assignable to parameter of type '{ requestId: number; epoch: number; terrainRevision: number; chunks: [number, number, number][]; }'.
+  Types of property 'chunks' are incompatible.
+    The type 'readonly [readonly [0, 0, 0]]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number][]'.
+engine/src/runtime/browser-client.test.ts(53,46): error TS2345: Argument of type '{ requestId: number; epoch: number; terrainRevision: number; chunks: readonly [readonly [0, 0, 0]]; }' is not assignable to parameter of type '{ requestId: number; epoch: number; terrainRevision: number; chunks: [number, number, number][]; }'.
+  Types of property 'chunks' are incompatible.
+    The type 'readonly [readonly [0, 0, 0]]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number][]'.
+engine/src/runtime/colony-dig-obstruction.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/colony-dig-obstruction.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/colony-dig-obstruction.test.ts(3,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/colony-dig-obstruction.test.ts(38,64): error TS18047: 'surface' is possibly 'null'.
+engine/src/runtime/colony-environment-recovery.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/colony-environment-recovery.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/colony-environment-recovery.test.ts(3,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/colony-player-control.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/colony-player-control.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/colony-player-control.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/colony-player-control.test.ts(59,32): error TS18047: 'destination' is possibly 'null'.
+engine/src/runtime/colony-player-control.test.ts(71,35): error TS2322: Type 'string | undefined' is not assignable to type 'EntityId'.
+  Type 'undefined' is not assignable to type 'EntityId'.
+    Type 'undefined' is not assignable to type 'string'.
+engine/src/runtime/colony-player-control.test.ts(104,21): error TS18047: 'digSurface' is possibly 'null'.
+engine/src/runtime/colony-player-control.test.ts(113,43): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/runtime/colony-player-control.test.ts(118,74): error TS18047: 'surface' is possibly 'null'.
+engine/src/runtime/colony-player-control.test.ts(122,41): error TS4104: The type 'readonly [number, number, number]' is 'readonly' and cannot be assigned to the mutable type '[number, number, number]'.
+engine/src/runtime/colony-work-contact.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/colony-work-contact.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/colony-work-contact.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/colony-work-contact.test.ts(52,75): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/runtime/colony-work-contact.test.ts(55,82): error TS18048: 'floor' is possibly 'undefined'.
+engine/src/runtime/colony-work-contact.test.ts(56,52): error TS18048: 'brewer' is possibly 'undefined'.
+engine/src/runtime/colony-work-route-recovery.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/colony-work-route-recovery.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/colony-work-route-recovery.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/construction-actions.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/construction-actions.test.ts(2,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/construction-actions.test.ts(18,75): error TS2339: Property 'plans' does not exist on type 'ActionRequest'.
+  Property 'plans' does not exist on type '{ readonly kind: "instantiate-actors"; readonly bindingId: string; readonly expectedSequence: number; readonly plan: Readonly<{ readonly actors: readonly Readonly<{ readonly slot: string; readonly definition: string; readonly arguments: Readonly<...>; readonly surfaceColumn?: readonly [...] | undefined; }>[]; readon...'.
+engine/src/runtime/construction-actions.test.ts(19,40): error TS2339: Property 'plans' does not exist on type 'ActionRequest'.
+  Property 'plans' does not exist on type '{ readonly kind: "instantiate-actors"; readonly bindingId: string; readonly expectedSequence: number; readonly plan: Readonly<{ readonly actors: readonly Readonly<{ readonly slot: string; readonly definition: string; readonly arguments: Readonly<...>; readonly surfaceColumn?: readonly [...] | undefined; }>[]; readon...'.
+engine/src/runtime/construction-actions.test.ts(20,40): error TS2339: Property 'plans' does not exist on type 'ActionRequest'.
+  Property 'plans' does not exist on type '{ readonly kind: "instantiate-actors"; readonly bindingId: string; readonly expectedSequence: number; readonly plan: Readonly<{ readonly actors: readonly Readonly<{ readonly slot: string; readonly definition: string; readonly arguments: Readonly<...>; readonly surfaceColumn?: readonly [...] | undefined; }>[]; readon...'.
+engine/src/runtime/construction-actions.test.ts(21,40): error TS2339: Property 'plans' does not exist on type 'ActionRequest'.
+  Property 'plans' does not exist on type '{ readonly kind: "instantiate-actors"; readonly bindingId: string; readonly expectedSequence: number; readonly plan: Readonly<{ readonly actors: readonly Readonly<{ readonly slot: string; readonly definition: string; readonly arguments: Readonly<...>; readonly surfaceColumn?: readonly [...] | undefined; }>[]; readon...'.
+engine/src/runtime/excavation-actions.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/excavation-actions.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/finite-resource-actions.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/finite-resource-actions.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/games.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/games.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/games.test.ts(3,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/games.test.ts(444,47): error TS18048: 'savedWorker' is possibly 'undefined'.
+engine/src/runtime/inventory-presentation.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/inventory-presentation.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/kernel-records.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/kernel-records.test.ts(2,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/kernel-records.test.ts(53,46): error TS18048: 'entityRecord' is possibly 'undefined'.
+engine/src/runtime/native-records.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/native-records.test.ts(3,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/native-records.test.ts(4,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/observation.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/observation.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/observation.test.ts(3,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/physical-contact-query.test.ts(1,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/physical-contact-query.test.ts(2,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/presentation-cues.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/presentation-cues.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/remote-client.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/remote-client.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/remote-client.test.ts(96,35): error TS18048: 'join' is possibly 'undefined'.
+engine/src/runtime/remote-client.test.ts(100,34): error TS18048: 'join' is possibly 'undefined'.
+engine/src/runtime/remote-client.test.ts(124,28): error TS18048: 'command' is possibly 'undefined'.
+engine/src/runtime/remote-client.test.ts(145,48): error TS18048: 'command' is possibly 'undefined'.
+engine/src/runtime/session-region-records.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/session-region-records.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/session-region-records.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/session-region-records.test.ts(4,30): error TS2307: Cannot find module 'node:sqlite' or its corresponding type declarations.
+engine/src/runtime/session-region-records.test.ts(53,56): error TS2345: Argument of type '{ readonly x: number; readonly y: number; readonly z: number; } | null' is not assignable to parameter of type 'Vec3'.
+  Type 'null' is not assignable to type 'Vec3'.
+engine/src/runtime/session-region-records.test.ts(505,39): error TS2554: Expected 3 arguments, but got 2.
+engine/src/runtime/session-region-records.test.ts(506,39): error TS2554: Expected 3 arguments, but got 2.
+engine/src/runtime/session-region-records.test.ts(507,39): error TS2554: Expected 3 arguments, but got 2.
+engine/src/runtime/session-region-records.test.ts(508,39): error TS2554: Expected 3 arguments, but got 2.
+engine/src/runtime/session-region-records.test.ts(509,37): error TS2554: Expected 3 arguments, but got 2.
+engine/src/runtime/session-region-records.test.ts(517,39): error TS2554: Expected 3 arguments, but got 2.
+engine/src/runtime/session-region-records.test.ts(518,39): error TS2554: Expected 3 arguments, but got 2.
+engine/src/runtime/session.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/session.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/session.test.ts(49,7): error TS2420: Class 'TestPort' incorrectly implements interface 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(319,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(320,16): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(345,9): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(346,20): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(356,5): error TS2322: Type 'string' is not assignable to type '`${string}.${string}`'.
+engine/src/runtime/session.test.ts(360,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(361,16): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(382,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(384,15): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(444,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(446,15): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(503,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(505,15): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(776,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(777,16): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(891,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(893,15): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(1050,13): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(1093,35): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(1102,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(1118,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(1120,15): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(1159,5): error TS2741: Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.test.ts(1161,15): error TS2345: Argument of type 'TestPort' is not assignable to parameter of type 'KernelPort'.
+  Property 'placementDecisions' is missing in type 'TestPort' but required in type 'KernelPort'.
+engine/src/runtime/session.ts(1290,37): error TS2339: Property 'readChunks' does not exist on type 'TerrainPresentationOwner'.
+engine/src/runtime/terrain-chunks.test.ts(1,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/terrain-chunks.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/terrain-presentation.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/terrain-presentation.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/terrain-presentation.test.ts(248,3): error TS2740: Type '{ routeCosts: () => never; routeToAny: () => never; dispose(): void; load(): void; loadEnvironment(): void; environmentFacts: () => unknown; physicalContacts: () => never; atmosphereSamples: (cells: readonly [number, number, number][]) => { ...; }; ... 15 more ...; worldPoses: () => never[]; }' is missing the following properties from type 'KernelPort': partyJoinIdentity, floorOperations, transferContacts, placementDecisions, and 3 more.
+engine/src/runtime/terrain-presentation.test.ts(378,36): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/terrain-presentation.ts(6,91): error TS7016: Could not find a declaration file for module './terrain-region-exposure.js'. '/home/levi/src/hive-worktrees/terrain-region-runtime-20260921/engine/src/runtime/terrain-region-exposure.js' implicitly has an 'any' type.
+engine/src/runtime/terrain-surface-observation.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/terrain-surface-observation.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/terrain-surface-observation.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/terrain-surface-observation.test.ts(19,18): error TS18048: 'original' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(19,41): error TS18048: 'original' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(20,49): error TS18048: 'original' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(20,74): error TS18048: 'original' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(22,38): error TS18048: 'lowered' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(22,58): error TS18048: 'original' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(26,18): error TS18048: 'lowered' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(26,35): error TS18048: 'original' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(27,18): error TS18048: 'lowered' is possibly 'undefined'.
+engine/src/runtime/terrain-surface-observation.test.ts(27,40): error TS18048: 'original' is possibly 'undefined'.
+engine/src/runtime/terrain-wire.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/terrain-wire.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/terrain-wire.test.ts(52,39): error TS2345: Argument of type 'TerrainWireFrame | undefined' is not assignable to parameter of type 'TerrainWireFrame'.
+  Type 'undefined' is not assignable to type 'TerrainWireFrame'.
+engine/src/runtime/terrain-wire.test.ts(52,49): error TS18048: 'baseline' is possibly 'undefined'.
+engine/src/runtime/terrain-wire.test.ts(77,72): error TS7006: Parameter 't' implicitly has an 'any' type.
+engine/src/runtime/visual-projection.test.ts(1,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/visual-projection.test.ts(2,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/whistle.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/whistle.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/work-activity.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/runtime/work-activity.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/work-activity.test.ts(3,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/runtime/worker-terrain-wire.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/runtime/worker-terrain-wire.test.ts(2,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+engine/src/runtime/worker-terrain-wire.test.ts(3,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/sdk/authoring.test.ts(33,15): error TS2345: Argument of type '{ clock: { now: number; delta: number; tick: number; }; random: { next: () => number; }; impacts: never[]; outcomes: never[]; query: () => never[]; workMaterialFacts: () => { version: 1; containers: never[]; lots: never[]; }; ... 14 more ...; action: () => void; }' is not assignable to parameter of type 'WriteContext'.
+  Type '{ clock: { now: number; delta: number; tick: number; }; random: { next: () => number; }; impacts: never[]; outcomes: never[]; query: () => never[]; workMaterialFacts: () => { version: 1; containers: never[]; lots: never[]; }; ... 14 more ...; action: () => void; }' is missing the following properties from type 'WriteContext': workAttemptForWorker, processRequirements, floorOperations, transferContacts, and 2 more.
+engine/src/sdk/behavior.test.ts(1,18): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/sdk/behavior.test.ts(2,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.
+engine/src/sdk/behavior.test.ts(52,40): error TS2345: Argument of type 'string' is not assignable to parameter of type '`${string}.${string}`'.
+engine/src/sdk/behavior.test.ts(72,39): error TS2345: Argument of type 'string' is not assignable to parameter of type '`${string}.${string}`'.
+engine/src/sdk/behavior.ts(209,17): error TS7019: Rest parameter 'next' implicitly has an 'any[]' type.
+engine/src/sdk/behavior.ts(214,14): error TS7006: Parameter 'nextAction' implicitly has an 'any' type.
+engine/src/sdk/behavior.ts(352,21): error TS2339: Property 'kind' does not exist on type 'ComponentDefinition<T> | ActorDefinitionCapability<T>'.
+  Property 'kind' does not exist on type 'ComponentDefinition<T>'.
+engine/src/sdk/behavior.ts(358,38): error TS2345: Argument of type 'readonly (ActorDefinitionCapabilityValue | Readonly<{ capability: ComponentDefinition<T> | ActorDefinitionCapability<T>; value: Readonly<...>; }>)[]' is not assignable to parameter of type 'readonly ActorDefinitionCapabilityValue[]'.
+  Type 'ActorDefinitionCapabilityValue | Readonly<{ capability: ComponentDefinition<T> | ActorDefinitionCapability<T>; value: Readonly<...>; }>' is not assignable to type 'ActorDefinitionCapabilityValue'.
+    Type 'Readonly<{ capability: ComponentDefinition<T> | ActorDefinitionCapability<T>; value: Readonly<T>; }>' is not assignable to type 'ActorDefinitionCapabilityValue'.
+      Types of property 'capability' are incompatible.
+        Type 'ComponentDefinition<T> | ActorDefinitionCapability<T>' is not assignable to type 'ActorDefinitionCapability<any>'.
+          Property 'kind' is missing in type 'ComponentDefinition<T>' but required in type 'ActorDefinitionCapability<any>'.
+engine/src/sdk/behavior.ts(367,51): error TS2339: Property 'fields' does not exist on type 'ComponentDefinition<T> | ActorDefinitionCapability<T>'.
+  Property 'fields' does not exist on type 'ActorDefinitionCapability<T>'.
+engine/src/sdk/behavior.ts(380,11): error TS2345: Argument of type 'readonly (ActorCapability | Readonly<{ initial?: Readonly<T | ActorInitial<T>> | undefined; component: ComponentDefinition<T> | ActorDefinitionCapability<...>; }>)[]' is not assignable to parameter of type 'readonly ActorCapability[]'.
+  Type 'ActorCapability | Readonly<{ initial?: Readonly<T | ActorInitial<T>> | undefined; component: ComponentDefinition<T> | ActorDefinitionCapability<...>; }>' is not assignable to type 'ActorCapability'.
+    Type 'Readonly<{ initial?: Readonly<T | ActorInitial<T>> | undefined; component: ComponentDefinition<T> | ActorDefinitionCapability<T>; }>' is not assignable to type 'ActorCapability'.
+      Types of property 'component' are incompatible.
+        Type 'ComponentDefinition<T> | ActorDefinitionCapability<T>' is not assignable to type 'ComponentDefinition<any>'.
+          Type 'ActorDefinitionCapability<T>' is missing the following properties from type 'ComponentDefinition<any>': version, fields
+engine/src/sdk/construction.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/sdk/construction.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/sdk/construction.ts(188,56): error TS2339: Property 'cell' does not exist on type '{ cell: [number, number, number]; } | { area: { start: [number, number, number]; end: [number, number, number]; }; }'.
+  Property 'cell' does not exist on type '{ area: { start: [number, number, number]; end: [number, number, number]; }; }'.
+engine/src/sdk/index.ts(10,1): error TS2308: Module "./work-control" has already exported a member named 'WorkExecution'. Consider explicitly re-exporting to resolve the ambiguity.
+engine/src/sdk/public.test.ts(1,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+engine/src/sdk/public.test.ts(2,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/sdk/work-attempt.test.ts(1,34): error TS2307: Cannot find module 'node:assert' or its corresponding type declarations.
+engine/src/sdk/work-attempt.test.ts(2,22): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.
+src/engine/region/sqlite-test-owner.d.mts(1,35): error TS2307: Cannot find module 'node:sqlite' or its corresponding type declarations.

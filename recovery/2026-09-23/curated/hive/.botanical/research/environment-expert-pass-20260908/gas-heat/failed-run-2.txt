@@ -1,0 +1,13 @@
+2026-09-08 ignored-only experiment, run-u1687.scope
+Invocation 6b0ce6aec10f45369c16b4947ec7435c; native session 14944.
+Retained/polled through completion: exit 1 at the unchanged throughflow export
+criterion > 0.0001 kg. Full before-assertion output is failed-run-2-results.json.
+Actual throughflow smoke export was 9.87639635835347e-7 kg of 0.003 kg emitted.
+Upper breathing-cell integrated exposure increased from 0.029375957680201244
+sealed to 0.04124110268644453 kg s/m^3 with throughflow. This fixture does not
+prove player-useful ventilation. Single pressure-only vent exported numerical
+roundoff, as required by the incompressible carrier constraint.
+Next run preserves all parameters and the acceptance criterion but reports it
+as an explicit rejected-candidate result, allowing independent timestep/replay
+and thermal-star checks to finish. Exit 0 on that run will mean the falsifier
+completed, not that the ventilation candidate was accepted.

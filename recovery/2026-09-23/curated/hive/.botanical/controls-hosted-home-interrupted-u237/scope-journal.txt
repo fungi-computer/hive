@@ -1,0 +1,2 @@
+Sep 07 06:54:17 shiitake systemd[5531]: Started run-u237.scope - Botanical automated proof (10 minute limit).
+Sep 07 06:57:12 shiitake systemd[5531]: run-u237.scope: Consumed 1min 56.833s CPU time.

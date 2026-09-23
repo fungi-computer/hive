@@ -1,0 +1,38 @@
+
+> hive@0.0.0 preview
+> wrangler preview --name goblin-mvp
+
+
+ ⛅️ wrangler 4.127.1
+────────────────────
+🌀 Building list of assets...
+✨ Read 26 files from the assets directory /home/levi/src/hive/dist
+🌀 Starting asset upload...
+🌀 Found 17 new or modified static assets to upload. Proceeding with upload...
++ /assets/getPo2TextureFromSource-DU5D8dmw.js
++ /study.html
++ /assets/canvasUtils-MOhSTh5l.js
++ /assets/webworkerAll-CKB_29eB.js
++ /assets/browserAll-2lunYGoy.js
++ /assets/WebGLRenderer-6B3Na7KE.js
++ /assets/CanvasPool-Bec4py7x.js
++ /assets/study-AELXmNeW.js
++ /assets/game-D66t3chz.css
++ /assets/CanvasRenderer-DwzqUL4r.js
++ /assets/RenderTargetSystem-B-JdRUOR.js
++ /assets/art-CHAKsd6P.js
++ /assets/Filter-COs0_Kcg.js
++ /index.html
++ /assets/BufferResource-Bzduu2AQ.js
++ /assets/WebGPURenderer-DZgbonp5.js
++ /assets/game-5BOkycM6.js
+Uploaded 5 of 17 assets
+Uploaded 11 of 17 assets
+Uploaded 17 of 17 assets
+✨ Success! Uploaded 17 files (6 already uploaded) (2.41 sec)
+
+Preview: goblin-mvp (updated)
+Preview URL: https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev
+
+Deployment ID: 3e7f3284-d482-433b-8d91-986a3a59dc7f
+Deployment URL: https://3e7f3284-fungi-goblin-bnb.levi-fe0.workers.dev

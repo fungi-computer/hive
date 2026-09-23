@@ -1,0 +1,22 @@
+ M scripts/prove.mjs
+ M src/activity.ts
+ M src/clearing.ts
+ M src/construction.js
+ M src/finite-sources.ts
+ M src/jobs.ts
+ M src/materials.ts
+ M src/model.ts
+ M src/orders.ts
+ M src/world.js
+?? .fungi/
+?? scripts/prove-caps-style.mjs
+?? scripts/prove-clearing-minimap-live.mjs
+?? scripts/prove-clearing-minimap-narrow.mjs
+?? scripts/prove-common-transfer-v7.mjs
+?? scripts/prove-deconstruct-presentation.mjs
+?? scripts/prove-hosted-save-studies-smoke.mjs
+?? scripts/prove-mixed-storage-v8.mjs
+?? scripts/prove-paused-work.mjs
+?? scripts/prove-structure-hit-go.mjs
+?? scripts/prove-upstairs-bedroom.mjs
+?? scripts/prove-work-panel.mjs

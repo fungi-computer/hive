@@ -1,0 +1,174 @@
+── Unused Code ─────────────────────────────────────
+
+● Unused exports (4)
+  src/jobs.js (2)
+    :15 WOOD_PER_TREE
+    :65 jobOptions
+  src/art.js
+    :10 project (re-export)
+  src/construction.js
+    :63 indoors
+  Exported symbols with no known consumers — https://docs.fallow.tools/explanations/dead-code#unused-exports
+  To auto-fix: fallow fix --dry-run
+  To suppress: // fallow-ignore-next-line unused-export
+
+● Duplicates (3 clone groups)
+
+      8 lines  2 instances  spread 1  dup:c77b3abb6f87acd9-3
+    scripts/prove-study.mjs:97-104
+    scripts/prove-study.mjs:109-116
+
+      9 lines  2 instances  dup:c77b3abb6f87acd9-1
+    scripts/prove-study.mjs:6-14
+    scripts/prove.mjs:5-13
+
+      9 lines  2 instances  dup:c77b3abb6f87acd9-2
+    src/art.js:46-54
+    src/study.js:68-76
+
+  Duplicate code blocks - https://docs.fallow.tools/explanations/duplication#clone-groups
+
+■ Metrics: 3,977 LOC · dead files 0.0% · dead exports 6.1% · avg cyclomatic 2.4 · p90 cyclomatic 6 · maintainability 87.8 (good)
+
+  Parameters:    86% low · 11% medium · 2% high · 1% very high  (0-2 / 3-4 / 5-6 / >=7 params)
+
+● High complexity functions (27)
+  CRAP scores are estimated from export references; run `fallow health --coverage <coverage-final.json>` for exact scores.
+  src/construction-view.js
+    :69 drawSites CRITICAL
+          25 ! cyclomatic   41 ! cognitive   51 lines
+         650.0 ! CRAP
+  src/art/clearing.js
+    :30 ground CRITICAL
+          14   cyclomatic   17 ! cognitive   51 lines
+         210.0 ! CRAP
+  src/view.js
+    :129 drawTrees CRITICAL
+          14   cyclomatic   23 ! cognitive   46 lines
+         210.0 ! CRAP
+  src/clearing.js
+    :98 acceptCommand
+          13   cyclomatic   18 ! cognitive   52 lines
+          49.5 ! CRAP
+  src/clearing.test.js
+    :72 homeOrders
+          13   cyclomatic   18 ! cognitive   19 lines
+          49.5 ! CRAP
+  src/construction.js
+    :63 indoors
+          13   cyclomatic   17 ! cognitive   30 lines
+          49.5 ! CRAP
+  src/art.js
+    :45 bakeArt CRITICAL
+          12   cyclomatic   21 ! cognitive   73 lines
+         156.0 ! CRAP
+  src/hud.js
+    :42 renderActions CRITICAL
+          11   cyclomatic    9   cognitive   24 lines
+         132.0 ! CRAP
+    :76 renderHud CRITICAL
+          11   cyclomatic   15   cognitive   32 lines
+         132.0 ! CRAP
+  src/art/clearing.js
+    :104 tree CRITICAL
+          11   cyclomatic   13   cognitive   78 lines
+         132.0 ! CRAP
+  src/clearing.js
+    :65 commandProblem
+          10   cyclomatic   12   cognitive   16 lines
+          31.6 ! CRAP
+  src/jobs.js
+    :28 buildActivities
+          10   cyclomatic   11   cognitive   37 lines
+          31.6 ! CRAP
+  src/hud.js
+    :26 entries HIGH
+           9   cyclomatic    7   cognitive    8 lines
+          90.0 ! CRAP
+  src/art/home.js
+    :16 wall HIGH
+           9   cyclomatic   14   cognitive   33 lines
+          90.0 ! CRAP
+  src/art/figures.js
+    :318 cat HIGH
+           7   cyclomatic   12   cognitive   55 lines
+          56.0 ! CRAP
+  src/view.js
+    :175 drawPawn HIGH
+           7   cyclomatic    7   cognitive   25 lines
+          56.0 ! CRAP
+  src/art/home.js
+    :49 door HIGH
+           7   cyclomatic    9   cognitive   23 lines
+          56.0 ! CRAP
+  src/construction-view.js
+    :121 render HIGH
+           7   cyclomatic    7   cognitive   46 lines
+          56.0 ! CRAP
+  src/art/figures.js
+    :27 arms
+           6   cyclomatic    9   cognitive   28 lines
+          42.0 ! CRAP
+    :376 figure
+           6   cyclomatic    7   cognitive   25 lines
+          42.0 ! CRAP
+  scripts/prove-study.mjs
+    :34 silhouettes
+           6   cyclomatic    3   cognitive   24 lines
+          42.0 ! CRAP
+  src/study.js
+    :16 plinth
+           6   cyclomatic    9   cognitive   14 lines
+          42.0 ! CRAP
+    :67 studyArt
+           6   cyclomatic   14   cognitive   49 lines
+          42.0 ! CRAP
+  src/art/home.js
+    :72 roof
+           6   cyclomatic    6   cognitive   21 lines
+          42.0 ! CRAP
+  src/art.js
+    :12 outline
+           5   cyclomatic    9   cognitive   13 lines
+          30.0 ! CRAP
+  src/view.js
+    :102 drawPiles
+           5   cyclomatic    6   cognitive   27 lines
+          30.0 ! CRAP
+  src/main.js
+    :92 up
+           5   cyclomatic    4   cognitive   15 lines
+          30.0 ! CRAP
+  Functions exceeding cyclomatic, cognitive, or CRAP thresholds; ! marks the dimension that breached (https://docs.fallow.tools/explanations/health#complexity-metrics)
+  To suppress: // fallow-ignore-next-line complexity
+
+
+CSS health
+  Styling health: 98 A (CSS quality, scored separately from the code health score)
+  Deductions: dead surface -1.9
+  2 stylesheets · 135 rules · 0.0% !important · 0 empty · max nesting 0
+  value sprawl: 80 distinct colors · 13 font sizes · 1 z-index value
+  value sprawl (cont.): 1 shadow · 8 radius values · 2 line-heights (candidates; tokenize repeated values via custom properties)
+  3 global CSS classes referenced by no in-project markup (candidates; verify no email / server template / CMS / Markdown applies them):
+  src/style.css:178: .selected
+  src/style.css:457: .active-order
+  src/style.css:461: .empty-orders
+  src/style.css:385  specificity (1,1,0) · complexity 3 · 0 !important · nesting 0
+  src/style.css:457  specificity (1,1,0) · complexity 3 · 0 !important · nesting 0
+  src/style.css:461  specificity (1,1,0) · complexity 3 · 0 !important · nesting 0
+  src/style.css:440  specificity (1,0,2) · complexity 5 · 0 !important · nesting 0
+  src/style.css:233  specificity (1,0,1) · complexity 3 · 0 !important · nesting 0
+  ... and 32 more (--format json for full list)
+  Fix confidently
+    src/style.css:24  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 755f873cdc7a)
+    src/style.css:72  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 755f873cdc7a)
+    src/style.css:101  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 755f873cdc7a)
+    src/style.css:111  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 755f873cdc7a)
+    src/style.css:115  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 755f873cdc7a)
+    + 32 more styling findings
+  Verify first
+    src/style.css:1  css-token-drift  color color: #eee2c6  (advisory: rules.css-token-drift=warn, inherited styling debt from 755f873cdc7a)
+    src/style.css:68  css-token-drift  color color: #deb77a  (advisory: rules.css-token-drift=warn, introduced design-system drift since 755f873cdc7a)
+    src/style.css:91  css-token-drift  color color: #a9b79b  (advisory: rules.css-token-drift=warn, introduced design-system drift since 755f873cdc7a)
+    + 8 more styling findings
+  (run `fallow audit --format json` for full styling detail)

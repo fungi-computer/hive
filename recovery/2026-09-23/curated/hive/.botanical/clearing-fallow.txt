@@ -1,0 +1,103 @@
+── Unused Code ─────────────────────────────────────
+
+● Unused exports (6)
+  src/movement.js (2)
+    :4 neighbors
+    :11 route
+  src/ticker.js (2)
+    :3 STEP_MS
+    :4 MAX_FRAME_DELTA_MS
+  src/art/geometry.js
+    :4 mat
+  src/clearing.js
+    :13 WOOD_PER_TREE
+  Exported symbols with no known consumers — https://docs.fallow.tools/explanations/dead-code#unused-exports
+  To auto-fix: fallow fix --dry-run
+  To suppress: // fallow-ignore-next-line unused-export
+
+■ Metrics: 1,608 LOC · dead files 0.0% · dead exports 14.6% · avg cyclomatic 2.4 · p90 cyclomatic 5 · maintainability 89.7 (good)
+
+  Function size: 71% low · 18% medium · 8% high · 3% very high  (1-15 / 16-30 / 31-60 / >60 LOC)
+  Parameters:    77% low · 17% medium · 3% high · 3% very high  (0-2 / 3-4 / 5-6 / >=7 params)
+
+● Large functions (3)
+  src/view.js
+    :37 createView  130 lines
+  src/main.js
+    :12 startGame   96 lines
+  src/art/clearing.js
+    :93 tree   78 lines
+  Functions exceeding 60 lines of code (very high risk): https://docs.fallow.tools/explanations/health#unit-size
+
+● High complexity functions (11)
+  CRAP scores are estimated from export references; run `fallow health --coverage <coverage-final.json>` for exact scores.
+  src/art/clearing.js
+    :28 ground CRITICAL
+          14   cyclomatic   17 ! cognitive   42 lines
+         210.0 ! CRAP
+  src/movement.js
+    :11 route
+          11   cyclomatic   12   cognitive   32 lines
+          37.1 ! CRAP
+  src/art/clearing.js
+    :93 tree CRITICAL
+          11   cyclomatic   13   cognitive   78 lines
+         132.0 ! CRAP
+  src/hud.js
+    :35 renderHud CRITICAL
+          10   cyclomatic   10   cognitive   24 lines
+         110.0 ! CRAP
+  src/view.js
+    :76 <arrow> HIGH
+           9   cyclomatic    8   cognitive   23 lines
+          90.0 ! CRAP
+    :121 drawChips HIGH
+           9   cyclomatic   14   cognitive   36 lines
+          90.0 ! CRAP
+  src/hud.js
+    :3 taskCopy HIGH
+           7   cyclomatic    5   cognitive   32 lines
+          56.0 ! CRAP
+  src/art/pawns.js
+    :56 outsider
+           6   cyclomatic    7   cognitive   30 lines
+          42.0 ! CRAP
+  src/art.js
+    :10 outline
+           5   cyclomatic    9   cognitive   13 lines
+          30.0 ! CRAP
+    :43 bakeArt
+           5   cyclomatic    7   cognitive   41 lines
+          30.0 ! CRAP
+  src/view.js
+    :100 drawPawn
+           5   cyclomatic    5   cognitive   21 lines
+          30.0 ! CRAP
+  Functions exceeding cyclomatic, cognitive, or CRAP thresholds; ! marks the dimension that breached (https://docs.fallow.tools/explanations/health#complexity-metrics)
+  To suppress: // fallow-ignore-next-line complexity
+
+
+CSS health
+  Styling health: 99 A (CSS quality, scored separately from the code health score)
+  Deductions: dead surface -0.8
+  1 stylesheet · 52 rules · 0.0% !important · 0 empty · max nesting 0
+  value sprawl: 41 distinct colors · 10 font sizes · 1 z-index value
+  value sprawl (cont.): 1 shadow · 4 radius values (candidates; tokenize repeated values via custom properties)
+  1 global CSS class referenced by no in-project markup (candidates; verify no email / server template / CMS / Markdown applies them):
+  src/style.css:178: .selected
+  src/style.css:233  specificity (1,0,1) · complexity 3 · 0 !important · nesting 0
+  src/style.css:24  specificity (1,0,0) · complexity 1 · 0 !important · nesting 0
+  src/style.css:72  specificity (1,0,0) · complexity 1 · 0 !important · nesting 0
+  src/style.css:101  specificity (1,0,0) · complexity 1 · 0 !important · nesting 0
+  src/style.css:111  specificity (1,0,0) · complexity 1 · 0 !important · nesting 0
+  ... and 6 more (--format json for full list)
+  Fix confidently
+    src/style.css:24  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 403f886)
+    src/style.css:72  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 403f886)
+    src/style.css:101  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 403f886)
+    src/style.css:111  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 403f886)
+    src/style.css:115  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, inherited styling debt from 403f886)
+    + 6 more styling findings
+  Verify first
+    src/style.css:178  css-dead-surface  selected  (advisory: rules.css-dead-surface=warn, inherited styling debt from 403f886)
+  (run `fallow audit --format json` for full styling detail)

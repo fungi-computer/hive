@@ -1,0 +1,11 @@
+First connector-adapter proof attempt failed before command admission at pirates-proof.mjs:52:
+
+  assert.deepEqual(Object.keys(initial).sort(), ["cargo", "replayEpoch", "revision", "time"]);
+                          ^
+
+TypeError: Cannot convert undefined or null to object
+    at Object.keys (<anonymous>)
+    at file:///home/levi/src/hive-worktrees/framework-controller-reuse-20260923/tools/engine-controller/pirates-proof.mjs:52:27
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Cause: adapter returned raw Code Mode output; this consumer's existing execute result expects { executionId, value }. Restoring that envelope fixed the proof. No command was admitted in this failed run.

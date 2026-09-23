@@ -1,0 +1,93 @@
+
+Audit scope: 8 changed files vs 6733700a6489930ed12cd70ae36667bf48e654e2 (6733700..HEAD)
+
+── Dead Code ──────────────────────────────────────
+
+── Unused Code ─────────────────────────────────────
+
+● Unused files (1)
+  scripts/prove-study.mjs
+  Files not reachable from any entry point — https://docs.fallow.tools/explanations/dead-code#unused-files
+
+✗ 1 file (0.08s)
+
+── Duplication ────────────────────────────────────
+note: skipped 1 file matching default duplicates ignores (use --explain-skipped for the list)
+note: module wiring excluded from clone detection (--no-ignore-imports to include it)
+
+● Duplicates (1 clone groups)
+
+      9 lines  2 instances  dup:6f87acd9
+    scripts/prove-study.mjs:6-14
+    scripts/prove.mjs:5-13
+
+  Duplicate code blocks - https://docs.fallow.tools/explanations/duplication#clone-groups
+
+✗ 18 lines (0.6%) duplicated across 2 files (0.02s)
+
+── Complexity ─────────────────────────────────────
+
+■ Metrics: 1,125 LOC · dead files 14.3% · dead exports 0.0% · avg cyclomatic 1.9 · p90 cyclomatic 4 · maintainability 86.1 (good)
+
+  Parameters:    77% low · 19% medium · 5% high · 0% very high  (0-2 / 3-4 / 5-6 / >=7 params)
+
+● High complexity functions (6)
+  CRAP scores are estimated from export references; run `fallow health --coverage <coverage-final.json>` for exact scores.
+  src/art/figures.js
+    :292 cat HIGH
+           7   cyclomatic   12   cognitive   55 lines
+          56.0 ! CRAP
+  scripts/prove-study.mjs
+    :34 silhouettes
+           6   cyclomatic    3   cognitive   24 lines
+          42.0 ! CRAP
+  src/art.js
+    :44 bakeArt
+           6   cyclomatic    8   cognitive   44 lines
+          42.0 ! CRAP
+  src/study.js
+    :30 plinth
+           6   cyclomatic    9   cognitive   14 lines
+          42.0 ! CRAP
+    :81 studyArt
+           6   cyclomatic   14   cognitive   49 lines
+          42.0 ! CRAP
+  src/art.js
+    :11 outline
+           5   cyclomatic    9   cognitive   13 lines
+          30.0 ! CRAP
+  Functions exceeding cyclomatic, cognitive, or CRAP thresholds; ! marks the dimension that breached (https://docs.fallow.tools/explanations/health#complexity-metrics)
+  To suppress: // fallow-ignore-next-line complexity
+
+
+CSS health
+  Styling health: 98 A (CSS quality, scored separately from the code health score)
+  Deductions: dead surface -1.5
+  2 stylesheets · 96 rules · 0.0% !important · 0 empty · max nesting 0
+  value sprawl: 64 distinct colors · 13 font sizes · 1 z-index value
+  value sprawl (cont.): 1 shadow · 6 radius values · 1 line-height (candidates; tokenize repeated values via custom properties)
+  2 global CSS classes referenced by no in-project markup (candidates; verify no email / server template / CMS / Markdown applies them):
+  src/study.css:108: .native
+  src/study.css:144: .detail
+  src/study.css:108  specificity (1,1,1) · complexity 4 · 0 !important · nesting 0
+  src/study.css:101  specificity (1,0,1) · complexity 3 · 0 !important · nesting 0
+  src/study.css:95  specificity (1,0,0) · complexity 1 · 0 !important · nesting 0
+  src/study.css:115  specificity (1,0,0) · complexity 1 · 0 !important · nesting 0
+  src/study.css:201  specificity (1,0,0) · complexity 1 · 0 !important · nesting 0
+  ... and 1 more (--format json for full list)
+✗ 6 above threshold · 64 analyzed (0.00s)
+
+── Styling ────────────────────────────────────────
+  Fix confidently
+    src/study.css:95  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, introduced design-system drift since 6733700a6489)
+    src/study.css:101  css-selector-complexity  specificity 1-0-1  (advisory: rules.css-selector-complexity=warn, introduced design-system drift since 6733700a6489)
+    src/study.css:108  css-selector-complexity  specificity 1-1-1  (advisory: rules.css-selector-complexity=warn, introduced design-system drift since 6733700a6489)
+    src/study.css:111  css-selector-complexity  selector complexity 6  (advisory: rules.css-selector-complexity=warn, introduced design-system drift since 6733700a6489)
+    src/study.css:115  css-selector-complexity  specificity 1-0-0  (advisory: rules.css-selector-complexity=warn, introduced design-system drift since 6733700a6489)
+    + 1 more styling finding
+  Verify first
+    src/study.css:108  css-dead-surface  native  (advisory: rules.css-dead-surface=warn, introduced design-system drift since 6733700a6489)
+    src/study.css:144  css-dead-surface  detail  (advisory: rules.css-dead-surface=warn, introduced design-system drift since 6733700a6489)
+  (run `fallow audit --format json` for full styling detail)
+✗ dead code: 1 issue · complexity: 6 findings · duplication: 1 clone group · 8 changed files (0.21s)
+  audit gate excluded 2 inherited findings (run with --gate all to enforce)

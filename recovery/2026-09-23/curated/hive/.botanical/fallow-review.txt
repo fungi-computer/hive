@@ -1,0 +1,86 @@
+── Unused Code ─────────────────────────────────────
+
+● Unused exports (7)
+  src/inn.js (5)
+    :6 SEAT
+    :7 SERVE
+    :8 ENTRY
+    :24 WALK_TICKS
+    :27 HAPPY_TICKS
+  src/art.js
+    :6 SIZE
+  src/feed.js
+    :3 mulberry32
+  Exported symbols with no known consumers — https://docs.fallow.tools/explanations/dead-code#unused-exports
+  To auto-fix: fallow fix --dry-run
+  To suppress: // fallow-ignore-next-line unused-export
+
+■ Metrics: 1,618 LOC · dead files 0.0% · dead exports 35.0% · avg cyclomatic 3.5 · p90 cyclomatic 7 · maintainability 88.2 (good)
+
+  Function size: 75% low · 13% medium · 7% high · 6% very high  (1-15 / 16-30 / 31-60 / >60 LOC)
+  Parameters:    78% low · 15% medium · 3% high · 3% very high  (0-2 / 3-4 / 5-6 / >=7 params)
+
+● Large functions (5)
+  src/main.js
+    :23 startInn  372 lines
+  src/art.js
+    :134 room  183 lines
+  src/main.js
+    :237 render  137 lines
+  src/art.js
+    :338 pawn  104 lines
+    :454 bakeArt   78 lines
+  Functions exceeding 60 lines of code (very high risk): https://docs.fallow.tools/explanations/health#unit-size
+
+● High complexity functions (10)
+  CRAP scores are estimated from export references; run `fallow health --coverage <coverage-final.json>` for exact scores.
+  src/main.js
+    :237 render CRITICAL
+          53 ! cyclomatic   86 ! cognitive  137 lines
+         2862.0 ! CRAP
+  src/art.js
+    :134 room CRITICAL
+          30 ! cyclomatic   41 ! cognitive  183 lines
+         930.0 ! CRAP
+  src/inn.js
+    :185 step
+          22 ! cyclomatic   22 ! cognitive   59 lines
+  src/art.js
+    :338 pawn CRITICAL
+          17   cyclomatic   23 ! cognitive  104 lines
+         306.0 ! CRAP
+  src/inn.js
+    :128 assignCommand
+          13   cyclomatic   12   cognitive   34 lines
+          49.5 ! CRAP
+  src/main.js
+    :126 request CRITICAL
+          11   cyclomatic    9   cognitive   25 lines
+         132.0 ! CRAP
+  src/art.js
+    :454 bakeArt HIGH
+           7   cyclomatic   16 ! cognitive   78 lines
+          56.0 ! CRAP
+  src/main.js
+    :158 <arrow> HIGH
+           7   cyclomatic    6   cognitive   16 lines
+          56.0 ! CRAP
+  src/art.js
+    :465 bake
+           6   cyclomatic   14   cognitive   28 lines
+          42.0 ! CRAP
+  src/main.js
+    :217 renderPawn
+           6   cyclomatic   12   cognitive   20 lines
+          42.0 ! CRAP
+  Functions exceeding cyclomatic, cognitive, or CRAP thresholds; ! marks the dimension that breached (https://docs.fallow.tools/explanations/health#complexity-metrics)
+  To suppress: // fallow-ignore-next-line complexity
+
+
+CSS health
+  Styling health: 99 A (CSS quality, scored separately from the code health score)
+  Deductions: dead surface -0.8
+  1 stylesheet · 51 rules · 0.0% !important · 0 empty · max nesting 0
+  value sprawl: 38 distinct colors · 10 font sizes · 1 z-index value
+  value sprawl (cont.): 1 shadow · 4 radius values (candidates; tokenize repeated values via custom properties)
+  1 styling candidate (run `fallow health --css` for detail)

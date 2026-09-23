@@ -1,0 +1,15 @@
+Initial launch attempt, scope run-u196.scope, exited 1 before browser creation.
+Playwright's default chromium_headless_shell-1243 binary is not installed:
+/home/levi/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+
+No browser or network probe ran in that attempt. Existing installed Chromium
+revision 1234 was discovered and selected explicitly through CHROMIUM_PATH for
+the subsequent run. No browser installation or dependency update was performed.
+Scope inspection after failure: LoadState=not-found, ActiveState=inactive, SubState=dead.
+
+Second launch attempt, scope run-u198.scope, failed before browser creation:
+existing Chromium1234 could not load libnspr4.so on the default library path.
+Its launched process exited 127 and Playwright cleaned its temporary profile.
+Scope was collected. Existing portable libraries were subsequently found at
+/home/levi/src/Botanical-next/.botanical/playwright-libs/root/usr/lib/x86_64-linux-gnu
+and supplied through LD_LIBRARY_PATH. No libraries were installed.

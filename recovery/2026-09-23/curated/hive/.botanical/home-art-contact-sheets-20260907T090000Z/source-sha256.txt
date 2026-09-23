@@ -1,0 +1,6 @@
+07ca6653ae4d5095d3f6b2d6b6e49b622026b6e47ab769ca273c864f5fbcb785  src/art.js
+4620917b83f6967836045645d228fcac358ca9a3368f98945e8c90c4d0bf222b  src/art/figures.js
+d7178adc5b22984dc2710bdd757b91793b464db26fbdc0c6a06b960eb9b31d26  src/study.js
+2832adfb09f3b30daacd39d4bcddf52b0799807f6eebea0e5d0e49bef0d8248e  scripts/export-study-art.mjs
+1903174eb87c28e9fb39530fe161bc35418b54d387f9f564ee6fa26d42cf1f3c  rowan-all-modes-facings-native.png
+e8dcedb6a92656283f8d7e7c7007a27be25a622e3a0328b71027934a2928747b  sedge-all-modes-facings-native.png
