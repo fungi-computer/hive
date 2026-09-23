@@ -1153,8 +1153,8 @@ impl Kernel {
                     InputPolicy::Portion => free > 0,
                     InputPolicy::WholeLot => free == lot.quantity && lot.quantity == requirement.missing,
                 };
-                // Contacts may be one metre from either container; this is a
-                // conservative delivery bound, not a reachability witness.
+                // Both contacts can be within the shared transfer reach of
+                // their containers; this bound is not a reachability witness.
                 let distance = ((position.x-destination.x).powi(2) + (position.y-destination.y).powi(2) + (position.z-destination.z).powi(2)).sqrt();
                 eligible.then(|| (distance, lot_id.clone(), position, free))
             }).collect::<Vec<_>>();
@@ -1179,7 +1179,7 @@ impl Kernel {
                 slots.push(SupplySlot {
                     task: format!("supply-slot-{}", slots.len()), requirement: requirement.clone(),
                     lot: lot.clone(), source_position, source_contacts: Arc::new(Vec::new()),
-                    delivery_lower_bound: (distance - 2.0).max(0.0), quantity, policy: requirement.policy,
+                    delivery_lower_bound: (distance - 2.0 * super::interaction_contact::TRANSFER_REACH_METRES).max(0.0), quantity, policy: requirement.policy,
                 });
                 *prospective_source.entry(lot.clone()).or_default() += quantity;
                 remaining[requirement_index] -= quantity;
