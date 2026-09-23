@@ -1,5 +1,37 @@
 # Clearing performance audit — September 13, 2026
 
+## September 23 integrated local checkpoint
+
+Source `7c9c77b0` has the retained 8-at-a-time native assignment episode,
+mutation-owned state accounting for ordinary work progress, indexed planner
+deadlines, and resident native record comparison. Fresh, unoptimized WASM was
+built from that source. These are **local diagnostic timings**, not DO CPU,
+browser frames, or a before/after speedup claim. The existing performance pack
+has exactly 50 designated trees at every population, and each measured step
+advances one simulation second. All 50 trees completed in each run.
+
+| Workers | Session step median / p95 / max | Full detached save median | Observation median |
+| ---: | ---: | ---: | ---: |
+| 32 | 25.10 / 122.29 / 474.68 ms | 39.10 ms | 25.77 ms |
+| 100 | 0.77 / 145.35 / 448.77 ms | 43.57 ms | 34.09 ms |
+| 200 | 1.04 / 269.90 / 1509.80 ms | 81.35 ms | 62.67 ms |
+
+The 100/200-worker medians include many settled ticks after only 50 jobs were
+available. Their high tails show real stalls, but this fixture cannot establish
+100 simultaneously productive workers or 10 Hz DO capacity. Detached `save()`
+still performs full validation; the new resident commit path instead transfers
+only changed records. Native serialization and byte-offset entity chunks remain
+costs, and a length-changing early entity field may dirty later chunks. The next
+capacity proof needs at least as many real jobs as active workers, 100 ms host
+steps, separate commit/publication measurements, and a pinned hosted source.
+
+Integrated native unit suite: 430 passed, one ignored. The four-file current
+WASM/JS session and record suite: 47 passed, two pre-existing fixture failures
+(water activity assertion and an obsolete `party` field in a disconnected-party
+fixture). New cold-recovery proof restored a 1,258,704-byte world, transferred
+zero unchanged bytes, then transferred one 262,144-byte changed record; it does
+not prove every later change fits the DO's 1 MiB changed-byte allowance.
+
 ## September 23 source re-audit: next ownership cuts
 
 This section reviews the current Rust kernel and DO host source. It is a causal
