@@ -10,7 +10,7 @@ import type { WhistleContextualTarget } from "./whistle";
 
 const token = "a".repeat(64);
 function observation(revision: number) {
-  return { revision, observation: { time: revision, paused: false, epoch: 0, sequence: revision, facts: [], cues: [], presentationFacts: [], whistleAgent: [] as WhistleAgentProjection[], whistleTargets: [] as WhistleContextualTarget[], terrainMarks: [], environmentVisuals: [] } };
+  return { revision, replayEpoch: 0, observation: { time: revision, paused: false, epoch: 0, sequence: revision, facts: [], cues: [], presentationFacts: [], whistleAgent: [] as WhistleAgentProjection[], whistleTargets: [] as WhistleContextualTarget[], terrainMarks: [], environmentVisuals: [] } };
 }
 function whistleObservation(revision: number) {
   const value = observation(revision);
@@ -61,6 +61,35 @@ function setup(fetcher: (input: RequestInfo | URL, init?: RequestInit) => Promis
   });
 }
 
+test("command retries preserve their issuance epoch while duplicate-revision observations advance new issuance and release socket credit", async () => {
+  const socket = new FakeSocket(observation(0));
+  const bodies: string[] = [];
+  const runtime = setup(async (url, init) => {
+    if (String(url).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    bodies.push(String(init?.body));
+    if (bodies.length === 1) {
+      socket.emit("message", { data: JSON.stringify({ type: "observation", ...observation(0), replayEpoch: 1 }) });
+      throw Error("lost response after epoch rollover");
+    }
+    const body = JSON.parse(String(init?.body));
+    return Response.json({ replayEpoch: body.replayEpoch, commandId: body.id, status: "applied", revision: bodies.length, result: {} });
+  }, socket);
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    runtime.send({ type: "pause" });
+    await waitFor(() => bodies.length === 1);
+    await wait(250);
+    assert.equal(bodies.length, 2);
+    assert.equal(bodies[0], bodies[1]);
+    assert.equal(JSON.parse(bodies[0]).replayEpoch, 0);
+    runtime.send({ type: "pause" });
+    await waitFor(() => bodies.length === 3);
+    assert.equal(JSON.parse(bodies[2]).replayEpoch, 1);
+    assert.equal(socket.sent.filter(value => JSON.parse(value).type === "observation-ack").length, 2);
+  } finally { runtime.dispose(); }
+});
+
 test("Colony v2 persists the participant credential before join and keeps it out of routes", async () => {
   const invite = "b".repeat(64);
   const storage = memoryStorage();
@@ -83,7 +112,7 @@ test("Colony v2 persists the participant credential before join and keeps it out
       if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
       const body = JSON.parse(String(init?.body));
       if (String(input).endsWith("/placement")) return Response.json({ observationRevision: 2, nativeRevision: 3, placementRevision: 2, decisions: body.candidates.map(({ site }: { site: string }) => ({ site, status: "ready" })) });
-      return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+      return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
     },
     createSocket: (url) => { calls.push({ url }); queueMicrotask(() => socket.emit("open", {})); return socket; },
     createCommandId: () => "colony-command-1",
@@ -109,7 +138,7 @@ test("Colony v2 persists the participant credential before join and keeps it out
   const socketUrl = calls.find((call) => call.url.includes("/socket/"))?.url ?? "";
   assert.equal(socketUrl, `wss://hive.test/arena/v2/colony/worlds/${await crypto.subtle.digest("SHA-256", new TextEncoder().encode(invite)).then(bytes => [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, "0")).join(""))}/socket/opaque`);
   assert.equal(socketUrl.includes(credential!), false);
-  const auth = JSON.parse(socket.sent.at(-1) ?? "{}");
+  const auth = JSON.parse(socket.sent.find(value => JSON.parse(value).type === "authenticate") ?? "{}");
   assert.equal(auth.credential, credential);
   const placement = await runtime.placementDecisions({ party: "party:1", candidates: [{ site: "site:1" as never, catalog: "floor" as never, target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "north" } }] });
   assert.equal(placement.decisions[0]?.status, "ready");
@@ -139,7 +168,7 @@ test("socket admission emits only authenticated observations and command omits i
     calls.push({ url: String(input), init });
     if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
     const body = JSON.parse(String(init?.body));
-    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
   });
   const events: WorkerEvent[] = [];
   runtime.subscribe((event) => events.push(event));
@@ -160,7 +189,7 @@ test("an applied receipt releases the next FIFO command without waiting for its 
     if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
     commandBodies.push(String(init?.body));
     const body = JSON.parse(String(init?.body));
-    return Response.json({ commandId: body.id, status: "applied", revision: commandBodies.length, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: commandBodies.length, result: { results: [] } });
   });
   try {
     runtime.send({ type: "start", game: "survival" });
@@ -197,7 +226,7 @@ test("reconnect installs a same-revision Whistle baseline before accepting a del
     await wait();
     const next = observation(2);
     const { whistleAgent: _agent, whistleTargets: _targets, ...withoutWhistle } = next.observation;
-    socket.emit("message", { data: JSON.stringify({ type: "observation", revision: next.revision, observation: withoutWhistle }) });
+    socket.emit("message", { data: JSON.stringify({ type: "observation", replayEpoch: next.replayEpoch, revision: next.revision, observation: withoutWhistle }) });
     assert.equal(events.filter(event => event.type === "error").length, 0);
     const whistle = events.filter(event => event.type === "whistle").at(-1);
     assert.equal(whistle?.type, "whistle");
@@ -216,7 +245,7 @@ test("remote Whistle updates require agent and target fields together", async ()
     const partial = observation(1);
     partial.observation.whistleAgent = [];
     const { whistleTargets: _targets, ...partialObservation } = partial.observation;
-    socket.emit("message", { data: JSON.stringify({ type: "observation", revision: partial.revision, observation: partialObservation }) });
+    socket.emit("message", { data: JSON.stringify({ type: "observation", replayEpoch: partial.replayEpoch, revision: partial.revision, observation: partialObservation }) });
     assert.ok(events.some(event => event.type === "error" && event.message === "invalid remote observation"));
   } finally { runtime.dispose(); }
 });
@@ -314,7 +343,7 @@ test("lost HTTP receipt retries the identical command body and identity", async 
     attempts++;
     if (attempts === 1) throw new Error("lost response");
     const body = JSON.parse(bodies[0]);
-    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
   });
   runtime.send({ type: "start", game: "survival" });
   await wait();
@@ -336,7 +365,7 @@ test("healthy socket recovery resumes the same pending command body", async () =
     attempts++;
     if (attempts < 5) throw new Error("temporary command transport failure");
     const body = JSON.parse(bodies[0]);
-    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
   }, socket);
   try {
     runtime.send({ type: "start", game: "survival" });
@@ -356,7 +385,7 @@ test("HTTP recovery does not wait for an ordinary observation", async () => {
     attempts++;
     if (attempts < 5) throw new Error("temporary command transport failure");
     const body = JSON.parse(String(init?.body));
-    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
   }, socket);
   try {
     runtime.send({ type: "start", game: "survival" });
@@ -374,7 +403,7 @@ test("ordinary commands synchronously refuse admission when the queue is full", 
     if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
     await held;
     const body = JSON.parse(String(init?.body));
-    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
   });
   try {
     runtime.send({ type: "start", game: "survival" });
@@ -399,7 +428,7 @@ test("socket recovery has a bounded per-command budget", async () => {
     attempts++;
     if (attempts <= 16) throw new Error("permanent command transport failure");
     const body = JSON.parse(String(init?.body));
-    return Response.json({ commandId: body.id, status: "applied", revision: attempts, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: attempts, result: { results: [] } });
   }, socket);
   runtime.subscribe((event) => events.push(event));
   try {
@@ -452,7 +481,7 @@ test("coalesces contiguous unsent direct input behind command barriers and retri
     await wait(15);
     revision++;
     queueMicrotask(() => socket.emit("message", { data: JSON.stringify({ type: "observation", ...observation(revision) }) }));
-    return Response.json({ commandId: JSON.parse(body).id, status: "applied", revision, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: JSON.parse(body).id, status: "applied", revision, result: { results: [] } });
   }, socket);
   runtime.send({ type: "start", game: "survival" });
   await wait(20);
@@ -521,7 +550,7 @@ test("definite command refusals release later orders without reconnecting", asyn
     const body = JSON.parse(String(init?.body));
     calls.push(body.id);
     if (calls.length === 1) return Response.json({ error: "bad-request" }, { status: 400 });
-    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+    return Response.json({ replayEpoch: 0, commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
   }, socket);
   const events: WorkerEvent[] = [];
   runtime.subscribe(event => events.push(event));
@@ -556,7 +585,7 @@ test("private performance worlds stream terrain through the authenticated socket
     runtime.send({type:'start',game:'colony-performance-256-8'});
     await waitFor(() => socket.sent.some(value => JSON.parse(value).type === 'terrain-regions'));
     assert.deepEqual(JSON.parse(socket.sent[0]), {type:'authenticate',token});
-    assert.deepEqual(JSON.parse(socket.sent.at(-1)!), {type:'terrain-regions',...request});
+    assert.deepEqual(JSON.parse(socket.sent.find(value => JSON.parse(value).type === 'terrain-regions')!), {type:'terrain-regions',...request});
     const before = samples.filter(s => s.kind === 'socket').length;
     const identity = {requestId:1,epoch:0,terrainRevision:0};
     for (const event of [{kind:'patch',...identity,patch:materialPatch([0,0,0])}, {kind:'complete',...identity}])

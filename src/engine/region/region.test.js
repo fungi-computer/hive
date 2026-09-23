@@ -37,6 +37,7 @@ function fixture(t, limits, program = createQuarryRegionProgram) {
 }
 const dig = (id = "dig-a", expectedRevision = 0, x = 0) => ({
   id,
+  replayEpoch: 0,
   expectedRevision,
   command: { kind: "excavate", at: { x, y: -1, z: 0 } },
 });
@@ -110,7 +111,7 @@ test("conflicting retries, stale commands, forbidden principals and content-spec
   assert.equal(region.readEvents(0).length, 1);
 });
 
-test("retention exhaustion rejects new intake without forgetting replay or partially committing resources", (t) => {
+test("event retention still rejects physical intake while replay retirement stays transactional", (t) => {
   const f = fixture(t, { receipts: 2, events: 1 }),
     region = f.open();
   const receipt = region.dispatch(principal, dig());
@@ -125,8 +126,8 @@ test("retention exhaustion rejects new intake without forgetting replay or parti
   );
   region.dispatch(principal, dig("stale", 0, 1));
   assert.throws(
-    () => region.dispatch(principal, dig("full", 1, 1)),
-    /region-receipt-capacity/,
+    () => region.dispatch(principal, { ...dig("full", 1, 1), replayEpoch: region.readReplayWindow().epoch }),
+    /region-event-capacity/,
   );
   assert.deepEqual(region.dispatch(principal, dig()), receipt);
 });
@@ -139,6 +140,7 @@ test("checked input canonicalization and returned snapshots do not change stored
     command: { at: { z: 0, y: -1, x: 0 }, kind: "excavate" },
     expectedRevision: 0,
     id: "dig-a",
+    replayEpoch: 0,
   };
   assert.deepEqual(region.dispatch(principal, rearranged), receipt);
   const projection = region.readCommitted();
