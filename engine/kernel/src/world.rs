@@ -787,6 +787,251 @@ mod water_exchange_action_tests {
 
 
 #[cfg(test)]
+mod field_water_recovery_tests {
+    use super::*;
+    use crate::work_attempt::{ActivityRef, WaterDirection};
+
+    fn kernel() -> Kernel {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"water-recovery","components":[],"materialCatalog":[{"kind":"water","unitVolume":1}],"stockpileProfiles":[{"id":"water-stock","allowedMaterials":["water"]}],"initial":[
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
+            {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.container":{"capacity":8},"hive.work-participation":{"automatic":true}}},
+            {"id":"pail","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.vessel-capability":{"acceptsWater":true},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
+        ]}).to_string()).unwrap();
+        kernel
+    }
+
+    fn request(kernel: &mut Kernel, material: &str, portions: u8) -> String {
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
+            "delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"player"},"request":{
+                "kind":"request-field-water","party":"party","material":material,"portions":portions
+            }}]
+        }).to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true, "{result}");
+        result["results"][0]["entityId"].as_str().unwrap().into()
+    }
+
+    fn restore(kernel: &Kernel) -> Kernel {
+        let records = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&records).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, records.entities);
+        restored
+    }
+
+    #[test]
+    fn accepted_manual_water_request_restores_and_rejects_forged_bindings() {
+        let mut kernel = kernel();
+        let task = request(&mut kernel, "water", 1);
+        let entity = kernel.entity(&task).unwrap();
+        let work = kernel.ecs.get::<FieldWaterWork>(entity).unwrap().clone();
+        restore(&kernel);
+        for invalid in [
+            FieldWaterWork { retain_in_vessel: false, ..work.clone() },
+            FieldWaterWork { destination: "pail".into(), ..work.clone() },
+            FieldWaterWork { process: "pail".into(), destination: "pail".into(), ..work.clone() },
+            FieldWaterWork { generation: 2, ..work.clone() },
+            FieldWaterWork { role: "tend".into(), ..work.clone() },
+            FieldWaterWork { lot: Some("pail".into()), ..work.clone() },
+        ] {
+            kernel.ecs.entity_mut(entity).insert(invalid);
+            assert!(Kernel::new().restore_records(&kernel.save_records().unwrap()).is_err());
+        }
+        kernel.ecs.entity_mut(entity).insert(work);
+        restore(&kernel);
+    }
+
+    #[test]
+    fn resource_water_created_by_tending_owner_restores() {
+        let mut kernel = kernel();
+        let mut environment: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("resource")).unwrap();
+        environment["resourceSites"] = json!([{
+            "id":"herb", "outputKind":"herb", "outputQuantity":1, "waterKind":"fresh-water",
+            "sowSeconds":1.0, "tendSeconds":1.0, "harvestSeconds":1.0,
+            "stages":[{"delaySeconds":1.0,"waterPortions":2}]
+        }]);
+        kernel.load_environment(&environment.to_string()).unwrap();
+        let cell = kernel.environment.as_mut().unwrap().world.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell;
+        kernel.designate_resource("herb-site".into(), "party".into(), "herb".into(), cell.x as i32, cell.y, cell.z as i32, &ActionScope::Player { player: "player".into() }).unwrap();
+        let site = kernel.entity("herb-site").unwrap();
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        kernel.ecs.entity_mut(site).insert((
+            ResourceSite { definition: "herb".into(), stage: 0, next_due: 0.0 },
+            FiniteResource { kind: "herb".into(), quantity: 0 },
+            Position { x: 0.0, y: (f64::from(cell.y) + 0.5) * spacing[1], z: 0.0, facing: 0.0 },
+        ));
+        assert!(kernel.resource_work_operation("herb-site", "party", None).unwrap().is_none());
+        let task = "resource-water:herb-site:1";
+        let work_entity = kernel.entity(task).unwrap();
+        let work = kernel.ecs.get::<FieldWaterWork>(work_entity).unwrap().clone();
+        assert_eq!(work.portions, 2);
+        assert_eq!(work.material, "fresh-water");
+        restore(&kernel);
+        for invalid in [
+            FieldWaterWork { process: "pail".into(), destination: "pail".into(), ..work.clone() },
+            FieldWaterWork { role: "manual".into(), ..work.clone() },
+            FieldWaterWork { generation: 2, ..work.clone() },
+        ] {
+            kernel.ecs.entity_mut(work_entity).insert(invalid);
+            assert!(Kernel::new().restore_records(&kernel.save_records().unwrap()).is_err());
+        }
+    }
+
+    #[test]
+    fn authored_construction_water_demand_restores() {
+        let mut kernel = kernel();
+        let mut environment: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("construction")).unwrap();
+        environment["structures"]["catalog"][0]["materials"] = json!([{"kind":"water","quantity":1}]);
+        kernel.load_environment(&environment.to_string()).unwrap();
+        let surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell;
+        kernel.plan_constructions("party".into(), vec![ConstructionPlan {
+            catalog: "floor".into(), site: "water-site".into(),
+            target: ConstructionTarget::Cell { cell: surface, orientation: crate::structure_geometry::Cardinal::North },
+        }], &ActionScope::Host).unwrap();
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        kernel.bind_construction_stage("water-site", Point {
+            x: (surface.x + 1) as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], frame: None,
+        }).unwrap();
+        // No worker is admitted; the ordinary planner still persists demand.
+        kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(crate::work_planner::WorkParticipation { automatic: false });
+        kernel.refresh_planner_index("worker");
+        kernel.advance_native_work_planner(kernel.revision + 1).unwrap();
+        let work = kernel.ids.values().find_map(|entity| kernel.ecs.get::<FieldWaterWork>(*entity)).unwrap();
+        assert_eq!(work.process, "water-site");
+        assert!(!work.retain_in_vessel);
+        restore(&kernel);
+    }
+
+    #[test]
+    fn public_ground_stockpile_water_demand_restores() {
+        let mut kernel = kernel();
+        kernel.load_environment(&crate::environment_definition::tests::fixture("construction")).unwrap();
+        let surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell;
+        kernel.designate_stockpile("party".into(), "water-zone".into(), vec![StockpileDesignation {
+            x: surface.x as i32, y: surface.y, z: surface.z as i32, priority: 1, filter_profile: "water-stock".into(),
+        }], &ActionScope::Host).unwrap();
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let stock = kernel.prepare_ground_output(Position {
+            x: (surface.x + 2) as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0,
+        }, "water".into(), 1, Some(1.0), None).unwrap();
+        kernel.publish_material_output(stock);
+        kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(crate::work_planner::WorkParticipation { automatic: false });
+        kernel.refresh_planner_index("worker");
+        kernel.advance_native_work_planner(kernel.revision + 1).unwrap();
+        let work = kernel.ids.values().find_map(|entity| kernel.ecs.get::<FieldWaterWork>(*entity)).unwrap();
+        assert!(kernel.ecs.get::<StockpileCell>(kernel.entity(&work.process).unwrap()).is_some());
+        assert!(!work.retain_in_vessel);
+        restore(&kernel);
+    }
+
+    #[test]
+    fn process_water_still_requires_active_process_and_owned_destination() {
+        let mut kernel = kernel();
+        let process = kernel.ecs.spawn((
+            ExternalId("process".into()), OwnedByParty { party: "party".into() },
+            StagedProcess { version: crate::staged_process::CURRENT_VERSION, definition: "recipe".into(), definition_version: 1, station: "pail".into(), stage_index: 0, progress_seconds: 0.0, entered_tick: 0, phase: ProcessPhase::Waiting, blocked_reason: String::new() },
+        )).id();
+        kernel.ids.insert("process".into(), process);
+        kernel.known.insert("process".into());
+        let task = request(&mut kernel, "water", 1);
+        let entity = kernel.entity(&task).unwrap();
+        let work = kernel.ecs.get::<FieldWaterWork>(entity).unwrap().clone();
+        let work = FieldWaterWork { process: "process".into(), destination: "pail".into(), role: "input".into(), retain_in_vessel: false, ..work };
+        kernel.ecs.entity_mut(entity).insert(work.clone());
+        restore(&kernel);
+        for invalid in [
+            FieldWaterWork { process: "pail".into(), ..work.clone() },
+            FieldWaterWork { destination: "worker".into(), ..work.clone() },
+            FieldWaterWork { retain_in_vessel: true, ..work.clone() },
+        ] {
+            kernel.ecs.entity_mut(entity).insert(invalid);
+            assert!(Kernel::new().restore_records(&kernel.save_records().unwrap()).is_err());
+        }
+        kernel.ecs.entity_mut(entity).insert(work);
+        let state = kernel.ecs.get::<StagedProcess>(process).unwrap().clone();
+        kernel.ecs.entity_mut(process).insert(StagedProcess { phase: ProcessPhase::Complete, ..state });
+        assert!(Kernel::new().restore_records(&kernel.save_records().unwrap()).is_err());
+    }
+
+    #[test]
+    fn retained_water_route_and_committed_outcome_recover_without_second_withdrawal() {
+        let mut kernel = kernel();
+        kernel.load_environment(&crate::environment_definition::tests::fixture("construction")).unwrap();
+        let facts: serde_json::Value = serde_json::from_str(&kernel.environment_facts_json().unwrap()).unwrap();
+        let cell = facts["cells"].as_array().unwrap().iter().find(|cell| cell["kind"] == "void").unwrap();
+        let at = crate::generation::Cell { x: cell["at"][0].as_i64().unwrap(), y: cell["at"][1].as_i64().unwrap() as i32, z: cell["at"][2].as_i64().unwrap() };
+        let token = kernel.environment.as_mut().unwrap().world.prepare_water_exchange(at, WaterExchangeDirection::Deposit, 3).unwrap();
+        kernel.environment.as_mut().unwrap().world.apply_water_exchange(token).unwrap();
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let pose = Position { x: (at.x + 1) as f64 * spacing[0], y: (f64::from(at.y) + 0.5) * spacing[1], z: at.z as f64 * spacing[2], facing: 0.0 };
+        let worker = kernel.entity("worker").unwrap();
+        kernel.ecs.entity_mut(worker).insert(pose);
+        kernel.rebuild_physical_indexes(true).unwrap();
+        let task = request(&mut kernel, "fresh-water", 2);
+        let task_entity = kernel.entity(&task).unwrap();
+        let work = kernel.ecs.get::<FieldWaterWork>(task_entity).unwrap().clone();
+        kernel.ecs.entity_mut(task_entity).insert(FieldWaterWork { vessel: Some("pail".into()), cell_x: at.x as i32, cell_y: at.y, cell_z: at.z as i32, ..work });
+        let destination = navigation::point(pose);
+        let key = kernel.begin_work_attempt(task.clone(), "worker".into(), ActivityRef::Route { destination: destination.clone() }, &ActionScope::Host).unwrap();
+        let mut kernel = restore(&kernel);
+        // The worker is already at this contact; retain the route-completed
+        // checkpoint so the real continuation owner performs the withdrawal.
+        kernel.clear_destination(kernel.entity("worker").unwrap());
+        kernel.settle_attempt(&task, AttemptPhase::Outcome {
+            operation: OperationKey { attempt: key.clone(), sequence: 1 },
+            activity: ActivityRef::Route { destination }, result: WorkOutcome::Completed,
+        }).unwrap();
+        let before: serde_json::Value = serde_json::from_str(&kernel.environment_facts_json().unwrap()).unwrap();
+        let activity = ActivityRef::FieldWater { vessel: "pail".into(), cell: [at.x as i32, at.y, at.z as i32], direction: WaterDirection::Withdraw, portions: 2 };
+        kernel.continue_work_attempt(task.clone(), key.generation, 1, activity.clone()).unwrap();
+        let mut restored = restore(&kernel);
+        let lot_id = restored.ecs.get::<FieldWaterWork>(restored.entity(&task).unwrap()).unwrap().lot.clone().unwrap();
+        let lot_entity = restored.entity(&lot_id).unwrap();
+        let mass = restored.ecs.get::<LotWater>(lot_entity).unwrap().water_kg;
+        let after: serde_json::Value = serde_json::from_str(&restored.environment_facts_json().unwrap()).unwrap();
+        assert!((before["totalKg"].as_f64().unwrap() - after["totalKg"].as_f64().unwrap() - mass).abs() < 1e-9);
+        // A valid committed outcome must still reject forged material,
+        // quantity, mass and vessel custody before any recovery work runs.
+        let saved = restored.save_records().unwrap();
+        let task_entity = restored.entity(&task).unwrap();
+        let work = restored.ecs.get::<FieldWaterWork>(task_entity).unwrap().clone();
+        for invalid in [
+            FieldWaterWork { material: "water".into(), ..work.clone() },
+            FieldWaterWork { portions: 1, ..work.clone() },
+            FieldWaterWork { vessel: None, ..work.clone() },
+        ] {
+            restored.ecs.entity_mut(task_entity).insert(invalid);
+            assert!(Kernel::new().restore_records(&restored.save_records().unwrap()).is_err());
+        }
+        restored.restore_records(&saved).unwrap();
+        let vessel = restored.entity("pail").unwrap();
+        restored.ecs.entity_mut(vessel).remove::<OwnedByParty>();
+        assert!(Kernel::new().restore_records(&restored.save_records().unwrap()).is_err());
+        restored.restore_records(&saved).unwrap();
+        restored.ecs.entity_mut(restored.entity(&lot_id).unwrap()).remove::<LotWater>();
+        assert!(Kernel::new().restore_records(&restored.save_records().unwrap()).is_err());
+        restored.restore_records(&saved).unwrap();
+        let lots = restored.query_json(r#"["hive.lot"]"#).unwrap();
+        assert!(restored.continue_work_attempt(task.clone(), key.generation, 1, activity).is_err());
+        assert_eq!(restored.query_json(r#"["hive.lot"]"#).unwrap(), lots);
+        // Reaping a restored completed outcome removes demand, not matter.
+        restored.advance_native_work_planner(restored.revision + 100).unwrap();
+        assert!(restored.entity(&task).is_err());
+        restored.advance_native_work_planner(restored.revision + 101).unwrap();
+        assert_eq!(restored.query_json(r#"["hive.lot"]"#).unwrap(), lots);
+        let reaped: serde_json::Value = serde_json::from_str(&restored.environment_facts_json().unwrap()).unwrap();
+        for conserved in ["totalKg", "cells", "boundaryKg", "residualKg"] {
+            assert_eq!(reaped[conserved], after[conserved], "{conserved}");
+        }
+        let restored = restore(&restored);
+        let lot = restored.ecs.get::<Lot>(restored.entity(&lot_id).unwrap()).unwrap();
+        assert_eq!((lot.kind.as_str(), lot.quantity, lot.container.as_str()), ("fresh-water", 2, "pail"));
+        assert_eq!(restored.ecs.get::<LotWater>(restored.entity(&lot_id).unwrap()).unwrap().water_kg, mass);
+    }
+}
+
+
+#[cfg(test)]
 mod construction_tests {
     use super::*;
     use serde_json::json;
@@ -2525,44 +2770,65 @@ impl Kernel {
     fn validate_field_water_records(&self) -> Result<()> {
         for (id, entity) in &self.ids {
             let Some(work) = self.ecs.get::<FieldWaterWork>(*entity) else { continue; };
-            if !id.starts_with("field-water:")
-                || self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
+            if self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
                 || self.ecs.get::<crate::work_planner::WorkPolicy>(*entity).is_none_or(|policy| policy.pool != work.party)
                 || self.ecs.get::<crate::work_planner::WorkSchedule>(*entity).is_none()
+                || work.role.is_empty() || work.generation == 0
             { return Err("invalid field water work ownership".into()); }
-            let process = self.entity(&work.process)?;
-            let process_state = self.ecs.get::<StagedProcess>(process).ok_or("field water process is missing")?;
-            if process_state.phase == ProcessPhase::Complete
-                || self.ecs.get::<OwnedByParty>(process).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
-                || work.role.is_empty() || work.generation == 0 {
+            let owner = self.entity(&work.process)?;
+            if self.ecs.get::<OwnedByParty>(owner).map(|owner| owner.party.as_str()) != Some(work.party.as_str()) {
                 return Err("invalid field water process binding".into());
             }
-            let destination = self.entity(&work.destination)?;
-            if self.ecs.get::<Container>(destination).is_none()
-                || self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
-            { return Err("invalid field water destination".into()); }
-            match (&work.vessel, &work.lot) {
-                (None, None) => {}
-                (Some(vessel_id), None) => {
-                    let vessel = self.entity(vessel_id)?;
-                    let lot = self.ecs.get::<Lot>(vessel).ok_or("field water vessel is not a lot")?;
-                    if !self.ecs.get::<VesselCapability>(vessel).is_some_and(|capability| capability.accepts_water)
-                        || self.ecs.get::<OwnedByParty>(vessel).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
-                        || lot.container.is_empty() || self.entity(&lot.container).is_err()
-                    { return Err("invalid field water vessel custody".into()); }
+            // Retained water belongs to a manual request or resource order.
+            // Shared supply demand delivers water into an owned container.
+            if work.retain_in_vessel {
+                if work.destination != work.process {
+                    return Err("invalid retained field water destination".into());
                 }
-                (Some(vessel_id), Some(lot_id)) => {
-                    let vessel = self.entity(vessel_id)?;
+                if work.process == *id {
+                    if !id.starts_with("field-water:manual:") || work.role != "manual" || work.generation != 1 {
+                        return Err("invalid manual field water binding".into());
+                    }
+                } else if self.ecs.get::<ResourceOrder>(owner).is_none()
+                    || work.role != "tend"
+                    || *id != format!("resource-water:{}:{}", work.process, work.generation)
+                {
+                    return Err("invalid resource field water binding".into());
+                }
+            } else {
+                let valid_owner = if let Some(process) = self.ecs.get::<StagedProcess>(owner) {
+                    process.phase != ProcessPhase::Complete
+                } else if self.ecs.get::<ConstructionSite>(owner).is_some() {
+                    work.destination == work.process && work.role == work.material && work.generation == 1
+                } else {
+                    self.ecs.get::<StockpileCell>(owner).is_some() && work.role == work.material
+                };
+                if !id.starts_with("field-water:") || !valid_owner {
+                    return Err("invalid field water supply binding".into());
+                }
+                let destination = self.entity(&work.destination)?;
+                if self.ecs.get::<Container>(destination).is_none()
+                    || self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
+                { return Err("invalid field water destination".into()); }
+            }
+            if let Some(vessel_id) = &work.vessel {
+                let vessel = self.entity(vessel_id)?;
+                let vessel_lot = self.ecs.get::<Lot>(vessel).ok_or("field water vessel is not a lot")?;
+                if !self.ecs.get::<VesselCapability>(vessel).is_some_and(|capability| capability.accepts_water)
+                    || self.ecs.get::<Container>(vessel).is_none()
+                    || self.ecs.get::<OwnedByParty>(vessel).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
+                    || vessel_lot.container.is_empty() || self.entity(&vessel_lot.container).is_err()
+                { return Err("invalid field water vessel custody".into()); }
+                if let Some(lot_id) = &work.lot {
                     let lot = self.entity(lot_id)?;
-                    let vessel_lot = self.ecs.get::<Lot>(vessel).ok_or("field water vessel is not a lot")?;
                     let water_lot = self.ecs.get::<Lot>(lot).ok_or("field water output is not a lot")?;
-                    if !self.ecs.get::<VesselCapability>(vessel).is_some_and(|capability| capability.accepts_water)
-                        || water_lot.kind != "water" || water_lot.quantity != 1 || water_lot.container != *vessel_id
+                    if water_lot.kind != work.material || water_lot.quantity != u32::from(work.portions) || water_lot.container != *vessel_id
                         || self.ecs.get::<OwnedByParty>(lot).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
-                        || vessel_lot.container.is_empty()
+                        || !self.ecs.get::<LotWater>(lot).is_some_and(|water| water.water_kg > 0.0)
                     { return Err("invalid field water output custody".into()); }
                 }
-                (None, Some(_)) => return Err("field water output has no vessel".into()),
+            } else if work.lot.is_some() {
+                return Err("field water output has no vessel".into());
             }
         }
         Ok(())
