@@ -174,6 +174,36 @@ identical retry after restart, with unauthorized actions rejected. Clearly
 separate this execution-capability witness from a full Shiitake model/session
 run and from hosted parity. Model execution stays outside physical ticks.
 
+## September 23 integrated checkpoint
+
+At source `7b8c5167` and release WASM
+`541ddcd4c8d29b89159ff9d4c6d6a085db2ce6f34621b4c453e0af0fc88f314b`,
+the pinned v2 local WASM fixture completed 1,800 occurrences without an
+admission error. It conserved all 2,304 units of wood and produced 116 completed
+chains. Changed records stayed below 1 MiB (696,301 bytes maximum). Its native
+advance p95 was 69.7 ms and capture p95 was 31.7 ms, excluding SQL, publication
+and network. Only 137/180 one-second samples met the 90-useful-worker threshold;
+third-minute output flattened at 696 wood. Four water demands remained
+undelivered because this fixture has no reachable open surface water: an
+exhaustive 65,536-column check found none. Current-format restore preserved
+physical environment facts; the summary inequality was its disposable
+placement revision resetting from 2 to 1. A separately versioned fixture with
+finite reachable water is required; v2 is retained as failed evidence. The raw
+local ledger is
+`.botanical/framework-v2/integrated-after-1800.json` (SHA-256
+`291827321fa0b8e093c6b876af34083998cb76480ec06b8f4bec2839a0b917d4`).
+This is a **failed capacity gate**, not a DO result.
+
+The same integrated source passed the existing Pirates public DO + Mycelium
+Code Mode local witness, including restart, identical receipt replay, terminal
+cargo and seven-unit conservation; the host wake/publication laws passed 16/16.
+The combined native suite exposed a separate regression: 422 passed, 28 failed
+because automatic outcome reconciliation took host-started attempts. The work
+attempt owner must record continuation authority and restore all existing laws
+before this source can be accepted. Navigation locality and a valid finite-water
+fixture are being resolved at their owners. Hosted capacity,
+full Shiitake model execution and a release preview remain unproved.
+
 ## Exit and explicit nonclaims
 
 The sprint closes only with pinned source, reproducible fixture, local + workerd
