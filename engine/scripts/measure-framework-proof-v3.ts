@@ -25,13 +25,14 @@ import { Worker } from "../src/games/colony-components";
 import { entity } from "../src/sdk/authoring";
 
 const steps = Number(
-  process.argv.find((arg) => arg.startsWith("--steps="))?.slice(8) ??
+  process.argv.find((arg: string) => arg.startsWith("--steps="))?.slice(8) ??
     schedule.steps,
 );
 assert(Number.isSafeInteger(steps) && steps >= 0 && steps <= schedule.steps);
 const nativeSource =
-  process.argv.find((arg) => arg.startsWith("--native-source="))?.slice(16) ??
-  "unrecorded";
+  process.argv
+    .find((arg: string) => arg.startsWith("--native-source="))
+    ?.slice(16) ?? "unrecorded";
 const hash = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
 const wasm = readFileSync("engine/generated/hive_kernel_bg.wasm");
@@ -157,6 +158,8 @@ let previous = new Map<string, { x: number; y: number; z: number }>();
 const started = performance.now();
 try {
   session.start();
+  session.captureForCommit();
+  session.acceptCapture();
   previous = new Map(
     session
       .query(query(Worker, Position))
