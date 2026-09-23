@@ -1456,18 +1456,23 @@ mod tests {
 
     fn field_water_accounting_fixture() -> (Kernel, SupplyRequirement) {
         let mut kernel = Kernel::new();
-        let party = kernel.ecs.spawn((ExternalId("party".into()), Party {}, OwnedBy { player: "player".into() })).id();
-        let process = kernel.ecs.spawn((
-            ExternalId("process".into()),
-            OwnedByParty { party: "party".into() },
-            WorkExecution { pool: "party".into(), initiating_player: None, policy_id: "test-water".into() },
-        )).id();
-        kernel.ids.insert("party".into(), party);
-        kernel.ids.insert("process".into(), process);
-        kernel.known.extend(["party".into(), "process".into()]);
-        kernel.refresh_state_weight();
+        kernel.load(&json!({
+            "format":"hive-game", "version":3, "game":"field-water-accounting",
+            "components":[], "materialCatalog":[{"kind":"water","unitVolume":1}],
+            "stockpileProfiles":[{"id":"water-stock","allowedMaterials":["water"]}],
+            "initial":[
+                {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
+                {"id":"process","components":{
+                    "hive.owned-by-party":{"party":"party"},
+                    "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
+                    "hive.container":{"capacity":8},
+                    "hive.stockpile-cell":{"zone":"water-zone","priority":1,"filterProfile":"water-stock"},
+                    "hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test-water"}
+                }}
+            ]
+        }).to_string()).unwrap();
         (kernel, SupplyRequirement {
-            owner: "process".into(), role: "input:water".into(), generation: 3,
+            owner: "process".into(), role: "water".into(), generation: 3,
             party: "party".into(), material: "water".into(), policy: InputPolicy::Portion,
             destination: "process".into(), missing: 2, source_lots: None,
         })
@@ -1551,10 +1556,10 @@ mod tests {
         let before_ids = kernel.ids.len();
         let before_known = kernel.known.clone();
         let before_weight = kernel.state_weight;
-        let task_id = field_water_task_id("process", "input:water", 3, 0);
+        let task_id = field_water_task_id("process", "water", 3, 0);
         let owner = OwnedByParty { party: "party".into() };
         let field_water = FieldWaterWork {
-            process: "process".into(), role: "input:water".into(), generation: 3,
+            process: "process".into(), role: "water".into(), generation: 3,
             party: "party".into(), destination: "process".into(), material: "water".into(),
             retain_in_vessel: false, portions: 1, vessel: None, cell_x: 0, cell_y: 0, cell_z: 0, lot: None,
         };

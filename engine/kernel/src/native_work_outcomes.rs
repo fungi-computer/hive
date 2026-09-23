@@ -240,44 +240,31 @@ impl Kernel {
 mod tests {
     use super::*;
     use crate::work_attempt::{AttemptKey, AttemptPhase, ContinuationOwner, OperationKey, WaterDirection, WorkOutcome};
+    use serde_json::json;
 
     #[test]
     fn retained_field_water_completion_accounts_retirement_and_restores() {
         let mut kernel = Kernel::new();
-        let party = kernel.ecs.spawn((
-            ExternalId("party".into()), crate::components::Party {},
-            crate::components::OwnedBy { player: "player".into() },
-        )).id();
-        let worker = kernel.ecs.spawn((
-            ExternalId("worker".into()), crate::components::PartyMember { party: "party".into() },
-            crate::components::Container { capacity: 4 },
-        )).id();
-        let pail = kernel.ecs.spawn((
-            ExternalId("pail".into()), OwnedByParty { party: "party".into() },
-            Lot { kind: "pail".into(), quantity: 1, container: "worker".into() },
-            crate::components::VesselCapability { accepts_water: true },
-            crate::components::Container { capacity: 4 },
-        )).id();
-        let output = kernel.ecs.spawn((
-            ExternalId("water-lot".into()), OwnedByParty { party: "party".into() },
-            Lot { kind: "water".into(), quantity: 1, container: "pail".into() },
-            crate::components::LotWater { water_kg: 1.0 },
-        )).id();
         let task_id = "field-water:manual:0".to_owned();
-        let execution = WorkExecution { pool: "party".into(), initiating_player: None, policy_id: "test-water".into() };
-        let task = kernel.ecs.spawn((
-            ExternalId(task_id.clone()),
-            OwnedByParty { party: "party".into() },
-            FieldWaterWork {
-                process: task_id.clone(), role: "manual".into(), generation: 1,
-                party: "party".into(), destination: task_id.clone(), material: "water".into(),
-                retain_in_vessel: true, portions: 1, vessel: Some("pail".into()),
-                cell_x: 0, cell_y: 0, cell_z: 0, lot: Some("water-lot".into()),
-            },
-            WorkPolicy { pool: "party".into(), priority: 0, enabled: true },
-            execution.clone(),
-            crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 },
-        )).id();
+        kernel.load(&json!({
+            "format":"hive-game", "version":3, "game":"retained-water-outcome",
+            "components":[], "materialCatalog":[{"kind":"water","unitVolume":1}],
+            "initial":[
+                {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
+                {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.container":{"capacity":4}}},
+                {"id":"pail","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":4},"hive.vessel-capability":{"acceptsWater":true},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}},
+                {"id":"water-lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"water","quantity":1,"container":"pail"},"hive.lot-water":{"waterKg":1.0}}},
+                {"id":task_id,"components":{
+                    "hive.owned-by-party":{"party":"party"},
+                    "hive.field-water-work":{"process":task_id,"role":"manual","generation":1,"party":"party","destination":task_id,"material":"water","retainInVessel":true,"portions":1,"vessel":"pail","cellX":0,"cellY":0,"cellZ":0,"lot":"water-lot"},
+                    "hive.work-policy":{"pool":"party","priority":0,"enabled":true},
+                    "hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test-water"},
+                    "hive.work-schedule":{"nextReviewTick":0,"lastConsidered":0}
+                }}
+            ]
+        }).to_string()).unwrap();
+        let task = kernel.entity(&task_id).unwrap();
+        let execution = kernel.ecs.get::<WorkExecution>(task).unwrap().clone();
         let attempt_key = AttemptKey { task: task_id.clone(), generation: 9 };
         let operation = OperationKey { attempt: attempt_key.clone(), sequence: 2 };
         kernel.ecs.entity_mut(task).insert(WorkAttempt {
@@ -292,14 +279,6 @@ mod tests {
                 result: WorkOutcome::Completed,
             },
         });
-        kernel.ids.extend([
-            ("party".into(), party), ("worker".into(), worker), ("pail".into(), pail),
-            ("water-lot".into(), output), (task_id.clone(), task),
-        ]);
-        kernel.known.extend(["party".into(), "worker".into(), "pail".into(), "water-lot".into(), task_id.clone()]);
-        kernel.contents.insert(task_id.clone(), Default::default());
-        kernel.contents.insert("worker".into(), [pail].into_iter().collect());
-        kernel.contents.insert("pail".into(), [output].into_iter().collect());
         kernel.work_attempts.insert(task_id.clone(), task);
         kernel.attempts_by_worker.insert("worker".into(), attempt_key);
         kernel.next_work_generation = 10;
