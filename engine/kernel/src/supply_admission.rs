@@ -312,6 +312,7 @@ impl Kernel {
                         key: item.key.clone(),
                         worker: item.worker.clone(),
                         execution,
+                        continuation_owner: crate::work_attempt::ContinuationOwner::Native,
                         phase: crate::work_attempt::AttemptPhase::Executing {
                             operation,
                             activity: crate::work_attempt::ActivityRef::Route {

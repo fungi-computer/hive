@@ -88,6 +88,7 @@ const placementDecisionResponseSchema = z.object({
   }).strict()).min(1).max(256),
 }).strict();
 const workAttemptWireSchema = z.object({
+  continuationOwner: z.enum(["external", "native"]),
   key: z.object({ task: entityIdWireSchema, generation: z.number().int().positive() }),
   worker: entityIdWireSchema,
   execution: z.object({ pool: entityIdWireSchema, initiatingPlayer: z.string().min(1).nullable(), policyId: z.string().min(1) }).strict(),

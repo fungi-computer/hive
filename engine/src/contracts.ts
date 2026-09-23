@@ -387,7 +387,7 @@ export interface WorkAttemptKey { readonly task: EntityId; readonly generation: 
 export type WorkOutcome = { readonly kind: "completed" } | { readonly kind: "blocked"; readonly reason: WorkBlockReason } | { readonly kind: "interrupted"; readonly cause: WorkInterruptCause };
 export type WorkAttemptPhase = { readonly kind: "ready" } | { readonly kind: "executing"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef } | { readonly kind: "outcome"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef; readonly result: WorkOutcome } | { readonly kind: "settling"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly cause: WorkInterruptCause };
 export interface WorkExecution { readonly pool: EntityId; readonly initiatingPlayer: string | null; readonly policyId: string }
-export interface WorkAttempt { readonly key: WorkAttemptKey; readonly worker: EntityId; readonly execution: WorkExecution; readonly phase: WorkAttemptPhase }
+export interface WorkAttempt { readonly continuationOwner: "external" | "native"; readonly key: WorkAttemptKey; readonly worker: EntityId; readonly execution: WorkExecution; readonly phase: WorkAttemptPhase }
 export interface SimulationClock {
   readonly now: number;
   readonly delta: number;
