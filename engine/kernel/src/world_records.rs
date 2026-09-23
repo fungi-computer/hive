@@ -42,6 +42,13 @@ impl Kernel {
             removes.extend(air_removes);
         }
         let mut changed: BTreeSet<_> = self.ecs.resource::<EntityChanges>().ids().cloned().collect();
+        // The registry is stable for a resident kernel. Resolve its component
+        // IDs once, then visit the actual archetype for each changed entity.
+        // Scanning every schema for every dirty identity made sparse updates
+        // pay for registered components that the entity cannot own.
+        let component_names: BTreeMap<_, _> = self.registry.ids.iter()
+            .map(|(name, component)| (*component, name.as_str()))
+            .collect();
         let mut route_ids = BTreeSet::new();
         for entity in self.routes.changed().chain(self.terrain_routes.changed()) {
             if let Some(id) = self.ecs.get::<ExternalId>(*entity) { route_ids.insert(id.0.clone()); }
@@ -51,7 +58,9 @@ impl Kernel {
         let mut motion = BTreeMap::new();
         for id in changed {
             let entity = self.ids.get(&id).copied();
-            let mut row = entity.map(|entity| EntityRecord { id: id.clone(), components: self.registry.schemas.keys().filter_map(|name| self.registry.read(&self.ecs, entity, name).map(|value| (name.clone(), value))).collect() })
+            let mut row = entity.map(|entity| EntityRecord { id: id.clone(), components: self.ecs.entity(entity).archetype().components().iter()
+                .filter_map(|component| component_names.get(component).and_then(|name| self.registry.read(&self.ecs, entity, name).map(|value| ((*name).to_owned(), value))))
+                .collect() })
                 .map(serde_json::to_value).transpose().map_err(|error| error.to_string())?;
             if let Some(row) = &mut row {
                 let entity = entity.unwrap();
@@ -115,6 +124,33 @@ mod tests {
         assert_eq!(kernel.ecs.resource::<EntityChanges>().ids().cloned().collect::<Vec<_>>(), ["row-0999"]);
         kernel.ecs.despawn(second);
         assert!(kernel.ecs.resource::<EntityChanges>().ids().any(|id| id == "row-0999"), "despawn remembers the external identity after its component is gone");
+    }
+
+    #[test]
+    fn sparse_changed_rows_and_entity_removal_match_the_full_checkpoint_oracle() {
+        use crate::record_bundle::RecordCapture;
+        let initial: Vec<_> = (0..2).map(|index| serde_json::json!({
+            "id":format!("row-{index}"),
+            "components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}
+        })).collect();
+        let mut kernel = Kernel::new();
+        kernel.load(&serde_json::json!({"format":"hive-game","version":3,"game":"sparse-records","components":[],"materialCatalog":[],"initial":initial}).to_string()).unwrap();
+        let mut cursor = RecordCapture::default();
+        let (_, baseline) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(0), kernel.revision, kernel.time).unwrap();
+        kernel.accept_record_journal(kernel.record_journal_token());
+
+        let retained = kernel.entity("row-0").unwrap();
+        kernel.ecs.entity_mut(retained).remove::<Position>();
+        let removed = kernel.entity("row-1").unwrap();
+        kernel.ecs.despawn(removed);
+
+        let token = kernel.record_journal_token();
+        let (delta, manifest) = cursor.capture_changed(kernel.changed_records().unwrap(), baseline.sequence, kernel.revision, kernel.time, kernel.record_state_weight()).unwrap();
+        assert!(delta.keys().iter().any(|key| key == "kernel/state/entities/row-0"), "component removal replaces the stable entity row");
+        assert_eq!(manifest.removes, ["kernel/state/entities/row-1"], "despawn emits the exact stable identity tombstone");
+        let (difference, _) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(manifest.sequence), kernel.revision, kernel.time).unwrap();
+        assert!(difference.keys().is_empty(), "incremental rows and removals equal the detached full checkpoint");
+        kernel.accept_record_journal(token);
     }
     #[test]
     fn pending_search_capture_matches_checkpoint_and_ack_preserves_new_progress() {
