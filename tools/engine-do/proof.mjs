@@ -135,6 +135,7 @@ async function stop(abrupt = false) {
   assert.equal(entry.listenerClosed, true);
   server = undefined;
 }
+let replayEpoch;
 async function command(input, { role = "WRITER_SECRET", fault } = {}) {
   const response = await fetch(`${endpoint}/command`, {
     method: "POST",
@@ -160,6 +161,7 @@ async function snapshot() {
 }
 const dig = (id, expectedRevision, x) => ({
   id,
+  replayEpoch,
   expectedRevision,
   command: { kind: "excavate", at: { x, y: -1, z: 0 } },
 });
@@ -168,6 +170,7 @@ function check(name) {
 }
 async function laws() {
   const initial = await snapshot();
+  replayEpoch = initial.replayEpoch;
   assert.equal(initial.snapshot.revision, 0);
   assert.equal((await fetch(`${endpoint}/debug`)).status, 403);
   const first = dig("first", 0, 0);

@@ -26,6 +26,7 @@ export function createRegionControllerModule<
     principal: string,
     input: {
       id: string;
+      replayEpoch: number;
       expectedRevision: number;
       command: Command;
     },
@@ -38,6 +39,7 @@ export function createRegionControllerModule<
     region: identity,
     principal: identity,
     commandId: identity,
+    replayEpoch: revision,
     status: z.enum(["applied", "rejected"]),
     revision,
     result: options.result,
@@ -47,7 +49,7 @@ export function createRegionControllerModule<
     id: options.id,
     name: options.name,
     description:
-      "Observe this authorized region and submit durable commands. A command result records admission/effect according to this region's rules; it is not a promise that a pawn job has completed. Retry a lost response with the SAME command id, expectedRevision and command. Each execute program has a separate transient identity.",
+      "Observe this authorized region and submit durable commands. A command result records admission/effect according to this region's rules; it is not a promise that a pawn job has completed. Retry a lost response with the SAME replayEpoch, command id, expectedRevision and command. Each execute program has a separate transient identity.",
     operations: {
       observe: Mycelium.operation({
         description:
@@ -61,9 +63,10 @@ export function createRegionControllerModule<
       }),
       command: Mycelium.operation({
         description:
-          "Submit one command. Keep this id and complete input for retry: identical replay returns the original durable receipt; changed input with that id conflicts. Cancellation or a lost execute response cannot undo a committed command.",
+          "Submit one command using the replayEpoch from your observation. Keep the epoch, id and complete input for retry: identical replay returns the original durable receipt; changed input with that epoch/id conflicts. A retired command rejects; never refresh its epoch to retry. Cancellation or a lost execute response cannot undo a committed command.",
         input: z.strictObject({
           id: identity,
+          replayEpoch: revision,
           expectedRevision: revision,
           command: options.command,
         }),

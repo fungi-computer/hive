@@ -152,6 +152,7 @@ async function stop(abrupt = false) {
   assert.equal(entry.listenerClosed, true);
   server = undefined;
 }
+let replayEpoch;
 async function command(input, { role = "WRITER_SECRET", fault } = {}) {
   const response = await fetch(`${endpoint}/command`, {
     method: "POST",
@@ -195,17 +196,10 @@ async function snapshot() {
 }
 const dig = (id, expectedRevision, at) => ({
   id,
+  replayEpoch,
   expectedRevision,
   command: { kind: "excavate", at },
 });
-const advance = {
-  id: "six-seconds",
-  expectedRevision: 3,
-  command: { kind: "advance", seconds: 6 },
-};
-const first = dig("first", 0, [0, 14, 128]);
-const second = dig("adjacent", 1, [1, 14, 128]);
-const deep = dig("deeper", 2, [1, 13, 128]);
 function check(name) {
   receipt.checks.push(name);
 }
@@ -321,6 +315,17 @@ async function lostAcknowledgment(input, options, label) {
 async function laws() {
   const initial = await snapshot(),
     initialSql = await durable();
+  replayEpoch = initial.replayEpoch;
+  const advance = {
+    id: "six-seconds",
+    replayEpoch,
+    expectedRevision: 3,
+    command: { kind: "advance", seconds: 6 },
+  };
+  const first = dig("first", 0, [0, 14, 128]);
+  const second = dig("adjacent", 1, [1, 14, 128]);
+  const deep = dig("deeper", 2, [1, 13, 128]);
+
   const recipe = createWetClearing({ connected: true });
   assert.deepEqual(initial.snapshot.state.environment, recipe.input);
   assert.equal((await fetch(`${endpoint}/debug`)).status, 403);

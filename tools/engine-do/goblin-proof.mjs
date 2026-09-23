@@ -151,6 +151,7 @@ async function stop(abrupt = false) {
   assert.equal(entry.listenerClosed, true);
   server = undefined;
 }
+let replayEpoch;
 async function command(input, { role = "WRITER_SECRET", fault } = {}) {
   const response = await fetch(`${endpoint}/command`, {
     method: "POST",
@@ -188,9 +189,11 @@ function check(name) {
 }
 async function digLaws() {
   const initial = await snapshot();
+  replayEpoch = initial.replayEpoch;
   assert.equal(initial.snapshot.state.clearing.paused, true);
   const order = {
     id: "shared-dig",
+    replayEpoch,
     expectedRevision: 0,
     command: {
       kind: "order",
@@ -223,6 +226,7 @@ async function digLaws() {
   );
   const pauseNoop = {
     id: "paused-advance",
+    replayEpoch,
     expectedRevision: 1,
     command: { kind: "advance", ticks: 120 },
   };
@@ -234,6 +238,7 @@ async function digLaws() {
     (
       await command({
         id: "run",
+        replayEpoch,
         expectedRevision: 2,
         command: { kind: "set-paused", paused: false },
       })
@@ -242,6 +247,7 @@ async function digLaws() {
   );
   const firstAdvance = {
     id: "first-ten",
+    replayEpoch,
     expectedRevision: 3,
     command: { kind: "advance", ticks: 10 },
   };
@@ -267,6 +273,7 @@ async function digLaws() {
   );
   const finish = {
     id: "finish-fifty",
+    replayEpoch,
     expectedRevision: 4,
     command: { kind: "advance", ticks: 50 },
   };
@@ -343,6 +350,7 @@ async function failedCommand(input, host, fault) {
 }
 async function fieldLaws() {
   const initial = await recordField("field-initial");
+  replayEpoch = initial.replayEpoch;
   const state = initial.snapshot.state.clearing;
   const operation = state.operations[0];
   assert.equal(state.paused, false);
@@ -352,6 +360,7 @@ async function fieldLaws() {
   assert.equal(fieldFacts(initial).pitKg, 0);
   const returned = {
     id: "return-held-water",
+    replayEpoch,
     expectedRevision: 0,
     command: {
       kind: "return-field-water",
@@ -416,6 +425,7 @@ async function fieldLaws() {
 
   const draw = {
     id: "draw-and-walk",
+    replayEpoch,
     expectedRevision: 1,
     command: { kind: "advance", ticks: 1 },
   };
@@ -460,6 +470,7 @@ async function fieldLaws() {
   const continued = await command(
     {
       id: "continue-walk",
+      replayEpoch,
       expectedRevision: 2,
       command: { kind: "advance", ticks: 1 },
     },

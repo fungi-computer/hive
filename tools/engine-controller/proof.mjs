@@ -40,11 +40,6 @@ function open() {
     }),
   );
 }
-const command = {
-  id: "physical-dig-1",
-  expectedRevision: 0,
-  command: { kind: "excavate", at: { x: 0, y: -1, z: 0 } },
-};
 const run = (runtime, code, key = builderKey) =>
   runtime.dispatchFetch("http://controller.local/execute", {
     method: "POST",
@@ -105,9 +100,19 @@ try {
   );
   assert.deepEqual(observation.value, {
     revision: 0,
+    replayEpoch: 0,
     excavated: 0,
     visibleChalk: 0,
   });
+  const command = {
+    id: "physical-dig-1",
+    replayEpoch: observation.value.replayEpoch,
+    expectedRevision: 0,
+    command: { kind: "excavate", at: { x: 0, y: -1, z: 0 } },
+  };
+  const { replayEpoch: _epoch, ...missingEpoch } = command;
+  assert.notEqual((await run(runtime, `return await quarry.command(${JSON.stringify(missingEpoch)});`)).status, 200);
+  assert.notEqual((await run(runtime, `return await quarry.command(${JSON.stringify({ ...command, replayEpoch: command.replayEpoch + 1 })});`)).status, 200);
   const described = await value(
     await run(
       runtime,

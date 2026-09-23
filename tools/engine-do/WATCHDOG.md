@@ -30,7 +30,7 @@ inside this directory reconstructs the ordinary consumer.
 Per-run writer/spectator/debug secrets are supplied by the future proof driver,
 never committed. `/health` does not resolve or fetch a Durable Object.
 
-`POST /work` accepts the region's checked `{id,expectedRevision,command}` shape.
+`POST /work` accepts the region's checked `{id,replayEpoch,expectedRevision,command}` shape.
 Only writer credentials enqueue. The host supplies principal; request ID is at
 most 80 characters and the complete input is at most 8192 UTF-8 bytes. The job
 ID is an unambiguous JSON tuple of region, authenticated principal and request
@@ -155,3 +155,9 @@ with a JSON parsing exception. V1 failure evidence remains intact.
 
 This is local native-DO evidence for these two windows only. Cancellation,
 exhaustion, alarm failure edges and hosted deployment are not covered here.
+
+Read the authenticated replay epoch before creating a new command. Preserve its
+original epoch and complete envelope for every retry; a retired identity rejects
+instead of being stamped with a new epoch. DO proof hosts expose `GET /replay-window`;
+controller observations expose `replayEpoch`. Watchdog result lookup requires both
+`id` and `replayEpoch`, matching the durable queued command identity.

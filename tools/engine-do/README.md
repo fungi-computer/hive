@@ -4,7 +4,7 @@ This isolated Wrangler consumer binds one SQLite Durable Object to the existing
 region owner and original quarry program. It is a local harness, not production
 authentication, a public world administration API, or an autonomous alarm service.
 
-`POST /command` accepts the region owner's checked `{id, expectedRevision, command}`
+`POST /command` accepts the region owner's checked `{id, replayEpoch, expectedRevision, command}`
 envelope. Per-run writer and spectator bearer secrets map to server-chosen
 principals. A separate debug secret permits `GET /debug` committed snapshot/events
 and one-request fault injection. No caller-supplied principal is accepted.
@@ -20,3 +20,9 @@ before allocating its private temporary directory. Source config has no credenti
 The region owner enforces finite retained receipt, event, state and byte capacities.
 This proof does not establish autonomous wake, Watchdog integration, or Goblin
 game completion.
+
+Read the authenticated replay epoch before creating a new command. Preserve its
+original epoch and complete envelope for every retry; a retired identity rejects
+instead of being stamped with a new epoch. DO proof hosts expose `GET /replay-window`;
+controller observations expose `replayEpoch`. Watchdog result lookup requires both
+`id` and `replayEpoch`, matching the durable queued command identity.

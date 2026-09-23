@@ -219,7 +219,7 @@ async function checkObservation(committed) {
   assert.equal(first.observation.sequence, committed.snapshot.revision);
   assert.ok(first.observation.facts.length > 0);
   assert.ok(first.observation.facts.length <= 512);
-  assert.deepEqual(Object.keys(first).sort(), ["observation", "revision"]);
+  assert.deepEqual(Object.keys(first).sort(), ["observation", "replayEpoch", "revision"]);
   assert.deepEqual(
     await snapshot(),
     committed,
@@ -227,8 +227,10 @@ async function checkObservation(committed) {
   );
   return first;
 }
+let replayEpoch;
 const request = (id, expectedRevision, command) => ({
   id,
+  replayEpoch,
   expectedRevision,
   command,
 });
@@ -746,6 +748,7 @@ async function runFormationProof(initial) {
 try {
   await start();
   const initial = await snapshot();
+  replayEpoch = initial.replayEpoch;
   assert.equal(initial.snapshot.revision, 0);
   if (packId === "pirates") {
     const evidence = await runPirateProof(initial);

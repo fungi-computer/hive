@@ -19,6 +19,7 @@ const MAX_ADMISSIONS = 32;
 const inputSchema = z
   .object({
     id: z.string().min(1).max(80),
+    replayEpoch: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
     expectedRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
     command: z.unknown(),
   })
@@ -42,10 +43,10 @@ function authorized(request: Request, secret: string): boolean {
     request.headers.get("Authorization") === `Bearer ${secret}`
   );
 }
-function jobIdentity(principal: Principal, id: string): string {
+function jobIdentity(principal: Principal, replayEpoch: number, id: string): string {
   // JSON escaping can expand an input character to six characters. Check the
   // actual encoded tuple before any wake or durable admission, not only raw ID.
-  const encoded = JSON.stringify([REGION, principal, id]);
+  const encoded = JSON.stringify([REGION, principal, replayEpoch, id]);
   if (encoded.length > 256) throw new Error("harness-job-identity-too-long");
   return encoded;
 }
@@ -148,7 +149,7 @@ export class WatchdogQuarry {
     this.activeJob = job.jobId;
     try {
       const payload = payloadSchema.parse(job.payload);
-      if (job.jobId !== jobIdentity(payload.principal, payload.input.id))
+      if (job.jobId !== jobIdentity(payload.principal, payload.input.replayEpoch, payload.input.id))
         throw new Error("harness-job-identity");
       if (signal.aborted) return { kind: "cancelled" as const };
       // No await between cancellation check and atomic effect. EXACT input is replayed
@@ -212,7 +213,7 @@ export class WatchdogQuarry {
     const command = this.program.parseCommand(input.command);
     const payload = { principal, input: { ...input, command } };
     const job: WatchdogQueuedJob = {
-      jobId: jobIdentity(principal, input.id),
+      jobId: jobIdentity(principal, input.replayEpoch, input.id),
       queue: QUEUE,
       lane: "host-command",
       priority: 0,
@@ -262,6 +263,7 @@ export class WatchdogQuarry {
       await this.ctx.storage.sync();
       return Response.json({
         snapshot: this.region.readCommitted(),
+        replayEpoch: this.region.readReplayWindow().epoch,
         events: this.region.readEvents(0, 128),
         head: await this.dog.readQueueHead(QUEUE),
         alarm: await this.ctx.storage.getAlarm(),
@@ -284,6 +286,8 @@ export class WatchdogQuarry {
         ? "quarry-spectator"
         : null;
     if (!principal) return new Response("Forbidden", { status: 403 });
+    if (url.pathname === "/replay-window" && request.method === "GET")
+      return Response.json(this.region.readReplayWindow());
     try {
       if (url.pathname === "/work" && request.method === "POST") {
         if (principal !== "quarry-builder")
@@ -309,7 +313,9 @@ export class WatchdogQuarry {
       }
       if (url.pathname === "/work" && request.method === "GET") {
         const id = inputSchema.shape.id.parse(url.searchParams.get("id"));
-        const found = await this.dog.read(jobIdentity(principal, id));
+        const epochText = z.string().regex(/^(0|[1-9][0-9]*)$/).parse(url.searchParams.get("replayEpoch"));
+        const replayEpoch = inputSchema.shape.replayEpoch.parse(Number(epochText));
+        const found = await this.dog.read(jobIdentity(principal, replayEpoch, id));
         // A completed host run has a durable region receipt, including domain rejection.
         // Safe replay is the existing public result lookup; it cannot rerun that effect.
         const receipt =
