@@ -222,7 +222,7 @@ The local comparison ledger is
 `.botanical/framework-v2/locality-after-1800.json` (SHA-256
 `b5a3ea8042403eabc14f1ea5fe258e5d8f3cc97d690ae4f0ea0bf48720a28aae`).
 
-The separate hosted performance preview now serves the v3 fixture at
+The separate hosted performance preview previously served the v3 fixture at
 <https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony-performance.html?workload=framework-v3>.
 It is paired with only `hive-performance-engine-preview`, implementation hash
 `2e8b21ae2c61861cce15498d07cdf26bc40e0e366e71983cad9a058f656cf9f9`,
