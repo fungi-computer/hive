@@ -8,6 +8,7 @@ import type { WhistleAgentProjection } from "@fungi.computer/whistle";
 import type { GameSession } from "./session";
 import { decorateInventoryFacts } from "./inventory-presentation";
 import { decorateWorkActivity } from "./work-activity";
+import { createObservationDependencies } from "./observation-dependencies";
 
 /**
  * The bounded, committed view shared by browser and host readers.
@@ -30,9 +31,29 @@ export interface SessionObservation {
   readonly environmentVisuals: ReturnType<typeof projectPresentation>["environmentVisuals"];
 }
 
+/** Per-session disposable projections; restart/restore can always reconstruct them. */
+export function createObservationProjector() {
+  const sessions = new WeakMap<GameSession, {
+    presentation: ReturnType<typeof createObservationDependencies<ReturnType<typeof projectPresentation>>>;
+    whistle: ReturnType<typeof createObservationDependencies<ReturnType<GameSession["whistleObservation"]>>>;
+  }>();
+  return (session: GameSession, metadata: Readonly<{ epoch: number; sequence: number }>) => {
+    let projections = sessions.get(session);
+    if (!projections) {
+      projections = { presentation: createObservationDependencies(), whistle: createObservationDependencies() };
+      sessions.set(session, projections);
+    }
+    return buildObservation(session, metadata, projections);
+  };
+}
+
 export function buildObservation(
   session: GameSession,
   metadata: Readonly<{ epoch: number; sequence: number }>,
+  projections?: {
+    presentation: ReturnType<typeof createObservationDependencies<ReturnType<typeof projectPresentation>>>;
+    whistle: ReturnType<typeof createObservationDependencies<ReturnType<GameSession["whistleObservation"]>>>;
+  },
 ): SessionObservation {
   if (
     !Number.isSafeInteger(metadata.epoch) ||
@@ -61,8 +82,8 @@ export function buildObservation(
     query,
     workAttempts: taskIds => session.workAttempts(taskIds),
   };
-  const projected = projectPresentation(session.pack, context);
-  const whistle = session.whistleObservation(context);
+  const projected = projections ? projections.presentation(context, tracked => projectPresentation(session.pack, tracked)) : projectPresentation(session.pack, context);
+  const whistle = projections ? projections.whistle(context, tracked => session.whistleObservation(tracked)) : session.whistleObservation(context);
   const facts = decorateWorkActivity(decorateInventoryFacts(structuredClone(session.renderFacts(512)), context), context, session.pack.presentation?.activities?.(context));
   return Object.freeze({
     time: session.simulationTime,

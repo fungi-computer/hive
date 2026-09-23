@@ -32,14 +32,14 @@ test("scheduled time survives sustained interleaved player revisions and lost re
   let region = open();
   for(let sequence=0;sequence<100;sequence++) {
    const scheduled = {sequence,request:clockRequest(sequence)};
-   region.dispatch("player",{id:`input-${sequence}`,command:{kind:"input"}});
+   region.dispatch("player",{id:`input-${sequence}`,replayEpoch:0,command:{kind:"input"}});
    const receipt = region.dispatchOccurrence("host",scheduled);
    assert.equal(receipt.status,"applied");
    region = open();
    assert.deepEqual(region.dispatchOccurrence("host",scheduled),receipt);
    assert.deepEqual(region.readCommitted().state,{ticks:sequence+1,inputs:sequence+1});
   }
-  const stale = region.dispatch("player",{id:"conditional",expectedRevision:0,command:{kind:"input"}});
+  const stale = region.dispatch("player",{id:"conditional",replayEpoch:0,expectedRevision:0,command:{kind:"input"}});
   assert.equal(stale.status,"rejected");
  } finally {db.close();}
 });

@@ -230,6 +230,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         invalidateAfterFailure();
         throw error;
       }
+      attempt.session.acceptCapture();
       accepted = { revision, session: attempt.session, port: attempt.port };
       attempt = undefined;
     },

@@ -7,7 +7,7 @@ import {
 } from "../../src/engine/region/index.ts";
 import { createSessionRegionRuntime, type SessionResident } from "../../engine/src/runtime/region-program";
 import type { SessionRegionState } from "../../engine/src/runtime/region-program";
-import { buildObservation, type SessionObservation } from "../../engine/src/runtime/observation";
+import { createObservationProjector, type SessionObservation } from "../../engine/src/runtime/observation";
 import { terrainWireForRevision } from "../../engine/src/runtime/terrain-wire";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
@@ -19,7 +19,6 @@ import { piratesPack } from "../../engine/src/games/pirates";
 import { survivalPack } from "../../engine/src/games/survival";
 import {
   LEASE_MS,
-  STEP_MS,
   clockRequest,
   corsHeaders,
   packFromPath,
@@ -38,6 +37,8 @@ import {
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
+import { sessionClockDemand, nextWakeDeadline, withRecoveryWake } from "./wake-policy";
+import { canSendObservation, acknowledgeObservation, type ObservationDelivery } from "./observation-delivery";
 import { createFrameworkCostLedger, type SqlCost } from "./framework-cost-ledger";
 import { MAX_KERNEL_RECORDS } from "../../engine/src/runtime/kernel-records";
 
@@ -79,7 +80,7 @@ function partyJoinResult(value: unknown): PartyJoinResult {
   for (let index = 1; index < people.length; index += 1) if (people[index - 1] >= people[index]) throw new Error("public-party-join-result");
   return { player: row.player, party: row.party as ParticipantRow["party_id"], people };
 }
-type SocketAttachment = {
+type SocketAttachment = ObservationDelivery & {
   readonly pack: PublicPack;
   readonly worldHandle: string;
   readonly principal: string;
@@ -92,6 +93,7 @@ type SocketAttachment = {
   readonly whistleRevision?: number;
 };
 type PublicObservationPayload = {
+  readonly replayEpoch: number;
   readonly revision: number;
   readonly observation: SessionObservation;
 };
@@ -162,7 +164,7 @@ function validateHostRow(row: HostRow): void {
   const allNull = dueValues.every((value) => value === null);
   const allPresent = dueValues.every((value) => value !== null);
   if (!allNull && !allPresent) throw new Error("public-host-format");
-  if ((row.paused === 1 || row.lease_until_ms === null) && allPresent) throw new Error("public-host-format");
+  if (row.paused === 1 && allPresent) throw new Error("public-host-format");
   if (allNull) {
     if (row.paused !== 1 && row.lease_until_ms === null) return;
     return;
@@ -222,12 +224,15 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private residentQueue: Promise<void> = Promise.resolve();
   private readonly terrainStreams = new Map<WebSocket, ReturnType<typeof startTerrainRegionStream>>();
   private readonly publicationQueue: ReturnType<typeof createPublicationQueue>;
+  private readonly projectObservation = createObservationProjector();
+  private observationSession: object | undefined;
   private observationCache: {
     readonly revision: number;
     readonly payload: PublicObservationPayload;
   } | undefined;
   private proofLedger: ReturnType<typeof createFrameworkCostLedger> | undefined;
   private activeSqlCost: SqlCost | undefined;
+  private transactionAlarm: Pick<DurableObjectTransaction, "setAlarm" | "deleteAlarm"> | undefined;
 
   constructor(
     private readonly state: DurableObjectState,
@@ -434,7 +439,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async inTransaction<T>(operation: () => T | Promise<T>): Promise<T> {
-    return this.state.storage.transaction(async () => await operation());
+    return this.state.storage.transaction(async (transaction) => {
+      this.transactionAlarm = transaction;
+      try { return await operation(); }
+      finally { this.transactionAlarm = undefined; }
+    });
   }
 
   private serial<T>(operation: () => T | Promise<T>): Promise<T> {
@@ -444,12 +453,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private nextDue(row: HostRow, now: number) {
-    if (row.paused || row.lease_until_ms === null || row.lease_until_ms <= now)
-      return null;
+    const deadline = nextWakeDeadline(sessionClockDemand(this.region.readCommitted().state.session), now);
+    if (deadline === null) return null;
     if (row.due_sequence !== null) return row;
     const sequence = row.next_sequence;
     const request = JSON.stringify(clockRequest(sequence));
-    const deadline = now + STEP_MS;
     this.owner.sql.exec(
       "UPDATE hive_public_host SET due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
       sequence,
@@ -466,8 +474,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private alarmAt(row: HostRow): number | null {
     const socketDeadline = this.socketAlarmAt();
-    const clockDeadline = row.lease_until_ms !== null && row.due_deadline_ms !== null
-      ? Math.min(row.lease_until_ms, row.due_deadline_ms) : null;
+    const clockDeadline = row.due_deadline_ms;
     const values = [socketDeadline, clockDeadline].filter((value): value is number => value !== null);
     return values.length === 0 ? null : Math.min(...values);
   }
@@ -491,8 +498,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private async arm(row: HostRow): Promise<void> {
     const at = this.alarmAt(row);
-    if (at === null) await this.state.storage.deleteAlarm();
-    else await this.state.storage.setAlarm(at);
+    const storage = this.transactionAlarm ?? this.state.storage;
+    if (at === null) await storage.deleteAlarm();
+    else await storage.setAlarm(at);
   }
 
   private async renewLease(now: number): Promise<void> {
@@ -520,13 +528,30 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private observationPayload(): PublicObservationPayload {
     const committed = this.region.readCommitted();
     const cached = this.observationCache;
-    if (cached?.revision === committed.revision) return cached.payload;
+    const replayEpoch = this.region.readReplayWindow().epoch;
+    if (cached?.revision === committed.revision) {
+      if (cached.payload.replayEpoch === replayEpoch) return cached.payload;
+      const payload = { ...cached.payload, replayEpoch };
+      this.observationCache = { revision: committed.revision, payload };
+      return payload;
+    }
     const payload = this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), (session) => {
-      const observation = buildObservation(session, {
+      if (this.observationSession !== session) {
+        // Whistle revisions belong to a session lifetime, unlike terrain's
+        // durable revision. Eviction/discard must invalidate retained baselines.
+        for (const socket of this.state.getWebSockets()) {
+          const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+          if (attachment?.authenticated && attachment.pack === this.pack &&
+              attachment.worldHandle === (this.worldHandle ?? this.tokenHash))
+            socket.serializeAttachment({ ...attachment, whistleRevision: undefined });
+        }
+        this.observationSession = session;
+      }
+      const observation = this.projectObservation(session, {
         epoch: 0,
         sequence: committed.revision,
       });
-      return { revision: committed.revision, observation };
+      return { revision: committed.revision, replayEpoch, observation };
     });
     this.observationCache = { revision: committed.revision, payload };
     return payload;
@@ -566,6 +591,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     forceComplete = false,
     onEncoded?: (bytes: number) => void,
   ): boolean {
+    if (!canSendObservation(attachment, forceComplete ? undefined : payload)) return true;
     const terrain = payload.observation.terrain;
     const changes = terrain && attachment.terrainRevision !== undefined && attachment.terrainRevision !== terrain.revision
       ? this.resident.observe(payload.revision, this.region.readCommitted().state, this.residentRecords(payload.revision), session => session.terrainChanges(attachment.terrainRevision!))
@@ -585,30 +611,36 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const encodedBytes = new TextEncoder().encode(encoded).byteLength;
     onEncoded?.(encodedBytes);
     if (encodedBytes > MAX_OBSERVATION_BYTES) {
+      socket.serializeAttachment({ ...attachment, retired: true });
       try { socket.close(1009, "observation too large"); } catch {}
       return false;
     }
     try {
       socket.send(encoded);
     } catch {
+      socket.serializeAttachment({ ...attachment, retired: true });
+      try { socket.close(1011, "observation send failed"); } catch {}
       return false;
     }
     const nextAttachment: SocketAttachment = {
       ...attachment,
+      observationRevision: payload.revision,
+      observationReplayEpoch: payload.replayEpoch,
+      observationAcknowledged: false,
       terrainRevision: terrain?.revision,
       whistleRevision: payload.observation.whistleRevision,
     };
-    if (nextAttachment.terrainRevision !== attachment.terrainRevision ||
-        nextAttachment.whistleRevision !== attachment.whistleRevision)
-      socket.serializeAttachment(nextAttachment);
+    socket.serializeAttachment(nextAttachment);
     return true;
   }
 
   private publishObservation(): Promise<void> {
     return this.serial(() => {
+      const revision = this.region.readCommitted().revision;
+      const replayEpoch = this.region.readReplayWindow().epoch;
       const recipients = this.state.getWebSockets().flatMap(socket => {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
-        return attachment?.authenticated && attachment.pack === this.pack &&
+        return attachment?.authenticated && !attachment.retired && canSendObservation(attachment, { revision, replayEpoch }) && attachment.pack === this.pack &&
           attachment.worldHandle === (this.worldHandle ?? this.tokenHash)
           ? [{ socket, attachment }] : [];
       });
@@ -621,14 +653,13 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       const payload = this.observationPayload();
       const buildWallMs = performance.now() - buildStarted;
       const sendStarted = performance.now();
-      let failed = false;
       let encodedBytes = 0;
-      for (const { socket, attachment } of recipients) {
-        if (!this.sendObservation(socket, payload, attachment, false, bytes => { encodedBytes += bytes; })) failed = true;
+      for (const { socket } of recipients) {
+        const attachment = socket.deserializeAttachment() as SocketAttachment;
+        this.sendObservation(socket, payload, attachment, false, bytes => { encodedBytes += bytes; });
       }
       this.proofLedger?.publication({ revision: payload.revision, recipients: recipients.length,
         buildWallMs, sendWallMs: performance.now() - sendStarted, encodedBytes });
-      if (failed) throw new Error("observation publication failed");
     });
   }
 
@@ -637,7 +668,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     for (const socket of this.state.getWebSockets()) {
       const attachment = socket.deserializeAttachment() as SocketAttachment | null;
       if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.worldHandle !== (this.worldHandle ?? this.tokenHash)) continue;
-      try { socket.send(JSON.stringify({ type: "error", error: "observation-publication-failed" })); } catch {}
+      socket.serializeAttachment({ ...attachment, retired: true });
+      try { socket.close(1011, "observation publication failed"); } catch {}
     }
   }
 
@@ -717,11 +749,24 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           "SELECT world_handle,pack,invite_hash FROM hive_public_world WHERE singleton=1",
         ).toArray()[0];
         const inviteHash = await sha256Hex(invite);
+        if (inviteHash !== this.worldHandle) throw new Error("public-invite-forbidden");
         if (world && (world.world_handle !== this.worldHandle || world.pack !== "colony" || world.invite_hash !== inviteHash))
           throw new Error("public-invite-forbidden");
         if (!world) this.owner.sql.exec("INSERT INTO hive_public_world VALUES (1,?,?,?)", this.worldHandle!, "colony", inviteHash);
         const bindingId = await sha256Hex(`hive:colony:join:${this.worldHandle}:${credentialHash}`);
-        const command = { id: `join:${bindingId}`, command: { kind: "join-party", credentialBindingId: bindingId } };
+        // A join is durably indexed by credential and native binding. Read that
+        // original identity on retry, including after ordinary receipts retire;
+        // never restamp the original command with a newer replay epoch.
+        const admitted = this.participant(credentialHash);
+        if (admitted) {
+          const committed = this.region.readCommitted();
+          const joined = this.resident.observe(committed.revision, committed.state,
+            this.residentRecords(committed.revision), session => session.partyJoinIdentity(bindingId));
+          if (joined.status !== "existing" || joined.player !== admitted.player_id || joined.party !== admitted.party_id)
+            throw new Error("public-party-join-replay-mismatch");
+          return { binding: admitted, created: false, people: joined.people, accepted: false };
+        }
+        const command = { id: `join:${bindingId}`, replayEpoch: this.region.readReplayWindow().epoch, command: { kind: "join-party", credentialBindingId: bindingId } };
         const result = await this.commandExclusive(command, now, "colony-host", true);
         if (this.hostEnv.TEST_FAILURE_AFTER_JOIN === "1") throw new Error("test-join-injected-failure");
         const join = partyJoinResult((result.receipt.result as { results?: unknown }).results);
@@ -785,7 +830,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async runDue(now: number): Promise<void> {
-    return this.serial(() => this.runDueExclusive(now));
+    return this.serial(() => withRecoveryWake(this.state.storage, now, () => this.runDueExclusive(now)));
   }
 
   private async runDueExclusive(now: number): Promise<void> {
@@ -807,8 +852,6 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       acceptedRevision = committed.revision;
       if (
         row.paused ||
-        row.lease_until_ms === null ||
-        row.lease_until_ms <= now ||
         row.due_sequence === null ||
         row.due_request_json === null ||
         row.due_deadline_ms === null
@@ -926,14 +969,22 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     if (attachment?.authenticated) {
       try {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
+        if (parsed?.type === "observation-ack" && Object.keys(parsed).length === 3) {
+          await this.serial(() => {
+            const current = socket.deserializeAttachment() as SocketAttachment;
+            socket.serializeAttachment(acknowledgeObservation(current, parsed.revision, parsed.replayEpoch));
+          });
+          this.state.waitUntil(this.queueObservationPublication());
+          return;
+        }
         if (parsed?.type === "terrain-credit" && Object.keys(parsed).length === 3 && Number.isSafeInteger(parsed.requestId)) {
           const active = this.terrainStreams.get(socket);
-          if (active?.requestId === parsed.requestId) active.acknowledge(parsed.received as number);
+          if (active && active.requestId === parsed.requestId) active.acknowledge(parsed.received as number);
           return;
         }
         if (parsed?.type === "terrain-cancel" && Object.keys(parsed).length === 2 && Number.isSafeInteger(parsed.requestId)) {
           const active = this.terrainStreams.get(socket);
-          if (active?.requestId === parsed.requestId) { active.cancel(); this.terrainStreams.delete(socket); }
+          if (active && active.requestId === parsed.requestId) { active.cancel(); this.terrainStreams.delete(socket); }
           return;
         }
         if (parsed?.type === "terrain-regions") {
@@ -955,8 +1006,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         }
         if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
           await this.renewLease(Date.now());
-          const payload = await this.queuedObservationPayload();
-          this.sendObservation(socket, payload, attachment);
+          this.state.waitUntil(this.queueObservationPublication());
           return;
         }
       } catch { /* Malformed stream controls and heartbeats are rejected below. */ }
@@ -979,9 +1029,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       socket.serializeAttachment({ pack: attachment.pack, worldHandle: this.worldHandle ?? this.tokenHash, principal, authenticated: true, authDeadline: null } satisfies SocketAttachment);
       await this.renewLease(Date.now());
       socket.send(JSON.stringify({ type: "ready", game: attachment.pack }));
-      const authenticated = socket.deserializeAttachment() as SocketAttachment;
-      const payload = await this.queuedObservationPayload();
-      this.sendObservation(socket, payload, authenticated, true);
+      await this.serial(() => {
+        const payload = this.observationPayload();
+        const authenticated = socket.deserializeAttachment() as SocketAttachment;
+        this.sendObservation(socket, payload, authenticated, true);
+      });
     } catch (error) {
       try { socket.send(JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "public-socket-auth-failed" })); } catch {}
       socket.close(1008, "authentication failed");
@@ -1026,6 +1078,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
             return jsonResponse({ error: "public-socket-capacity" }, 429, origin);
           server.serializeAttachment({ pack: "colony", worldHandle: colonyRoute.world, principal: "", authenticated: false, authDeadline: Date.now() + 5_000 } satisfies SocketAttachment);
           this.state.acceptWebSocket(server);
+          await this.serial(() => this.arm(this.hostRow()!));
           return new Response(null, { status: 101, webSocket: pair[0] });
         }
         return this.v2Fetch(request, colonyRoute);
@@ -1057,7 +1110,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         server.serializeAttachment({ pack, worldHandle: socketHandle, principal: "", authenticated: false, authDeadline: deadline } satisfies SocketAttachment);
         this.state.acceptWebSocket(server);
         const row = this.hasHostTable() ? this.hostRow() : undefined;
-        if (row) await this.arm(row);
+        if (row) await this.serial(() => this.arm(this.hostRow()!));
         else await this.state.storage.setAlarm(this.socketAlarmAt() ?? deadline);
         return new Response(null, { status: 101, webSocket: pair[0] });
       }
