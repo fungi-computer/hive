@@ -473,8 +473,8 @@ mod tests {
             puts: bundle(&current), removes: vec![tile_key(retired)], searches: Vec::new(),
             routes: Vec::new(), motion: BTreeMap::new(),
         }, first.sequence, 1, 0.25, 0).unwrap();
-        assert!(!second.keys.contains(&tile_key(retired)));
-        persisted.retain(|key, _| second.keys.contains(key));
+        assert!(second.removes.contains(&tile_key(retired)));
+        for key in &second.removes { persisted.remove(key); }
         for key in changed.keys() { persisted.insert(key.clone(), changed.read(&key).unwrap()); }
         let mut recovered = RecordBundle::new();
         for (key, bytes) in persisted { recovered.insert(&key, &bytes).unwrap(); }
