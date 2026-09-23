@@ -43,11 +43,11 @@ function distribution(values: readonly number[]) {
  * calls this only after a committed step or a completed publication; failed
  * candidates are emitted separately and cannot masquerade as throughput.
  */
-export function createFrameworkCostLedger(implementationHash: string, emit: (line: string) => void = console.log) {
+export function createFrameworkCostLedger(implementationHash: string, workload: string, emit: (line: string) => void = console.log) {
   let steps: StepCost[] = [];
   let publications: PublicationCost[] = [];
   let repeatedFailure: { sequence: number | null; error: string; count: number } | undefined;
-  const header = { proof: "framework-host-cost-v1", implementationHash };
+  const header = { proof: "framework-host-cost-v1", implementationHash, workload };
   const flushSteps = () => {
     if (!steps.length) return;
     const fields = ["advanceWallMs", "captureWallMs", "changedRecordBytes", "recordPuts", "recordRemoves", "sqlWallMs", "rowsRead", "rowsWritten", "statements", "alarmLatenessMs", "dispatchWallMs", "transactionWallMs"] as const;

@@ -310,7 +310,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   ): Promise<void> {
     const game = packFor(pack);
     this.proofLedger = pack === colonyFrameworkProofGameId || pack === colonyFrameworkProofV2GameId
-      ? createFrameworkCostLedger(this.hostEnv.IMPLEMENTATION_HASH) : undefined;
+      ? createFrameworkCostLedger(this.hostEnv.IMPLEMENTATION_HASH, pack) : undefined;
     if (pack === "colony") this.owner.transactionSync(() => {
       this.owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_public_participants (
         credential_hash TEXT PRIMARY KEY, principal TEXT NOT NULL UNIQUE,

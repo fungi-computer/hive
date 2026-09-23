@@ -4,7 +4,7 @@ import { createFrameworkCostLedger } from "./framework-cost-ledger";
 
 test("the proof ledger retains only bounded committed windows and separates failed occurrences", () => {
   const lines: Array<Record<string, unknown>> = [];
-  const ledger = createFrameworkCostLedger("a".repeat(64), line => lines.push(JSON.parse(line)));
+  const ledger = createFrameworkCostLedger("a".repeat(64), "colony-framework-proof-256-100-v2", line => lines.push(JSON.parse(line)));
   for (let sequence = 0; sequence < 21; sequence++) ledger.step({
     sequence, revision: sequence + 1, advanceWallMs: 2, captureWallMs: 3,
     recordPuts: 4, recordRemoves: 0, changedRecordBytes: 100,
@@ -13,6 +13,7 @@ test("the proof ledger retains only bounded committed windows and separates fail
   });
   assert.equal(lines.length, 1);
   assert.equal(lines[0].kind, "committed-steps");
+  assert.equal(lines[0].workload, "colony-framework-proof-256-100-v2");
   assert.equal(lines[0].count, 20);
   assert.equal((lines[0].samples as unknown[]).length, 20);
   assert.equal(lines[0].lastSequence, 19);
