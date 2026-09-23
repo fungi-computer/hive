@@ -81,3 +81,46 @@ runs all 1,800 scheduled steps. Reports pin fixture source, native source, WASM,
 definition and environment hashes. Keep pre-navigation and later-native v3
 reports separate. No hosted capacity, renderer quality or v2 speedup follows
 from this local proof.
+
+## Completed same-v3 comparison, September 23
+
+Both runs completed all 1,800 steps with every scheduled action accepted and
+identical definition/environment hashes above. Each ran alone on the shared
+CPU. The baseline uses native `7b8c5167ec1dc69324efac364afb7bd6b330ea0c`
+and WASM `541ddcd4c8d29b89159ff9d4c6d6a085db2ce6f34621b4c453e0af0fc88f314b`.
+The later run uses native `730a1e8f9872b753c8f76161c8fa729d8bb41ad9`
+and WASM `5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89`.
+Its TypeScript bundle was pinned at `0c4ba5510ca201e6b15b92cac221fed46bad25b0`.
+
+| Measured result | Baseline | Later native |
+| --- | ---: | ---: |
+| Completed tree chains | 151 | 178 |
+| Produced wood | 906 | 1,068 |
+| Stored wood | 95 | 258 |
+| Samples with at least 90 moving/working actors | 132/180 | 179/180 |
+| First automatic water portion, step | 1,544 | 1,059 |
+| Final water portions / pending demands | 1 / 3 | 1 / 3 |
+| Maximum changed-record bytes | 650,156 | 612,903 |
+| Local script wall time, seconds | 116.149 | 74.631 |
+
+The later run has 60/60 productive samples during the third simulated minute.
+Both conserve all 2,304 wood units. Water accounting closes within
+`6.74e-12 kg` in the later run; the source witness withdraws one finite
+`77.14285714285714 kg` portion into a pail. Both final physical restores match,
+and all four comparisons after the ten-step continuation pass. Three manual
+water demands remain unfinished at step 1,800; this is evidence of one actual
+automatic completion, not proof that all four requests complete within the run.
+
+Wall time includes report/recovery work and is not tick latency or hosted
+capacity. These unchanged proof scripts did not collect phase percentiles.
+The separate source witness does not contribute its water to the scheduled run.
+
+Retained raw evidence:
+
+- Baseline: worktree `water-delivery-recovery-20260923`,
+  `.botanical/framework-v3/baseline-7b8c5167.json`.
+- Later: integration worktree `event-driven-scheduler-audit-20260923`,
+  `.botanical/framework-v3/locality-after-1800.json` and
+  `.botanical/framework-v3/locality-after-1800-bundle.json` (full bundle/native
+  provenance; bundle SHA-256
+  `c83a4bf850d3ad6aeec34c8f56f6bb614e6e24e13cda4ef66d5110d0e2a88ecf`).
