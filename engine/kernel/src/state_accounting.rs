@@ -8,7 +8,60 @@ use super::{Kernel, STATE_BYTES};
 use bevy_ecs::prelude::{Component, Entity};
 use serde::Serialize;
 
+/// A checked change to the entity portion of canonical state accounting.
+/// The caller prepares before mutating the ECS, then applies immediately after
+/// the corresponding entity change. This keeps capacity policy and the live
+/// ledger under one owner without rescanning the world.
+#[derive(Clone, Copy)]
+pub(super) struct EntityWeightChange {
+    previous: usize,
+    next: usize,
+}
+
 impl Kernel {
+    pub(super) fn prepare_entity_addition_after(
+        &self,
+        previous: usize,
+        id: &str,
+        records: &[(&str, crate::components::Record)],
+    ) -> crate::components::Result<EntityWeightChange> {
+        let added = records.iter().try_fold(id.len().saturating_add(128), |weight, (schema, value)| {
+            weight.checked_add(self.registry.weight(schema, value))
+        }).ok_or("invalid canonical state accounting")?;
+        let next = previous.checked_add(added)
+            .ok_or("invalid canonical state accounting")?;
+        if next > STATE_BYTES {
+            return Err("region canonical state capacity".into());
+        }
+        Ok(EntityWeightChange { previous, next })
+    }
+
+    pub(super) fn prepare_entity_removal(
+        &self,
+        id: &str,
+        entity: Entity,
+    ) -> crate::components::Result<EntityWeightChange> {
+        let mut removed = id.len().saturating_add(128);
+        for schema in self.registry.schemas.keys() {
+            if let Some(value) = self.registry.read(&self.ecs, entity, schema) {
+                removed = removed.checked_add(self.registry.weight(schema, &value))
+                    .ok_or("invalid canonical state accounting")?;
+            }
+        }
+        let next = self.state_weight.checked_sub(removed)
+            .ok_or("invalid canonical state accounting")?;
+        Ok(EntityWeightChange { previous: self.state_weight, next })
+    }
+
+    pub(super) fn apply_entity_weight_change(&mut self, change: EntityWeightChange) {
+        assert_eq!(self.state_weight, change.previous, "canonical state changed after accounting preflight");
+        self.state_weight = change.next;
+    }
+
+    pub(super) fn projected_entity_weight(change: EntityWeightChange) -> usize {
+        change.next
+    }
+
     pub(super) fn insert_accounted_component<T: Component + Serialize>(
         &mut self,
         entity: Entity,

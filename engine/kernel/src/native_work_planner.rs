@@ -103,6 +103,16 @@ struct PlannerWorker {
     free_capacity: u32,
 }
 
+struct PendingFieldWaterTask {
+    id: String,
+    owner: OwnedByParty,
+    field_water: FieldWaterWork,
+    policy: WorkPolicy,
+    execution: WorkExecution,
+    schedule: WorkSchedule,
+    accounting: super::state_accounting::EntityWeightChange,
+}
+
 /// Saved computation owned by the native planner. No route, claim, or physical
 /// resource is held here. Each slice reconstructs contributions and checks
 /// participating facts before reusing the remaining Hungarian proposals.
@@ -973,6 +983,9 @@ impl Kernel {
     }
 
     fn ensure_field_water_tasks(&mut self, requirements: &[SupplyRequirement]) -> Result<()> {
+        let mut pending_tasks = Vec::new();
+        let mut candidate_ids = BTreeSet::new();
+        let mut projected_weight = self.state_weight;
         for requirement in requirements.iter().filter(|requirement| requirement.material == "water") {
             if self.process_has_ordinary_water_source(requirement) { continue; }
             let pending = self.ids.values().filter_map(|entity| {
@@ -984,28 +997,43 @@ impl Kernel {
             let target = requirement.missing.saturating_sub(pending).min(u32::try_from(MAX_ASSIGNMENTS).unwrap_or(u32::MAX));
             for ordinal in pending..pending.saturating_add(target) {
                 let id = field_water_task_id(&requirement.owner, &requirement.role, requirement.generation, ordinal);
-                if self.known.contains(&id) { continue; }
-                if self.ids.len() >= 16_384 { return Err("region entity capacity".into()); }
+                if self.known.contains(&id) || !candidate_ids.insert(id.clone()) { continue; }
+                if self.ids.len().saturating_add(pending_tasks.len()) >= 16_384 { return Err("region entity capacity".into()); }
                 let execution = self.ecs.get::<WorkExecution>(self.entity(&requirement.owner)?).cloned()
                     .ok_or("field water requirement owner has no work execution")?;
-                let entity = self.ecs.spawn((
-                    ExternalId(id.clone()),
-                    OwnedByParty { party: requirement.party.clone() },
-                    FieldWaterWork {
-                        process: requirement.owner.clone(), role: requirement.role.clone(), generation: requirement.generation,
-                        party: requirement.party.clone(), destination: requirement.destination.clone(), material: requirement.material.clone(), retain_in_vessel: false, portions: 1, vessel: None,
-                        cell_x: 0, cell_y: 0, cell_z: 0, lot: None,
-                    },
-                    WorkPolicy { pool: requirement.party.clone(), priority: 0, enabled: true },
-                    execution,
-                    WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
-                )).id();
-                self.ids.insert(id.clone(), entity);
-                self.known.insert(id.clone());
-                self.refresh_planner_index(&id);
+                let owner = OwnedByParty { party: requirement.party.clone() };
+                let field_water = FieldWaterWork {
+                    process: requirement.owner.clone(), role: requirement.role.clone(), generation: requirement.generation,
+                    party: requirement.party.clone(), destination: requirement.destination.clone(), material: requirement.material.clone(), retain_in_vessel: false, portions: 1, vessel: None,
+                    cell_x: 0, cell_y: 0, cell_z: 0, lot: None,
+                };
+                let policy = WorkPolicy { pool: requirement.party.clone(), priority: 0, enabled: true };
+                let schedule = WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) };
+                let accounting = self.prepare_entity_addition_after(projected_weight, &id, &[
+                    ("hive.owned-by-party", crate::components::record(&owner)),
+                    ("hive.field-water-work", crate::components::record(&field_water)),
+                    ("hive.work-policy", crate::components::record(&policy)),
+                    ("hive.work-execution", crate::components::record(&execution)),
+                    ("hive.work-schedule", crate::components::record(&schedule)),
+                ])?;
+                projected_weight = Self::projected_entity_weight(accounting);
+                pending_tasks.push(PendingFieldWaterTask { id, owner, field_water, policy, execution, schedule, accounting });
             }
         }
-        self.refresh_state_weight();
+        for task in pending_tasks {
+            let entity = self.ecs.spawn((
+                ExternalId(task.id.clone()),
+                task.owner,
+                task.field_water,
+                task.policy,
+                task.execution,
+                task.schedule,
+            )).id();
+            self.ids.insert(task.id.clone(), entity);
+            self.known.insert(task.id.clone());
+            self.refresh_planner_index(&task.id);
+            self.apply_entity_weight_change(task.accounting);
+        }
         Ok(())
     }
 
@@ -1424,6 +1452,139 @@ mod tests {
             field_water_task_id("owner", "role", 7, 0),
             field_water_task_id("owner", "role", 7, 1),
         );
+    }
+
+    fn field_water_accounting_fixture() -> (Kernel, SupplyRequirement) {
+        let mut kernel = Kernel::new();
+        let party = kernel.ecs.spawn((ExternalId("party".into()), Party {}, OwnedBy { player: "player".into() })).id();
+        let process = kernel.ecs.spawn((
+            ExternalId("process".into()),
+            OwnedByParty { party: "party".into() },
+            WorkExecution { pool: "party".into(), initiating_player: None, policy_id: "test-water".into() },
+        )).id();
+        kernel.ids.insert("party".into(), party);
+        kernel.ids.insert("process".into(), process);
+        kernel.known.extend(["party".into(), "process".into()]);
+        kernel.refresh_state_weight();
+        (kernel, SupplyRequirement {
+            owner: "process".into(), role: "input:water".into(), generation: 3,
+            party: "party".into(), material: "water".into(), policy: InputPolicy::Portion,
+            destination: "process".into(), missing: 2, source_lots: None,
+        })
+    }
+
+    fn assert_state_weight_matches_recount(kernel: &mut Kernel) {
+        let accounted = kernel.state_weight;
+        kernel.refresh_state_weight();
+        assert_eq!(accounted, kernel.state_weight, "incremental accounting equals full recount");
+    }
+
+    #[test]
+    fn field_water_accounting_covers_noop_pending_creation_capacity_and_restore() {
+        let (mut kernel, mut requirement) = field_water_accounting_fixture();
+
+        let source = kernel.ecs.spawn((
+            ExternalId("water-source".into()), OwnedByParty { party: "party".into() },
+            Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 4 }, GroundStock {},
+        )).id();
+        let water = kernel.ecs.spawn((
+            ExternalId("water-lot".into()), OwnedByParty { party: "party".into() },
+            Lot { kind: "water".into(), quantity: 1, container: "water-source".into() }, LotWater { water_kg: 1.0 },
+        )).id();
+        kernel.ids.insert("water-source".into(), source);
+        kernel.ids.insert("water-lot".into(), water);
+        kernel.known.extend(["water-source".into(), "water-lot".into()]);
+        kernel.refresh_state_weight();
+
+        let exact_weight = kernel.state_weight;
+        kernel.state_weight += 17;
+        kernel.ensure_field_water_tasks(std::slice::from_ref(&requirement)).unwrap();
+        assert_eq!(kernel.state_weight, exact_weight + 17, "available water takes the no-op path without a recount");
+        assert_eq!(kernel.ids.values().filter(|entity| kernel.ecs.get::<FieldWaterWork>(**entity).is_some()).count(), 0);
+        kernel.state_weight = exact_weight;
+        assert_state_weight_matches_recount(&mut kernel);
+
+        requirement.material = "grain".into();
+        let before_noop = kernel.state_weight;
+        kernel.ensure_field_water_tasks(std::slice::from_ref(&requirement)).unwrap();
+        assert_eq!(kernel.state_weight, before_noop, "non-water requirements do not mutate accounting");
+        assert_state_weight_matches_recount(&mut kernel);
+
+        requirement.material = "water".into();
+        kernel.ids.remove("water-lot");
+        kernel.ids.remove("water-source");
+        kernel.known.remove("water-lot");
+        kernel.known.remove("water-source");
+        kernel.ecs.despawn(water);
+        kernel.ecs.despawn(source);
+        kernel.refresh_state_weight();
+        kernel.ensure_field_water_tasks(std::slice::from_ref(&requirement)).unwrap();
+        assert_eq!(kernel.ids.values().filter(|entity| kernel.ecs.get::<FieldWaterWork>(**entity).is_some()).count(), 2);
+        assert_state_weight_matches_recount(&mut kernel);
+
+        let with_tasks = kernel.state_weight;
+        kernel.ensure_field_water_tasks(std::slice::from_ref(&requirement)).unwrap();
+        assert_eq!(kernel.state_weight, with_tasks, "pending tasks satisfy the requirement without a recount or extra charge");
+        assert_state_weight_matches_recount(&mut kernel);
+
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.ids.values().filter(|entity| restored.ecs.get::<FieldWaterWork>(**entity).is_some()).count(), 2);
+        assert_state_weight_matches_recount(&mut restored);
+
+        let retired = restored.ids.iter().find_map(|(id, entity)|
+            restored.ecs.get::<FieldWaterWork>(*entity).is_some().then(|| (id.clone(), *entity))
+        ).unwrap();
+        let accounting = restored.prepare_entity_removal(&retired.0, retired.1).unwrap();
+        restored.ids.remove(&retired.0);
+        restored.known.remove(&retired.0);
+        restored.ecs.despawn(retired.1);
+        restored.refresh_planner_index(&retired.0);
+        restored.apply_entity_weight_change(accounting);
+        assert_state_weight_matches_recount(&mut restored);
+    }
+
+    #[test]
+    fn field_water_capacity_rejection_precedes_entity_commit() {
+        let (mut kernel, requirement) = field_water_accounting_fixture();
+        let before_ids = kernel.ids.len();
+        let before_known = kernel.known.clone();
+        let before_weight = kernel.state_weight;
+        let task_id = field_water_task_id("process", "input:water", 3, 0);
+        let owner = OwnedByParty { party: "party".into() };
+        let field_water = FieldWaterWork {
+            process: "process".into(), role: "input:water".into(), generation: 3,
+            party: "party".into(), destination: "process".into(), material: "water".into(),
+            retain_in_vessel: false, portions: 1, vessel: None, cell_x: 0, cell_y: 0, cell_z: 0, lot: None,
+        };
+        let policy = WorkPolicy { pool: "party".into(), priority: 0, enabled: true };
+        let execution = kernel.ecs.get::<WorkExecution>(kernel.entity("process").unwrap()).unwrap().clone();
+        let schedule = WorkSchedule { next_review_tick: kernel.revision, last_considered: kernel.revision.saturating_sub(1) };
+        let added_weight = task_id.len().saturating_add(128)
+            + kernel.registry.weight("hive.owned-by-party", &crate::components::record(&owner))
+            + kernel.registry.weight("hive.field-water-work", &crate::components::record(&field_water))
+            + kernel.registry.weight("hive.work-policy", &crate::components::record(&policy))
+            + kernel.registry.weight("hive.work-execution", &crate::components::record(&execution))
+            + kernel.registry.weight("hive.work-schedule", &crate::components::record(&schedule));
+        kernel.state_weight = super::super::STATE_BYTES - added_weight;
+
+        assert_eq!(kernel.ensure_field_water_tasks(std::slice::from_ref(&requirement)).unwrap_err(), "region canonical state capacity");
+        assert_eq!(kernel.ids.len(), before_ids);
+        assert_eq!(kernel.known, before_known);
+        assert_eq!(kernel.state_weight, super::super::STATE_BYTES - added_weight);
+        assert!(!kernel.ids.contains_key(&task_id), "the first fitting task remains uncommitted when the second exceeds capacity");
+
+        kernel.state_weight = before_weight;
+        assert_state_weight_matches_recount(&mut kernel);
+
+        let mut candidate = kernel.clone();
+        candidate.state_weight = super::super::STATE_BYTES - 1;
+        assert!(candidate.ensure_field_water_tasks(std::slice::from_ref(&requirement)).is_err());
+        drop(candidate);
+        assert_eq!(kernel.ids.len(), before_ids, "a rejected disposable candidate publishes no task");
+        assert_eq!(kernel.state_weight, before_weight, "discard leaves the committed ledger unchanged");
+        assert_state_weight_matches_recount(&mut kernel);
     }
 
     fn construction_world_with_capacity(
