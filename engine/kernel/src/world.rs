@@ -35,6 +35,8 @@ mod construction_work;
 mod deconstruction_work;
 #[path = "native_work_planner.rs"]
 pub(crate) mod native_work_planner;
+#[path = "native_work_outcomes.rs"]
+mod native_work_outcomes;
 #[path = "state_accounting.rs"]
 mod state_accounting;
 #[path = "world_records.rs"]
@@ -2938,6 +2940,9 @@ impl Kernel {
     }
     fn native_planner_may_mutate(&self, tick: u64) -> bool {
         self.planner.continuation.is_some() || self.planner_indexes.has_due_task(tick)
+            // Accepted work may arrive or publish an outcome before the next
+            // candidate review. Its reconciliation still needs atomic staging.
+            || !self.work_attempts.is_empty()
     }
     pub(crate) fn external_id(&self, entity: Entity) -> Result<String> { self.ecs.get::<ExternalId>(entity).map(|id| id.0.clone()).ok_or("entity has no external identity".into()) }
     pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = (&str, &SupplyAllocation)> {
