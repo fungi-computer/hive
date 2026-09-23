@@ -1,10 +1,23 @@
 import { hostStatusSchema, type HostStatus } from "../../engine/src/runtime/host-status";
 import { STEP_MS } from "./protocol.ts";
 
-/** Presence is not physical activity. Current native systems have no quiet proof. */
+/**
+ * A lease represents recent host demand; it is not a simulation pause.
+ * Durable enabled-program schedules are not yet owned by this public host, so
+ * the proof occurrence driver must not be treated as unattended game intent.
+ */
 export type ClockDemand = { readonly kind: "quiet" } | { readonly kind: "active" };
-export function sessionClockDemand(session: { readonly paused: boolean }): ClockDemand {
-  return session.paused ? { kind: "quiet" } : { kind: "active" };
+export function sessionClockDemand(
+  session: { readonly paused: boolean },
+  leaseUntil: number | null,
+  now: number,
+): ClockDemand {
+  if (!Number.isSafeInteger(now) || now < 0 ||
+      leaseUntil !== null && (!Number.isSafeInteger(leaseUntil) || leaseUntil < 0))
+    throw new Error("public-host-format");
+  return session.paused || leaseUntil === null || leaseUntil <= now
+    ? { kind: "quiet" }
+    : { kind: "active" };
 }
 
 export const RECOVERY_WAKE_MS = 1_000;
@@ -12,6 +25,19 @@ export function nextWakeDeadline(demand: ClockDemand, now: number): number | nul
   if (!Number.isSafeInteger(now) || now < 0 || now > Number.MAX_SAFE_INTEGER - STEP_MS)
     throw new Error("public-host-format");
   return demand.kind === "quiet" ? null : now + STEP_MS;
+}
+
+/**
+ * Keep an already-admitted occurrence independent of the renewable lease.
+ * It is a durable obligation and may settle once after the lease expires;
+ * only creation of the following recurring occurrence requires live demand.
+ */
+export function occurrenceWakeDeadline(dueDeadline: number | null, demand: ClockDemand, now: number): number | null {
+  if (dueDeadline !== null) {
+    if (!Number.isSafeInteger(dueDeadline) || dueDeadline < 0) throw new Error("public-host-format");
+    return dueDeadline;
+  }
+  return nextWakeDeadline(demand, now);
 }
 
 /**

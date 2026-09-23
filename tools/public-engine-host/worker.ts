@@ -33,7 +33,7 @@ import {
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
-import { sessionClockDemand, nextWakeDeadline, withRecoveryWake, failedHostAttempt, clockWakeAt } from "./wake-policy";
+import { sessionClockDemand, occurrenceWakeDeadline, withRecoveryWake, failedHostAttempt, clockWakeAt } from "./wake-policy";
 import { canSendObservation, acknowledgeObservation, type ObservationDelivery } from "./observation-delivery";
 import { createFrameworkCostLedger, type SqlCost } from "./framework-cost-ledger";
 import { readOccurrenceDriverResult, type OccurrenceDriverResult } from "../../engine/src/runtime/occurrence-driver";
@@ -470,7 +470,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private nextDue(row: HostRow, now: number) {
     if (this.hostStatus(row).state !== "running") return row;
-    const deadline = nextWakeDeadline(sessionClockDemand(this.region.readCommitted().state.session), now);
+    const deadline = occurrenceWakeDeadline(
+      row.due_deadline_ms,
+      sessionClockDemand(this.region.readCommitted().state.session, row.lease_until_ms, now),
+      now,
+    );
     if (deadline === null) return null;
     if (row.due_sequence !== null) return row;
     const sequence = row.next_sequence;
@@ -944,24 +948,25 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           throw new Error("public-scheduled-receipt-mismatch");
       }
       dispatchWallMs = performance.now() - dispatchStarted;
-      const next = advanceClockOccurrence(row.due_sequence, dueDeadline, Date.now());
-      this.owner.sql.exec(
-        "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=?,wake_json=? WHERE singleton=1",
-        next.sequence,
-        next.sequence,
-        next.request,
-        next.deadline,
-        JSON.stringify(RUNNING_HOST),
-      );
+      const completedAt = now + Math.ceil(performance.now() - dispatchStarted);
+      const advancedClock = advanceClockOccurrence(row.due_sequence, dueDeadline, completedAt);
       const advanced: HostRow = {
         ...row,
-        next_sequence: next.sequence,
-        due_sequence: next.sequence,
-        due_request_json: next.request,
-        due_deadline_ms: next.deadline,
+        next_sequence: advancedClock.sequence,
+        due_sequence: null,
+        due_request_json: null,
+        due_deadline_ms: null,
         wake_json: JSON.stringify(RUNNING_HOST),
       };
-      row = advanced;
+      this.owner.sql.exec(
+        "UPDATE hive_public_host SET next_sequence=?,due_sequence=NULL,due_request_json=NULL,due_deadline_ms=NULL,wake_json=? WHERE singleton=1",
+        advanced.next_sequence,
+        advanced.wake_json,
+      );
+      // The current occurrence is committed before this decision. An expired
+      // lease suppresses only the next recurring clock; it cannot erase this
+      // sequence or turn its retry into a fresh step.
+      row = this.nextDue(advanced, completedAt) ?? advanced;
       await this.arm(row);
       acceptedRevision = this.region.readCommitted().revision;
       return row;

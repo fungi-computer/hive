@@ -6,6 +6,19 @@ import { openRegion } from "../../src/engine/region/index.ts";
 import { sqliteTestOwner } from "../../src/engine/region/sqlite-test-owner.mjs";
 import { clockRequest } from "./protocol.ts";
 import { advanceClockOccurrence } from "./clock-schedule.ts";
+import { occurrenceWakeDeadline, sessionClockDemand } from "./wake-policy.ts";
+
+test("leases gate recurring clocks while admitted occurrences remain due", () => {
+ const active = sessionClockDemand({paused:false}, 15_000, 14_999);
+ const expired = sessionClockDemand({paused:false}, 15_000, 15_000);
+ assert.deepEqual(active, {kind:"active"});
+ assert.deepEqual(expired, {kind:"quiet"});
+ assert.deepEqual(sessionClockDemand({paused:true}, 50_000, 1), {kind:"quiet"});
+ assert.equal(occurrenceWakeDeadline(null, expired, 15_000), null);
+ assert.equal(occurrenceWakeDeadline(15_100, expired, 15_000), 15_100,
+  "an admitted clock request remains an obligation after lease expiry");
+ assert.throws(() => sessionClockDemand({paused:false}, 1.5, 1), /public-host-format/);
+});
 
 test("an overrun advances one physical occurrence without building an overdue alarm chain", () => {
  const first = advanceClockOccurrence(17, 12_300, 12_350);

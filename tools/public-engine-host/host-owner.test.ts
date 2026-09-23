@@ -80,23 +80,29 @@ function fixture(receipts = 4096) {
   return { make, db, sockets, waits, get alarm() { return alarm; }, fire() { alarm = null; }, fail(value: boolean) { failRearm = value; }, close: () => db.close() };
 }
 
-test("host progresses without clients beyond lease expiry, survives restart, and ignores duplicate early alarms", async () => {
+test("lease expiry settles one admitted occurrence, then sleeps until a later request", async () => {
   const f = fixture();
   try {
     let host = f.make();
     await host.renewLease(0);
     assert.equal(f.alarm, 100);
-    f.fire(); await host.runDue(100_000);
+    await host.runDue(99); // Duplicate/early delivery cannot consume the occurrence.
+    assert.equal(f.alarm, 100);
+    await host.runDue(100);
     assert.equal(host.region.readCommitted().state.time, 0.1);
-    assert.ok(f.alarm! > Date.now());
+    assert.ok(f.alarm! >= 200);
+    await host.runDue(15_000); // The already admitted sequence settles once after expiry.
+    assert.equal(host.region.readCommitted().state.time, 0.2);
+    assert.equal(f.alarm, null);
     host = f.make(); // Drop all resident/queue/cache state.
     await host.runDue(100_000);
-    assert.equal(host.region.readCommitted().state.time, 0.1);
-    await host.publishObservation(); // No resident observation API: must never build.
-    const next = f.alarm!;
-    const realNow = Date.now; Date.now = () => next;
-    try { f.fire(); await host.runDue(next); } finally { Date.now = realNow; }
     assert.equal(host.region.readCommitted().state.time, 0.2);
+    assert.equal(f.alarm, null);
+    await host.renewLease(100_000); // An authorized observation/command wakes the same sequence frontier.
+    assert.ok(f.alarm! >= 100_100);
+    await host.runDue(f.alarm!);
+    assert.ok(Math.abs(host.region.readCommitted().state.time - 0.3) < 1e-9);
+    assert.ok(f.alarm! >= 100_200);
   } finally { f.close(); }
 });
 
@@ -116,29 +122,30 @@ test("pause removes wake, quiet command arrival commits its occurrence and rearm
   } finally { f.close(); }
 });
 
-test("transactional rearm failures persist a finite retry budget across restart", async () => {
+test("transactional rearm failures preserve the occurrence through restart until lease expiry", async () => {
   const f = fixture();
   try {
     let host = f.make();
     await host.renewLease(0);
     f.fail(true);
-    for (let failure = 1; failure <= 5; failure++) {
+    for (let failure = 1; failure <= 4; failure++) {
       const now = f.alarm!;
       f.fire();
       await host.runDue(now); // Failure is represented durably, not rethrown forever.
-      assert.equal(host.region.readCommitted().state.time, 0);
+      assert.equal(host.region.readCommitted().state.time, 0, `failure ${failure} must roll back its occurrence`);
       const status = host.hostStatus();
       assert.equal(status.attempts, failure);
-      if (failure < 5) {
-        assert.equal(status.state, "retrying");
-        assert.equal(f.alarm, now + 1000 * 2 ** (failure - 1));
-      } else { assert.equal(status.state, "faulted"); assert.equal(f.alarm, null); }
+      assert.equal(status.state, "retrying");
+      assert.equal(f.alarm, now + 1000 * 2 ** (failure - 1));
       host = f.make();
     }
+    // The durable clock request survives alarm-write failures. Its retry is
+    // after the lease, but the occurrence still settles and no new clock is made.
+    assert.ok(f.alarm! > 15_000);
     f.fail(false);
-    await host.runDue(Date.now());
-    await host.renewLease(Date.now());
-    assert.equal(host.region.readCommitted().state.time, 0);
+    await host.runDue(f.alarm!);
+    assert.equal(host.region.readCommitted().state.time, 0.1);
+    assert.deepEqual(host.hostStatus(), { state: "running" });
     assert.equal(f.alarm, null);
   } finally { f.close(); }
 });
