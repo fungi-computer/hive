@@ -108,7 +108,14 @@ pub struct AssignmentEpisode {
 impl AssignmentEpisode {
     pub fn new(window: &PlanningWindow, candidates: &[Candidate]) -> Result<Self, PlanningError> {
         validate_candidates(window, candidates)?;
-        Ok(Self { candidates: candidates.to_vec(), proposed: assign::optimize(candidates, MAX_CANDIDATE_PAIRS)? })
+        let mut proposed = assign::optimize(candidates, MAX_CANDIDATE_PAIRS)?;
+        // The joint optimizer owns pair selection. Admission spends its small
+        // route budget on the least travel first, with stable identity ties.
+        proposed.sort_by(|a, b| {
+            let priority = |id: &str| window.tasks.iter().find(|task| task.id == id).map(|task| task.priority).unwrap_or(0);
+            priority(&b.task).cmp(&priority(&a.task)).then(a.cost.total_cmp(&b.cost)).then(a.worker.cmp(&b.worker)).then(a.task.cmp(&b.task))
+        });
+        Ok(Self { candidates: candidates.to_vec(), proposed })
     }
 
     pub fn is_empty(&self) -> bool { self.proposed.is_empty() }
@@ -210,7 +217,7 @@ fn run_verified<Witness>(
     }
     let allowed_workers = window.workers.iter().map(|worker| worker.id.as_str()).collect::<BTreeSet<_>>();
     let allowed_tasks = window.tasks.iter().map(|task| task.id.as_str()).collect::<BTreeSet<_>>();
-    let task_order = window.tasks.iter().enumerate().map(|(index, task)| (task.id.as_str(), index)).collect::<BTreeMap<_, _>>();
+    let task_order = window.tasks.iter().map(|task| (task.id.as_str(), task.priority)).collect::<BTreeMap<_, _>>();
     let mut pairs = BTreeMap::new();
     for candidate in candidates {
         if !allowed_workers.contains(candidate.worker.as_str()) || !allowed_tasks.contains(candidate.task.as_str()) {
@@ -233,7 +240,7 @@ fn run_verified<Witness>(
         let reachable = proposed.iter().filter(|assignment| matches!(pairs.get(&(assignment.worker.clone(), assignment.task.clone())).map(|state| &state.exact), Some(ExactCost::Reachable { .. }))).count();
         if reachable >= MAX_ASSIGNMENTS { break; }
         let next = proposed.iter().filter(|assignment| matches!(pairs.get(&(assignment.worker.clone(), assignment.task.clone())).map(|state| &state.exact), Some(ExactCost::Unverified)))
-            .min_by(|left, right| task_order.get(left.task.as_str()).cmp(&task_order.get(right.task.as_str())).then(left.worker.cmp(&right.worker)).then(left.task.cmp(&right.task)))
+            .min_by(|left, right| task_order.get(right.task.as_str()).cmp(&task_order.get(left.task.as_str())).then(left.cost.total_cmp(&right.cost)).then(left.worker.cmp(&right.worker)).then(left.task.cmp(&right.task)))
             .cloned();
         let Some(next) = next else { break; };
         let key = (next.worker.clone(), next.task.clone());

@@ -22,7 +22,8 @@ impl Kernel {
         // slice; unfinished outcomes remain saved for the next occurrence.
         let mut tasks = self.work_attempts.iter().filter_map(|(id, entity)| {
             let attempt = self.ecs.get::<WorkAttempt>(*entity)?;
-            if !matches!(attempt.phase, crate::work_attempt::AttemptPhase::Outcome { .. })
+            if attempt.continuation_owner != crate::work_attempt::ContinuationOwner::Native
+                || !matches!(attempt.phase, crate::work_attempt::AttemptPhase::Outcome { .. })
                 || self.ecs.get::<SupplyAllocation>(*entity).is_some() { return None; }
             let policy = self.ecs.get::<WorkPolicy>(*entity)?;
             Some(OutcomeTask { id: id.clone(), pool: attempt.execution.pool.clone(), priority: policy.priority })

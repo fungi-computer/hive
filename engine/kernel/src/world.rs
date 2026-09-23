@@ -979,7 +979,8 @@ mod field_water_recovery_tests {
         let work = kernel.ecs.get::<FieldWaterWork>(task_entity).unwrap().clone();
         kernel.ecs.entity_mut(task_entity).insert(FieldWaterWork { vessel: Some("pail".into()), cell_x: at.x as i32, cell_y: at.y, cell_z: at.z as i32, ..work });
         let destination = navigation::point(pose);
-        let key = kernel.begin_work_attempt(task.clone(), "worker".into(), ActivityRef::Route { destination: destination.clone() }, &ActionScope::Host).unwrap();
+        let route = kernel.route_for(worker, pose, &destination).unwrap();
+        let key = kernel.begin_work_attempt_with_prepared_route(task.clone(), "worker".into(), destination.clone(), route).unwrap();
         let mut kernel = restore(&kernel);
         // The worker is already at this contact; retain the route-completed
         // checkpoint so the real continuation owner performs the withdrawal.
@@ -2944,7 +2945,8 @@ impl Kernel {
         self.planner.continuation.is_some() || self.planner_indexes.has_due_task(tick)
             // Accepted work may arrive or publish an outcome before the next
             // candidate review. Its reconciliation still needs atomic staging.
-            || !self.work_attempts.is_empty()
+            || self.work_attempts.values().any(|entity| self.ecs.get::<WorkAttempt>(*entity)
+                .is_some_and(|attempt| attempt.continuation_owner == crate::work_attempt::ContinuationOwner::Native))
     }
     pub(crate) fn external_id(&self, entity: Entity) -> Result<String> { self.ecs.get::<ExternalId>(entity).map(|id| id.0.clone()).ok_or("entity has no external identity".into()) }
     pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = (&str, &SupplyAllocation)> {
@@ -5894,7 +5896,7 @@ impl Kernel {
             if process != &task { return Err("process attendance task mismatch".into()); }
             self.attend_process(&worker, process, contact, 0.0)?;
             let entity = task_entity;
-            self.ecs.entity_mut(entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), execution, phase: AttemptPhase::Executing { operation, activity } });
+            self.ecs.entity_mut(entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), execution, continuation_owner: crate::work_attempt::ContinuationOwner::External, phase: AttemptPhase::Executing { operation, activity } });
             self.work_attempts.insert(task, entity);
             self.attempts_by_worker.insert(worker, key.clone());
             return Ok(key);
@@ -5903,14 +5905,14 @@ impl Kernel {
         let position = *self.ecs.get::<Position>(worker_entity).ok_or("route attempt worker has no position")?;
         self.ecs.get::<Body>(worker_entity).ok_or("route attempt worker is not movable")?;
         let route = self.route_for(worker_entity, position, &destination)?;
-        self.publish_prepared_route_attempt(task, worker, execution, destination, route, key, operation, task_entity, worker_entity)
+        self.publish_prepared_route_attempt(task, worker, execution, destination, route, key, operation, task_entity, worker_entity, crate::work_attempt::ContinuationOwner::External)
     }
-    fn publish_prepared_route_attempt(&mut self, task: String, worker: String, execution: WorkExecution, destination: Point, route: PreparedRoute, key: AttemptKey, operation: OperationKey, task_entity: Entity, worker_entity: Entity) -> Result<AttemptKey> {
+    fn publish_prepared_route_attempt(&mut self, task: String, worker: String, execution: WorkExecution, destination: Point, route: PreparedRoute, key: AttemptKey, operation: OperationKey, task_entity: Entity, worker_entity: Entity, continuation_owner: crate::work_attempt::ContinuationOwner) -> Result<AttemptKey> {
         self.direct.remove(&worker_entity);
         let position = *self.ecs.get::<Position>(worker_entity).ok_or("route attempt worker has no position")?;
         self.ecs.entity_mut(worker_entity).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
         self.install_route(worker_entity, route);
-        self.ecs.entity_mut(task_entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), execution, phase: AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Route { destination } } });
+        self.ecs.entity_mut(task_entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), execution, continuation_owner, phase: AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Route { destination } } });
         self.work_attempts.insert(task, task_entity);
         self.attempts_by_worker.insert(worker, key.clone());
         Ok(key)
@@ -5927,7 +5929,7 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
-        self.publish_prepared_route_attempt(task, worker, execution, destination, route, key, operation, task_entity, worker_entity)
+        self.publish_prepared_route_attempt(task, worker, execution, destination, route, key, operation, task_entity, worker_entity, crate::work_attempt::ContinuationOwner::Native)
     }
     fn continue_work_attempt_with_prepared_route(&mut self, task: &str, generation: u64, sequence: u32, destination: Point, route: PreparedRoute) -> Result<()> {
         let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;

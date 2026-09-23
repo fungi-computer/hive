@@ -6,7 +6,7 @@ use bevy_ecs::prelude::Component;
 use crate::components::{Point, WorkExecution};
 use serde::{Deserialize, Serialize};
 
-pub const CURRENT_VERSION: u16 = 2;
+pub const CURRENT_VERSION: u16 = 3;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -24,8 +24,15 @@ pub struct WorkAttempt {
     pub key: AttemptKey,
     pub worker: String,
     pub execution: WorkExecution,
+    pub continuation_owner: ContinuationOwner,
     pub phase: AttemptPhase,
 }
+
+/// Admission chooses who consumes retained outcomes; task eligibility is not
+/// ownership of a host-started attempt. This survives save and recovery.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ContinuationOwner { External, Native }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
