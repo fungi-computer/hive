@@ -17,7 +17,8 @@ const pack = createColonyFrameworkProofV2Pack(),
   recoveryPort = wasmKernelPort(new WasmKernel());
 const session = new GameSession({ port, pack });
 const steps = Number(
-  process.argv.find((arg) => arg.startsWith("--steps="))?.slice(8) ?? 1800,
+  process.argv.find((arg: string) => arg.startsWith("--steps="))?.slice(8) ??
+    1800,
 );
 if (!Number.isSafeInteger(steps) || steps < 0 || steps > 1800)
   throw new Error("steps must be an integer from0 through1800");
@@ -39,7 +40,7 @@ try {
   const pails = lots
     .filter((row) => row.get(MaterialLot).kind === "pail")
     .map((row) => ({ id: row.id, worker: row.get(MaterialLot).container }));
-  const positions = new Map(
+  const positions = new Map<string, { x: number; y: number; z: number }>(
     session.query(query(Position)).map((row) => [row.id, row.get(Position)]),
   );
   const workers = pails.map((pail) => ({
