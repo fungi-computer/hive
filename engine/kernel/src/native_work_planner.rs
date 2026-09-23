@@ -148,12 +148,15 @@ impl Kernel {
     /// verifies routes. Retained physical outcomes have their own lifecycle
     /// and cannot wait behind an unrelated residual matching window.
     pub(crate) fn advance_native_work_planner(&mut self, tick: u64) -> Result<usize> {
+        let reconcile_started = crate::capture_diagnostics::now_ms();
         let mut progressed = self.reconcile_supply_allocations()?;
         progressed += self.reconcile_manual_attempts()?;
         progressed += self.reconcile_native_work_outcomes()?;
+        crate::capture_diagnostics::record("planner_reconcile", reconcile_started);
         if self.planner.continuation.is_none() && !self.planner_indexes.has_due_task(tick) {
             return Ok(progressed);
         }
+        let window_started = crate::capture_diagnostics::now_ms();
         let competing_due_work = self.planner.continuation.as_ref().is_some_and(|continuation| {
             continuation.source_window.tasks.first().is_some_and(|retained| {
                 self.planner_indexes.tasks_by_pool.get(&retained.party).into_iter().flatten()
@@ -206,6 +209,8 @@ impl Kernel {
             self.planner.continuation = None;
             return Ok(progressed);
         }
+        crate::capture_diagnostics::record("planner_due_window", window_started);
+        let requirements_started = crate::capture_diagnostics::now_ms();
 
         // Reconcile already-delivered process inputs before taking the
         // read-only contribution view. Newly admitted deliveries cannot arrive
@@ -298,7 +303,10 @@ impl Kernel {
             self.cleanup_empty_ground_stock();
             return Err(error);
         }
+        crate::capture_diagnostics::record("planner_collect_requirements", requirements_started);
+        let assign_started = crate::capture_diagnostics::now_ms();
         let assigned = self.assign_native_obligations(&window, &supply_requirements, requirements);
+        crate::capture_diagnostics::record("planner_assign_total", assign_started);
         self.cleanup_empty_ground_stock();
         progressed += assigned?;
         Ok(progressed)
@@ -658,6 +666,7 @@ impl Kernel {
             crate::work_candidates::AssignmentEpisode::new(&planning_window, &candidates)
                 .map_err(|error| format!("native joint assignment failed: {error:?}"))?
         };
+        let matching_started = crate::capture_diagnostics::now_ms();
         let selected = matching.advance(&planning_window, |candidate| {
             let worker_entity = self.entity(&candidate.worker)?;
             let position = *self.ecs.get::<Position>(worker_entity).ok_or("native planner worker lost position")?;
@@ -706,6 +715,7 @@ impl Kernel {
                 },
             }
         }).map_err(|error| format!("native joint assignment failed: {error:?}"))?;
+        crate::capture_diagnostics::record("planner_matching_and_routes", matching_started);
 
         // Keep the exact residual graph and proposal order; releasing one slice
         // is not a reason to solve the same worker/task matrix again.

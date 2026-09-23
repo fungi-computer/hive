@@ -24,9 +24,12 @@ impl Kernel {
     }
     pub(crate) fn changed_records(&self) -> Result<RecordDelta> {
         self.ensure_ready()?;
+        let environment_started = crate::capture_diagnostics::now_ms();
         let environment = self.environment.as_ref().map(|environment| {
             Ok::<_, String>((environment.definition.clone(), environment.world.save_records()?))
         }).transpose()?;
+        crate::capture_diagnostics::record("environment_projection", environment_started);
+        let metadata_started = crate::capture_diagnostics::now_ms();
         let mut bank = crate::terrain_route::SearchBank::default();
         bank.occurrence = self.planner.route_searches.occurrence;
         bank.spent = self.planner.route_searches.spent;
@@ -34,7 +37,10 @@ impl Kernel {
             review_tick: self.planner.review_tick, assignment_generation: self.planner.assignment_generation,
             continuation: self.planner.continuation.clone(), route_searches: bank };
         let metadata = serde_json::to_string(&self.snapshot_metadata_with_planner(planner)).map_err(|error| error.to_string())?;
+        crate::capture_diagnostics::record("planner_root_metadata", metadata_started);
+        let bundle_started = crate::capture_diagnostics::now_ms();
         let mut puts = RecordBundle::from_records(KernelRecords { entities: metadata, environment, atmosphere: None })?;
+        crate::capture_diagnostics::record("delta_record_bundle", bundle_started);
         let mut removes = Vec::new();
         if let Some(environment) = &self.environment {
             let (air_puts, air_removes) = environment.changed_air_records()?;
@@ -49,6 +55,7 @@ impl Kernel {
         for entity in self.direct.changed() { if let Some(id) = self.ecs.get::<ExternalId>(*entity) { changed.insert(id.0.clone()); } }
         changed.extend(self.projectile_contacts.changed().cloned());
         let mut motion = BTreeMap::new();
+        let entities_started = crate::capture_diagnostics::now_ms();
         for id in changed {
             let entity = self.ids.get(&id).copied();
             let mut row = entity.map(|entity| EntityRecord { id: id.clone(), components: self.registry.schemas.keys().filter_map(|name| self.registry.read(&self.ecs, entity, name).map(|value| (name.clone(), value))).collect() })
@@ -64,6 +71,8 @@ impl Kernel {
             record(&mut puts, &mut removes, "direct", &id, entity.and_then(|entity| self.direct.get(&entity)))?;
             record(&mut puts, &mut removes, "contacts", &id, self.projectile_contacts.get(&id).map(|targets| ProjectileContactsSnapshot { projectile_id: id.clone(), targets: targets.iter().cloned().collect() }))?;
         }
+        crate::capture_diagnostics::record("changed_entity_attempt_direct_contact_rows", entities_started);
+        let routes_started = crate::capture_diagnostics::now_ms();
         for id in &route_ids {
             let entity = self.ids.get(id).copied();
             let route = entity.and_then(|entity| self.routes.get(&entity).map(|path| self.route_snapshot_for(entity, path, self.terrain_routes.get(&entity))));
@@ -71,6 +80,8 @@ impl Kernel {
                 for (key, bytes) in crate::route_records::encode(id, serde_json::to_value(route).map_err(|error| error.to_string())?)? { puts.insert(&key, &bytes)?; }
             } else { removes.push(format!("kernel/state/routes/{id}")); }
         }
+        crate::capture_diagnostics::record("changed_route_rows", routes_started);
+        let other_started = crate::capture_diagnostics::now_ms();
         for id in self.party_bindings.changed() { record(&mut puts, &mut removes, "parties", id, self.party_bindings.get(id))?; }
         let searches: Vec<_> = self.planner.route_searches.changed.keys().cloned().collect();
         for id in &searches {
@@ -79,6 +90,7 @@ impl Kernel {
                 for (key, bytes) in crate::search_records::encode(id, request)? { puts.insert(&key, &bytes)?; }
             }
         }
+        crate::capture_diagnostics::record("changed_party_search_rows", other_started);
         Ok(RecordDelta { puts, removes, searches, routes: route_ids.into_iter().collect(), motion })
     }
 }

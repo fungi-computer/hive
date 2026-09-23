@@ -40,6 +40,7 @@ import {
 
 export interface WasmKernelBinding extends NativeRecordBinding {
   free(): void;
+  take_capture_diagnostics?(): string;
   load(json: string): void;
   load_environment(json: string): void;
   environment_facts(): string;
@@ -70,6 +71,11 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   route_costs(json: string): string;
   route_to_any(json: string): string;
 }
+const captureDiagnosticTotals = new Map<string, { count: number; totalMs: number }>();
+export function takeCaptureDiagnosticTotals(): Record<string, { count: number; totalMs: number }> {
+  return Object.fromEntries(captureDiagnosticTotals);
+}
+export function resetCaptureDiagnosticTotals(): void { captureDiagnosticTotals.clear(); }
 type QueryWire = { id: EntityId; components: Record<string, unknown> };
 const surfaceResultsSchema = z.array(terrainSurfaceSchema.nullable()).max(64);
 const entityIdWireSchema = z.custom<EntityId>(
@@ -773,7 +779,20 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     snapshot() {
       return captureKernelRecords(binding);
     },
-    capture() { return capture.capture(); },
+    capture() {
+      const result = capture.capture();
+      const diagnostics = binding.take_capture_diagnostics?.();
+      if (diagnostics) {
+        const rows = JSON.parse(diagnostics) as Record<string, [number, number]>;
+        for (const [name, [count, totalMs]] of Object.entries(rows)) {
+          const total = captureDiagnosticTotals.get(name) ?? { count: 0, totalMs: 0 };
+          total.count += count;
+          total.totalMs += totalMs;
+          captureDiagnosticTotals.set(name, total);
+        }
+      }
+      return result;
+    },
     acceptCapture() { capture.acceptCapture(); },
     restore(snapshot) {
       const sequence = restoreKernelRecords(binding, () => new WasmKernelRecords(), snapshot);

@@ -73,9 +73,12 @@ impl RecordCapture {
         let mut baseline = self.baseline.take().unwrap();
         let old_header = baseline.read(HEADER_KEY)?;
         let RecordDelta { puts: mut delta, mut removes, searches, routes, motion } = delta;
+        let motion_started = crate::capture_diagnostics::now_ms();
         let (cohorts, retired) = crate::motion_records::patch(&baseline.records, motion)?;
         removes.extend(retired);
         for (key, bytes) in cohorts { delta.insert(&key, &bytes)?; }
+        crate::capture_diagnostics::record("cursor_motion_patch", motion_started);
+        let retirement_started = crate::capture_diagnostics::now_ms();
         for id in routes {
             let prefix = format!("{}{id}/", crate::route_records::PREFIX);
             removes.extend(baseline.records.keys().filter(|key| key.starts_with(&prefix) && !delta.records.contains_key(*key)).cloned());
@@ -85,6 +88,8 @@ impl RecordCapture {
             let absent: Vec<_> = baseline.records.keys().filter(|key| key.starts_with(&prefix) && !delta.records.contains_key(*key)).cloned().collect();
             removes.extend(absent);
         }
+        crate::capture_diagnostics::record("cursor_route_search_retirement", retirement_started);
+        let patch_started = crate::capture_diagnostics::now_ms();
         let mut changed = RecordBundle::new();
         let mut removed = std::collections::BTreeSet::new();
         for key in removes {
@@ -103,17 +108,22 @@ impl RecordCapture {
                 removed.remove(&key);
             }
         }
+        crate::capture_diagnostics::record("cursor_apply_delta", patch_started);
+        let capacity_started = crate::capture_diagnostics::now_ms();
         let (mut header, _): (Header, &[u8]) = take_from_bytes(baseline.records.get(HEADER_KEY).ok_or("missing record header")?).map_err(|_| "invalid record header")?;
         header.entity_counts = crate::stable_entity_records::counts_keys(baseline.records.keys());
         let entity_bytes: usize = baseline.records.iter().filter(|(key, _)| key.starts_with(ENTITY_PREFIX)).map(|(_, bytes)| bytes.len()).sum();
         let separators: usize = header.entity_counts[1..].iter().map(|count| count.saturating_sub(1) as usize).sum();
         if entity_bytes.saturating_add(separators) > ENTITY_BYTES { return Err("entity records exceed 8MiB".into()); }
         baseline.validate_canonical_capacity(state_weight)?;
+        crate::capture_diagnostics::record("cursor_capacity_and_counts", capacity_started);
+        let frontier_started = crate::capture_diagnostics::now_ms();
         let header = postcard::to_allocvec(&header).map_err(|_| "record header encoding failed")?;
         if header != old_header { changed.insert(HEADER_KEY, &header)?; }
         baseline.replace(HEADER_KEY, header)?;
         for key in &removed { self.known_keys.remove(key); }
         for key in changed.records.keys() { self.known_keys.insert(key.clone()); }
+        crate::capture_diagnostics::record("cursor_header_and_inventory", frontier_started);
         self.baseline = Some(baseline);
         self.sequence = sequence;
         Ok((changed, CaptureManifest { sequence, base: Some(since), revision, time, removes: removed.into_iter().collect() }))
